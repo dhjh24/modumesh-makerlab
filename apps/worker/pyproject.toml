@@ -1,0 +1,20 @@
+[project]
+name = "modumesh-worker"
+version = "0.1.0"
+description = "ModuMesh MakerLab worker — queued CAD generation"
+requires-python = ">=3.11"
+dependencies = [
+    "redis>=5.2.0",
+    "httpx>=0.28.0",
+    "pydantic>=2.10.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.24.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"

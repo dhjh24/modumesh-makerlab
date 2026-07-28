@@ -1,0 +1,23 @@
+services:
+  api:
+    develop:
+      watch:
+        - path: ../../apps/api/app
+          action: sync+restart
+    ports:
+      - '8000:8000'
+
+  web:
+    develop:
+      watch:
+        - path: ../../apps/web
+          action: sync
+    ports:
+      - '3000:3000'
+    command: ['npm', 'run', 'dev']
+
+  worker:
+    develop:
+      watch:
+        - path: ../../apps/worker/app
+          action: sync+restart
