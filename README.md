@@ -66,20 +66,23 @@ modumesh-makerlab/
 │   ├── api/          # FastAPI backend
 │   └── worker/       # Python background worker
 ├── packages/
-│   ├── plugin-sdk/   # Plugin development kit
-│   ├── shared-types/ # TypeScript types shared across apps
-│   ├── viewer/       # 3D model viewer (Three.js / R3F)
-│   └── ui/           # Shared UI components
+│   ├── plugin-sdk/      # TS types + JSON schemas
+│   ├── plugin-sdk-py/  # Python SDK, runner, contract CLI
+│   ├── shared-types/   # TypeScript types shared across apps
+│   ├── viewer/         # 3D model viewer (Three.js / R3F)
+│   └── ui/             # Shared UI components
 ├── plugins/
-│   └── nameplate/    # Reference plugin (Phase 5)
+│   ├── fixture-echo/   # Non-CAD example plugin (Phase 3)
+│   └── nameplate/      # Reference CadQuery plugin (Phase 5)
 ├── infra/
-│   └── compose/      # Docker Compose files
+│   └── compose/        # Docker Compose files
 ├── docs/
-│   ├── adr/          # Architecture Decision Records
+│   ├── adr/            # Architecture Decision Records
+│   ├── plugins.md      # Plugin author guide
 │   └── architecture.md
 └── tests/
-    ├── e2e/          # End-to-end tests
-    └── integration/  # Integration tests
+    ├── e2e/            # End-to-end tests
+    └── integration/    # Integration tests
 ```
 
 ## Development
@@ -87,9 +90,14 @@ modumesh-makerlab/
 ```bash
 # Install dependencies
 npm install
+pip install -e packages/plugin-sdk-py
 
 # Run all TypeScript type checks
 npm run typecheck
+
+# Plugin contract check
+modumesh-plugin-check check plugins/fixture-echo \
+  --input plugins/fixture-echo/fixtures/valid-input.json
 
 # Run API tests
 cd apps/api && pip install -e ".[dev]" && pytest

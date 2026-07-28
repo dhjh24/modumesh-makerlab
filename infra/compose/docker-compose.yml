@@ -60,6 +60,11 @@ services:
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change_me_in_production}
       MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
       API_CORS_ORIGINS: http://localhost:3000
+      API_PLUGIN_DIR: /plugins
+    # Plugin source is baked read-only into the image. Optional bind mount for
+    # local plugin development (still mounted read-only; no docker.sock).
+    volumes:
+      - ../../plugins:/plugins:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -89,7 +94,11 @@ services:
       WORKER_REAPER_INTERVAL_SECONDS: 15
       WORKER_SAMPLE_STEP_DELAY_MS: 200
       WORKER_POLL_INTERVAL_SECONDS: 2
+      WORKER_PLUGIN_DIR: /plugins
+      MODUMESH_DENY_DOCKER_SOCK: '1'
       MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
+    volumes:
+      - ../../plugins:/plugins:ro
     depends_on:
       postgres:
         condition: service_healthy

@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for ModuMesh MakerLab.
 
 Tables: users, projects, generation_jobs, files, audit_events,
-plus schema_migrations (Phase 1).
+plugin_registry, plus schema_migrations (Phase 1).
 """
 
 from __future__ import annotations
@@ -156,6 +156,7 @@ class GenerationJob(Base):
     timeout_seconds: Mapped[int] = mapped_column(
         Integer, nullable=False, server_default=text("60")
     )
+    plugin_version: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     cancel_requested: Mapped[bool] = mapped_column(
         Boolean, nullable=False, server_default=text("false")
     )
@@ -205,6 +206,80 @@ class GenerationJob(Base):
             unique=True,
             postgresql_where=text("idempotency_key IS NOT NULL"),
         ),
+        Index(
+            "ix_generation_jobs_job_type_plugin_version",
+            "job_type",
+            "plugin_version",
+        ),
+    )
+
+
+class PluginRegistryEntry(Base):
+    """Discovered plugin versions with persisted enable/disable state."""
+
+    __tablename__ = "plugin_registry"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=_uuid
+    )
+    plugin_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    version: Mapped[str] = mapped_column(String(32), nullable=False)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    sdk_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    engine: Mapped[str] = mapped_column(String(32), nullable=False)
+    entrypoint: Mapped[str] = mapped_column(String(255), nullable=False)
+    categories: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    outputs: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    timeout_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
+    memory_mb: Mapped[int] = mapped_column(Integer, nullable=False)
+    network_policy: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'deny'")
+    )
+    input_schema: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
+    manifest: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False)
+    source_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    status: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'active'")
+    )
+    diagnostics: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    max_input_bytes: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("65536")
+    )
+    max_output_bytes: Mapped[int] = mapped_column(
+        Integer, nullable=False, server_default=text("1048576")
+    )
+    discovered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=text("NOW()"),
+        onupdate=_utcnow,
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'invalid', 'incompatible', 'duplicate')",
+            name="ck_plugin_registry_status",
+        ),
+        CheckConstraint(
+            "network_policy IN ('deny', 'allow')",
+            name="ck_plugin_registry_network",
+        ),
+        Index("ix_plugin_registry_plugin_id", "plugin_id"),
+        Index("ix_plugin_registry_enabled", "enabled"),
+        Index("ix_plugin_registry_status", "status"),
     )
 
 

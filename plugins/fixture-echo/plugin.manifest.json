@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1",
+  "id": "fixture-echo",
+  "name": "Fixture Echo",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "fixture_echo.plugin:run",
+  "description": "Non-CAD example plugin that writes safe fixture files for contract validation.",
+  "categories": ["fixture", "testing"],
+  "outputs": [
+    {
+      "name": "echo.json",
+      "mediaType": "application/json",
+      "required": true
+    },
+    {
+      "name": "note.txt",
+      "mediaType": "text/plain",
+      "required": true
+    }
+  ],
+  "timeoutSeconds": 30,
+  "memoryMb": 128,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 65536,
+  "maxOutputBytes": 1048576
+}

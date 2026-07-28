@@ -1,6 +1,6 @@
 """ModuMesh MakerLab worker — Redis queue consumer for generation jobs.
 
-Phase 2: processes the harmless `sample` job type only. No plugins, no CAD.
+Phase 3: sample jobs + registered plugins via the plugin SDK runner.
 """
 
 from __future__ import annotations
@@ -13,6 +13,7 @@ from typing import Optional
 from app.config import settings
 from app.database import close_db, session_scope
 from app.job_ops import claim_job
+from app.jobs.plugin import run_plugin_job
 from app.jobs.sample import run_sample_job
 from app.logging import configure_logging, get_logger
 from app.queue_keys import JOB_QUEUE_KEY
@@ -64,24 +65,15 @@ async def process_job_id(job_id: str, worker_id: str) -> None:
             "processing job",
             job_id=job_id,
             job_type=job.job_type,
+            plugin_version=job.plugin_version,
             attempt=job.attempt_number,
         )
 
-        if job.job_type != "sample":
-            from app.job_ops import transition
-            from app.states import JobStatus
+        if job.job_type == "sample":
+            await run_sample_job(session, job, worker_id=worker_id)
+        else:
+            await run_plugin_job(session, job, worker_id=worker_id)
 
-            await transition(
-                session,
-                job,
-                JobStatus.FAILED,
-                worker_id=worker_id,
-                error_message=f"Unsupported job_type '{job.job_type}' in Phase 2",
-                progress_message="unsupported job type",
-            )
-            return
-
-        await run_sample_job(session, job, worker_id=worker_id)
         log.info("job finished", job_id=job_id, status=job.status)
 
 

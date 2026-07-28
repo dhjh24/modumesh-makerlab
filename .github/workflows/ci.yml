@@ -59,8 +59,9 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
+      - run: pip install -e ../../packages/plugin-sdk-py
       - run: pip install -e ".[dev]"
-      - run: coverage run -m pytest tests/test_health.py tests/test_state_machine.py -v
+      - run: coverage run -m pytest tests/test_health.py tests/test_state_machine.py tests/test_plugins_unit.py -v
       - run: coverage report
 
   worker-tests:
@@ -75,8 +76,23 @@ jobs:
         with:
           python-version: '3.11'
           cache: pip
+      - run: pip install -e ../../packages/plugin-sdk-py
       - run: pip install -e ".[dev]"
       - run: python -m pytest -v
+
+  plugin-contract:
+    name: Plugin Contract Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: pip install -e packages/plugin-sdk-py
+      - run: python -m pytest packages/plugin-sdk-py/tests -v
+      - run: modumesh-plugin-check check plugins/fixture-echo --input plugins/fixture-echo/fixtures/valid-input.json
+      - run: modumesh-plugin-check discover plugins
 
   container-build:
     name: Container Build Validation
@@ -110,10 +126,14 @@ jobs:
       - name: Run migrations
         run: |
           docker compose -f infra/compose/docker-compose.yml exec -T api alembic -c /app/alembic.ini upgrade head
+      - name: Resync plugins
+        run: |
+          curl -sf -X POST http://localhost:8000/api/v1/plugins/resync | head -c 500
+          echo
       - name: Run smoke tests
         run: |
           docker compose -f infra/compose/docker-compose.yml exec -T api pip install pytest httpx pytest-asyncio
-          docker compose -f infra/compose/docker-compose.yml exec -T api python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
+          docker compose -f infra/compose/docker-compose.yml exec -T api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py -v -x
       - name: Show logs on failure
         if: failure()
         run: |

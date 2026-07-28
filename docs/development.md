@@ -49,10 +49,17 @@ python -m app.main
 ## Testing
 
 ```bash
-# API tests
+# Plugin contract CLI (authors + CI)
+pip install -e packages/plugin-sdk-py
+modumesh-plugin-check check plugins/fixture-echo \
+  --input plugins/fixture-echo/fixtures/valid-input.json
+
+# API tests (install SDK first)
+pip install -e packages/plugin-sdk-py
 cd apps/api && pip install -e ".[dev]" && pytest -v
 
 # Worker tests
+pip install -e packages/plugin-sdk-py
 cd apps/worker && pip install -e ".[dev]" && pytest -v
 
 # TypeScript type checks
@@ -60,7 +67,16 @@ npm run typecheck
 
 # Formatting
 npx prettier --check .
+
+# Integration smoke (stack must be running)
+make smoke
 ```
+
+## CI
+
+Continuous integration (`.github/workflows/ci.yml`) runs prettier, typecheck,
+plugin contract tests, API/worker unit tests, container builds, and integration
+smoke (including Phase 2 + Phase 3 plugin flows).
 
 ## Docker Compose Profiles
 

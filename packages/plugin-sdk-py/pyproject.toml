@@ -1,0 +1,27 @@
+[project]
+name = "modumesh-plugin-sdk"
+version = "1.0.0"
+description = "ModuMesh MakerLab plugin SDK — contract, context, and author CLI"
+requires-python = ">=3.11"
+dependencies = [
+    "jsonschema>=4.23.0",
+    "referencing>=0.35.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+modumesh-plugin-check = "modumesh_plugin_sdk.cli:main"
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+modumesh_plugin_sdk = ["schemas/*.json"]

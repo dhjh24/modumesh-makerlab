@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["message"],
+  "properties": {
+    "message": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500,
+      "description": "Text echoed into the fixture outputs."
+    },
+    "tag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "default": "fixture"
+    },
+    "force_sleep_seconds": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 120,
+      "description": "Test hook to stretch runtime for timeout/cancel tests."
+    }
+  }
+}

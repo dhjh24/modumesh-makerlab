@@ -26,9 +26,17 @@ monorepo with three application services and four shared packages.
 ### Worker (Python)
 
 - Polls Redis for queued generation jobs
-- Executes plugins with resource limits
+- Executes plugins with resource limits via the plugin SDK runner
 - Timeout, memory, network isolation per job
 - Writes results to MinIO
+
+## Plugins
+
+- Discovered from `API_PLUGIN_DIR` / `WORKER_PLUGIN_DIR` (default `/plugins`)
+- Manifest contract: `docs/plugins.md` and ADR-0003
+- Enable/disable state persisted in PostgreSQL `plugin_registry`
+- Example non-CAD plugin: `plugins/fixture-echo`
+- Nameplate CadQuery plugin lands in Phase 5
 
 ## Data Flow
 
@@ -39,7 +47,7 @@ User → Web → API → Redis Queue → Worker → Plugin → MinIO → API →
 ## Key Rules
 
 1. **No CAD generation in web requests** — always queued via Redis.
-2. **Plugins are untrusted** — non-root, timeouts, memory caps, no network.
+2. **Plugins are untrusted** — non-root, timeouts, memory caps, no network by default.
 3. **Immutable records** — plugin version, input, output, validation, checksums.
 4. **No shop integration until Phase 7 exit gate passes.**
 5. **Strict job state machine** — only allowlisted transitions; retries create new attempts.
