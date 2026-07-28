@@ -15,7 +15,8 @@ from sqlalchemy.ext.asyncio import create_async_engine
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from app.config import settings  # noqa: E402
-from app.models import Base  # noqa: E402
+from app.database import Base  # noqa: E402
+import app.models  # noqa: E402, F401 — register models on Base.metadata
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.postgres.sync_dsn)

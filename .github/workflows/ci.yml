@@ -60,7 +60,7 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: coverage run -m pytest tests/test_health.py -v
+      - run: coverage run -m pytest tests/test_health.py tests/test_state_machine.py -v
       - run: coverage report
 
   worker-tests:
@@ -112,12 +112,12 @@ jobs:
           docker compose -f infra/compose/docker-compose.yml exec -T api alembic -c /app/alembic.ini upgrade head
       - name: Run smoke tests
         run: |
-          docker compose -f infra/compose/docker-compose.yml exec -T api pip install pytest httpx
-          docker compose -f infra/compose/docker-compose.yml exec -T api python -m pytest tests/test_integration.py -v -x
+          docker compose -f infra/compose/docker-compose.yml exec -T api pip install pytest httpx pytest-asyncio
+          docker compose -f infra/compose/docker-compose.yml exec -T api python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
       - name: Show logs on failure
         if: failure()
         run: |
-          docker compose -f infra/compose/docker-compose.yml logs --tail=50
+          docker compose -f infra/compose/docker-compose.yml logs --tail=80
       - name: Cleanup
         if: always()
         run: |

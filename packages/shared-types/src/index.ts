@@ -1,42 +1,73 @@
 /** Shared types across ModuMesh MakerLab services. */
 
 // ── Projects ───────────────────────────────────────────────────────────
+export type ProjectStatus = 'active' | 'archived';
+
 export interface Project {
   id: string;
+  ownerId: string;
   name: string;
   description?: string;
+  status: ProjectStatus;
   createdAt: string;
   updatedAt: string;
-}
-
-export interface ProjectVersion {
-  id: string;
-  projectId: string;
-  version: number;
-  pluginId: string;
-  input: Record<string, unknown>;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  outputFile?: string;
-  checksum?: string;
-  createdAt: string;
-  completedAt?: string;
+  archivedAt?: string;
 }
 
 // ── Jobs ───────────────────────────────────────────────────────────────
+export type JobStatus =
+  | 'created'
+  | 'queued'
+  | 'running'
+  | 'validating'
+  | 'uploading'
+  | 'completed'
+  | 'failed'
+  | 'cancelled';
+
 export interface Job {
   id: string;
   projectId: string;
-  versionId: string;
-  pluginId: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
-  input: Record<string, unknown>;
-  outputFile?: string;
-  checksum?: string;
-  error?: string;
+  parentJobId?: string;
+  jobType: string;
+  status: JobStatus;
+  inputPayload: Record<string, unknown>;
+  progressPct: number;
+  progressMessage?: string;
+  errorMessage?: string;
+  idempotencyKey?: string;
+  attemptNumber: number;
+  workerId?: string;
+  timeoutSeconds: number;
+  cancelRequested: boolean;
   createdAt: string;
+  updatedAt: string;
+  queuedAt?: string;
   startedAt?: string;
   completedAt?: string;
-  durationMs?: number;
+}
+
+export interface JobProgress {
+  id: string;
+  status: JobStatus;
+  progressPct: number;
+  progressMessage?: string;
+  errorMessage?: string;
+  cancelRequested: boolean;
+  updatedAt: string;
+}
+
+// ── Files ──────────────────────────────────────────────────────────────
+export interface FileObject {
+  id: string;
+  projectId: string;
+  jobId?: string;
+  objectKey: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  sha256: string;
+  createdAt: string;
 }
 
 // ── Plugins ────────────────────────────────────────────────────────────
