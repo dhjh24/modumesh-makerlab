@@ -60,7 +60,22 @@ npm run typecheck
 
 # Formatting
 npx prettier --check .
+
+# Integration smoke (stack must be running)
+make smoke
 ```
+
+## CI
+
+Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
+
+- Prettier lint
+- TypeScript typecheck
+- API and worker unit tests
+- Docker Compose image build
+- Integration smoke against Postgres, Redis, and MinIO
+
+GitHub Actions workflows are not used.
 
 ## Docker Compose Profiles
 

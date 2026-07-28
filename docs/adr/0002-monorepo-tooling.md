@@ -16,9 +16,11 @@ strategy that works without additional infrastructure.
   tooling).
 - **pip** with `pyproject.toml` for Python packages (API, worker, plugins).
 - **Docker Compose** for service orchestration in development and production.
+- **CircleCI** for continuous integration (`.circleci/config.yml`).
 - No Turborepo, Nx, or Lerna — keep the toolchain minimal until scaling
   demands otherwise.
 - No `uv` or `poetry` — standard pip is sufficient for the current scope.
+- No GitHub Actions workflows — CI runs exclusively on CircleCI.
 
 ## Consequences
 
