@@ -13,6 +13,7 @@ RUN pip install --no-cache-dir *.whl
 COPY apps/api/app/ app/
 COPY apps/api/alembic/ alembic/
 COPY apps/api/alembic.ini .
+COPY apps/api/tests/ tests/
 RUN chown -R modumesh:modumesh /app
 USER modumesh
 EXPOSE 8000
