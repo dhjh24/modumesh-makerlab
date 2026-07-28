@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM node:22-alpine AS builder
+RUN addgroup -S modumesh && adduser -S -G modumesh modumesh
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/web/package.json apps/web/tsconfig.json apps/web/next.config.js ./apps/web/
@@ -10,15 +11,19 @@ COPY packages/ui/package.json packages/ui/tsconfig.json ./packages/ui/
 RUN npm ci
 COPY apps/web/ ./apps/web/
 COPY packages/ ./packages/
-RUN npm run build --workspace=@modumesh/web && \
-    mkdir -p /app/standalone/.next && \
-    cp -r apps/web/.next/standalone/. /app/standalone/ && \
-    cp -r apps/web/.next/static /app/standalone/.next/static && \
-    if [ -d apps/web/public ]; then cp -r apps/web/public /app/standalone/public; fi
+RUN npm run build --workspace=@modumesh/web
 
-FROM node:22-alpine AS runner
+FROM node:22-alpine
+RUN addgroup -S modumesh && adduser -S -G modumesh modumesh
 WORKDIR /app
 ENV NODE_ENV=production
-COPY --from=builder /app/standalone ./
+# Copy the full standalone output (it includes server.js + node_modules at correct relative paths)
+COPY --from=builder /app/apps/web/.next/standalone/ ./
+# Copy static assets to where server.js expects them
+COPY --from=builder /app/apps/web/.next/static ./apps/web/.next/static
+# Copy public assets
+COPY --from=builder /app/apps/web/public ./apps/web/public
+RUN chown -R modumesh:modumesh /app
+USER modumesh
 EXPOSE 3000
-CMD ["node", "server.js"]
+CMD ["node", "apps/web/server.js"]

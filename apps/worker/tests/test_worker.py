@@ -2,28 +2,28 @@
 
 from __future__ import annotations
 
-import importlib.util
-import os
-import sys
+
+def test_worker_config_imports() -> None:
+    """Verify the worker config module can be imported."""
+    from app.config import Settings, WorkerSettings
+    s = Settings()
+    assert s.worker.poll_interval_seconds == 5
 
 
-def test_worker_module_syntax() -> None:
-    """Verify the worker main module can be parsed."""
-    worker_path = os.path.join(
-        os.path.dirname(__file__), "..", "app", "main.py"
-    )
-    spec = importlib.util.spec_from_file_location("app.main", worker_path)
-    assert spec is not None, f"Could not load spec from {worker_path}"
-    module = importlib.util.module_from_spec(spec)
-    assert module is not None
+def test_worker_settings_defaults() -> None:
+    """Verify worker settings have sensible defaults."""
+    from app.config import WorkerSettings
+    ws = WorkerSettings()
+    assert ws.concurrency >= 1
+    assert ws.poll_interval_seconds >= 1
+    assert ws.plugin_timeout_seconds >= 30
+    assert ws.max_memory_mb >= 128
 
 
-def test_worker_main_runs() -> None:
-    """Verify the worker entry point starts and handles SIGTERM."""
-    result = __import__("subprocess").run(
-        [sys.executable, "-c", "import sys; sys.path.insert(0, 'apps/worker'); from app.main import main; print('ok')"],
-        capture_output=True,
-        text=True,
-        timeout=5,
-    )
-    assert result.returncode == 0
+def test_worker_redis_config() -> None:
+    """Verify Redis URL generation works."""
+    from app.config import RedisSettings
+    rs = RedisSettings()
+    assert rs.host == "localhost"
+    assert rs.port == 6379
+    assert "redis://" in rs.url

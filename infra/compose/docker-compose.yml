@@ -46,6 +46,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
     ports:
       - '8000:8000'
     environment:
@@ -70,6 +71,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
     environment:
       REDIS_HOST: redis
       POSTGRES_HOST: postgres
@@ -90,6 +92,7 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
     ports:
       - '3000:3000'
     environment:

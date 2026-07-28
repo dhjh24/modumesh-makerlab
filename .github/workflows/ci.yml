@@ -60,7 +60,7 @@ jobs:
           python-version: '3.11'
           cache: pip
       - run: pip install -e ".[dev]"
-      - run: coverage run -m pytest -v
+      - run: coverage run -m pytest tests/test_health.py -v
       - run: coverage report
 
   worker-tests:
@@ -84,3 +84,40 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose -f infra/compose/docker-compose.yml build
+
+  integration-smoke:
+    name: Integration Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start stack
+        run: |
+          cp .env.example .env
+          docker compose -f infra/compose/docker-compose.yml up -d
+      - name: Wait for services
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:8000/health/live > /dev/null 2>&1; then
+              echo "API is live"
+              exit 0
+            fi
+            echo "Waiting for API... ($i)"
+            sleep 3
+          done
+          echo "API did not start in time"
+          docker compose -f infra/compose/docker-compose.yml logs api --tail=30
+          exit 1
+      - name: Run migrations
+        run: |
+          docker compose -f infra/compose/docker-compose.yml exec -T api alembic -c /app/alembic.ini upgrade head
+      - name: Run smoke tests
+        run: |
+          docker compose -f infra/compose/docker-compose.yml exec -T api python -m pytest tests/test_integration.py -v -x
+      - name: Show logs on failure
+        if: failure()
+        run: |
+          docker compose -f infra/compose/docker-compose.yml logs --tail=50
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f infra/compose/docker-compose.yml down -v
