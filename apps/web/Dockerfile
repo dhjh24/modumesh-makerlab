@@ -11,10 +11,10 @@ RUN npm ci
 COPY apps/web/ ./apps/web/
 COPY packages/ ./packages/
 RUN npm run build --workspace=@modumesh/web && \
-    cp -r apps/web/.next/standalone/. /app/standalone/ && \
-    cp -r apps/web/public /app/standalone/public && \
     mkdir -p /app/standalone/.next && \
-    cp -r apps/web/.next/static /app/standalone/.next/static
+    cp -r apps/web/.next/standalone/. /app/standalone/ && \
+    cp -r apps/web/.next/static /app/standalone/.next/static && \
+    if [ -d apps/web/public ]; then cp -r apps/web/public /app/standalone/public; fi
 
 FROM node:22-alpine AS runner
 WORKDIR /app
