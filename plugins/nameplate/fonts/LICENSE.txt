@@ -1,0 +1,13 @@
+Bundled fonts for the ModuMesh Nameplate plugin (approved local fonts only).
+
+DejaVuSans.ttf — DejaVu Fonts
+  Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved.
+  Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved.
+  DejaVu changes are in the public domain.
+  See https://dejavu-fonts.github.io/
+
+FreeSans.ttf — GNU FreeFont
+  Copyright (C) 2002 Free Software Foundation, Inc.
+  Licensed under the GNU General Public License version 3 (or later)
+  with the Font Exception.
+  See https://www.gnu.org/software/freefont/

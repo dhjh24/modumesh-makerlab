@@ -38,7 +38,7 @@ monorepo with three application services and four shared packages.
 - Manifest contract: `docs/plugins.md` and ADR-0003
 - Enable/disable state persisted in PostgreSQL `plugin_registry`
 - Example non-CAD plugins: `plugins/fixture-echo`, `plugins/fixture-mesh` (STL/GLB fixtures)
-- Nameplate CadQuery plugin lands in Phase 5
+- Reference CadQuery plugin: `plugins/nameplate` (Phase 5)
 
 ## Data Flow
 
@@ -76,18 +76,18 @@ created → queued → running → validating → uploading → completed
 
 ## Technology Stack
 
-| Layer      | Technology         |
-| ---------- | ------------------ |
-| Frontend   | Next.js + React    |
-| Backend    | FastAPI            |
-| Worker     | Python             |
-| Database   | PostgreSQL 16      |
-| Queue      | Redis 7            |
-| Storage    | MinIO              |
-| Container  | Docker Compose     |
-| CAD Engine | CadQuery (Phase 5) |
-| 3D Viewer  | Three.js / R3F     |
-| Schema     | JSON Schema        |
+| Layer      | Technology           |
+| ---------- | -------------------- |
+| Frontend   | Next.js + React      |
+| Backend    | FastAPI              |
+| Worker     | Python               |
+| Database   | PostgreSQL 16        |
+| Queue      | Redis 7              |
+| Storage    | MinIO                |
+| Container  | Docker Compose       |
+| CAD Engine | CadQuery (Nameplate) |
+| 3D Viewer  | Three.js / R3F       |
+| Schema     | JSON Schema          |
 
 ## Phase 4 — Viewer & Schema-Driven Editor
 
@@ -99,4 +99,11 @@ User-facing catalog and editor without hard-coded generator forms:
 4. **Viewer** — STL/GLB, orbit controls, wireframe, build plate, bounding box, dimensions; reduced-motion aware.
 5. **Fixtures** — `public/fixtures/sample-cube.{stl,glb}` and `plugins/fixture-mesh` for job-produced meshes.
 
-Phase 5 adds the real CadQuery Nameplate generator — do not hard-code that form here.
+## Phase 5 — Nameplate reference plugin
+
+Production CadQuery generator proving the standalone MakerLab loop:
+
+1. Schema-driven inputs (text, approved fonts, dimensions, raised/engraved, holes).
+2. Worker executes CadQuery under plugin sandbox limits (mm units, deterministic tessellation).
+3. Outputs: STL, STEP, GLB (browser preview without STEP parsing), PNG thumbnail, metadata JSON.
+4. Mesh validation report (watertight, volume, bbox, checksum, degenerate warnings) recorded with plugin + project version.

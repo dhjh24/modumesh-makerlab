@@ -58,6 +58,11 @@ modumesh-plugin-check check plugins/fixture-echo \
 modumesh-plugin-check check plugins/fixture-mesh \
   --input plugins/fixture-mesh/fixtures/valid-input.json
 
+# Nameplate contract (manifest/schema; geometry tests need CadQuery)
+modumesh-plugin-check check plugins/nameplate \
+  --input plugins/nameplate/fixtures/valid-input.json --no-run
+make test-nameplate
+
 # API tests (install SDK first)
 pip install -e packages/plugin-sdk-py
 cd apps/api && pip install -e ".[dev]" && pytest -v
@@ -89,7 +94,8 @@ Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
 - Plugin contract tests (`modumesh-plugin-check` + SDK unit tests)
 - API and worker unit tests
 - Docker Compose image build
-- Integration smoke against Postgres, Redis, MinIO (Phase 2 + Phase 3 plugin flows)
+- Integration smoke against Postgres, Redis, MinIO (Phase 2–5 plugin flows)
+- Nameplate CadQuery geometry regression tests
 
 GitHub Actions workflows are not used.
 

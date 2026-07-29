@@ -83,8 +83,18 @@ jobs:
             modumesh-plugin-check check plugins/fixture-mesh \
               --input plugins/fixture-mesh/fixtures/valid-input.json
       - run:
+          name: Contract CLI — nameplate (manifest only)
+          command: |
+            modumesh-plugin-check check plugins/nameplate \
+              --input plugins/nameplate/fixtures/valid-input.json --no-run
+      - run:
           name: Discover plugins
           command: modumesh-plugin-check discover plugins
+      - run:
+          name: Nameplate geometry unit tests
+          command: |
+            pip install -q "cadquery>=2.4.0,<3" "trimesh>=4.0.0" "pillow>=10.0.0" "numpy>=1.26.0"
+            cd plugins/nameplate && PYTHONPATH=src python -m pytest -v
 
   api-tests:
     executor: python311
@@ -168,7 +178,8 @@ jobs:
               python -m pytest \
                 tests/test_integration.py \
                 tests/test_phase2_integration.py \
-                tests/test_phase3_integration.py -v -x
+                tests/test_phase3_integration.py \
+                tests/test_phase5_integration.py -v -x
       - run:
           name: Wait for Web
           command: |

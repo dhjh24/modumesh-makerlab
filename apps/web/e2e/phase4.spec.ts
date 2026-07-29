@@ -49,9 +49,8 @@ test.describe('Phase 4 core flows', () => {
     }
 
     await expect(page.getByText('Schema preview')).toBeVisible();
-    // Schema-driven fields (no hard-coded Nameplate).
+    // Schema-driven fields from registry (Nameplate is a real plugin in Phase 5).
     await expect(page.locator('.mm-schema-form')).toBeVisible();
-    await expect(page.getByText(/Nameplate/i)).toHaveCount(0);
   });
 
   test('editor submits fixture job and shows lifecycle + survives reload', async ({

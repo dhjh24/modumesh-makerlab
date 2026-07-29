@@ -108,11 +108,10 @@ outside `work_dir`.
    diagnostics until resolved.
 5. **Enable/disable** is persisted in PostgreSQL and survives rediscovery.
 
-## Example plugin
+## Example plugins
 
-See `plugins/fixture-echo` (JSON/text) and `plugins/fixture-mesh` (packaged
-STL/GLB) for Phase 3–4 fixtures. Do **not** use `plugins/nameplate` yet
-(Phase 5 CadQuery).
+See `plugins/fixture-echo` (JSON/text), `plugins/fixture-mesh` (packaged STL/GLB),
+and `plugins/nameplate` (CadQuery reference generator with STL/STEP/GLB/PNG).
 
 ## API surface
 

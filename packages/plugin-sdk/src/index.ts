@@ -11,6 +11,7 @@ export type PluginMediaType =
   | 'text/plain'
   | 'text/csv'
   | 'application/octet-stream'
+  | 'image/png'
   | 'model/stl'
   | 'model/step'
   | 'model/obj'

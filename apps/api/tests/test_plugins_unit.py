@@ -17,10 +17,17 @@ def test_discover_fixture_echo_from_repo_plugins():
     assert any(p.plugin_id == "fixture-echo" for p in result.plugins)
 
 
-def test_nameplate_placeholder_has_no_manifest():
-    # Nameplate is Phase 5 — must not appear as a runnable plugin yet.
-    nameplate = PLUGIN_ROOT / "nameplate"
-    assert nameplate.is_dir()
-    assert not (nameplate / "plugin.manifest.json").exists()
-    loaded = load_plugin_directory(PLUGIN_ROOT / "fixture-echo")
-    assert loaded.engine == "python"
+def test_nameplate_plugin_loads():
+    nameplate = load_plugin_directory(PLUGIN_ROOT / "nameplate")
+    assert nameplate.plugin_id == "nameplate"
+    assert nameplate.version == "1.0.0"
+    assert nameplate.engine == "python"
+    names = {o.name for o in nameplate.outputs}
+    assert "model.stl" in names
+    assert "model.glb" in names
+    assert "thumbnail.png" in names
+
+
+def test_discover_includes_nameplate():
+    result = discover_plugins(PLUGIN_ROOT)
+    assert any(p.plugin_id == "nameplate" for p in result.plugins)

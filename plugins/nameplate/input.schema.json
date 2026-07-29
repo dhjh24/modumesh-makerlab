@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "text",
+    "font",
+    "width_mm",
+    "height_mm",
+    "base_thickness_mm",
+    "text_depth_mm",
+    "mode",
+    "corner_radius_mm",
+    "alignment",
+    "hole_count",
+    "hole_diameter_mm",
+    "edge_margin_mm"
+  ],
+  "properties": {
+    "text": {
+      "title": "Text",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 48,
+      "default": "MAKERLAB",
+      "description": "Nameplate label. Empty and overlong strings are rejected."
+    },
+    "font": {
+      "title": "Font",
+      "type": "string",
+      "enum": ["DejaVuSans", "FreeSans"],
+      "default": "DejaVuSans",
+      "description": "Approved local font bundled with the plugin (no network downloads)."
+    },
+    "width_mm": {
+      "title": "Width",
+      "type": "number",
+      "minimum": 40,
+      "maximum": 200,
+      "default": 80,
+      "description": "Plate width along X.",
+      "x-unit": "mm"
+    },
+    "height_mm": {
+      "title": "Height",
+      "type": "number",
+      "minimum": 20,
+      "maximum": 100,
+      "default": 30,
+      "description": "Plate height along Y.",
+      "x-unit": "mm"
+    },
+    "base_thickness_mm": {
+      "title": "Base thickness",
+      "type": "number",
+      "minimum": 1.5,
+      "maximum": 8,
+      "default": 3,
+      "description": "Plate thickness along Z.",
+      "x-unit": "mm"
+    },
+    "text_depth_mm": {
+      "title": "Text depth / height",
+      "type": "number",
+      "minimum": 0.4,
+      "maximum": 3,
+      "default": 1.2,
+      "description": "Raised text height or engraving depth, depending on mode.",
+      "x-unit": "mm"
+    },
+    "mode": {
+      "title": "Mode",
+      "type": "string",
+      "enum": ["raised", "engraved"],
+      "default": "raised",
+      "description": "Raised text is fused to the plate; engraved text is cut without cutting through."
+    },
+    "corner_radius_mm": {
+      "title": "Corner radius",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20,
+      "default": 2,
+      "description": "Fillet radius on vertical edges. Zero disables rounding.",
+      "x-unit": "mm"
+    },
+    "alignment": {
+      "title": "Horizontal alignment",
+      "type": "string",
+      "enum": ["left", "center", "right"],
+      "default": "center",
+      "description": "Horizontal text alignment on the plate face."
+    },
+    "hole_count": {
+      "title": "Mounting holes",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4,
+      "default": 2,
+      "description": "Number of mounting holes (0–4)."
+    },
+    "hole_diameter_mm": {
+      "title": "Hole diameter",
+      "type": "number",
+      "minimum": 2,
+      "maximum": 6,
+      "default": 3.2,
+      "description": "Mounting hole diameter. Ignored when hole_count is 0.",
+      "x-unit": "mm"
+    },
+    "edge_margin_mm": {
+      "title": "Edge margin",
+      "type": "number",
+      "minimum": 3,
+      "maximum": 20,
+      "default": 8,
+      "description": "Clearance from plate edge to hole centers (and text inset).",
+      "x-unit": "mm"
+    }
+  }
+}

@@ -5,7 +5,7 @@
 DOCKER_COMPOSE = docker compose -f infra/compose/docker-compose.yml
 DOCKER_COMPOSE_DEV = docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.dev.yml
 
-.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk smoke test-e2e ci-build help
+.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk test-nameplate smoke test-e2e ci-build help
 
 # ── Stack lifecycle ───────────────────────────────────────────────────
 
@@ -48,6 +48,7 @@ db-shell: ## Open psql shell
 
 test:     ## Run all unit tests
 	make test-plugin-sdk
+	make test-nameplate
 	make test-api
 	make test-worker
 
@@ -56,6 +57,12 @@ test-plugin-sdk: ## Run plugin SDK + contract CLI checks
 	cd packages/plugin-sdk-py && python -m pytest -v
 	modumesh-plugin-check check plugins/fixture-echo --input plugins/fixture-echo/fixtures/valid-input.json
 	modumesh-plugin-check check plugins/fixture-mesh --input plugins/fixture-mesh/fixtures/valid-input.json
+	modumesh-plugin-check check plugins/nameplate --input plugins/nameplate/fixtures/valid-input.json --no-run
+
+test-nameplate: ## Run Nameplate unit + geometry regression tests
+	pip install -q -e packages/plugin-sdk-py
+	pip install -q "cadquery>=2.4.0,<3" "trimesh>=4.0.0" "pillow>=10.0.0" "numpy>=1.26.0" pytest
+	cd plugins/nameplate && PYTHONPATH=src python -m pytest -v
 
 test-api: ## Run API unit tests
 	pip install -q -e packages/plugin-sdk-py
@@ -66,9 +73,9 @@ test-worker: ## Run worker unit tests
 	cd apps/worker && pip install -q -e ".[dev]" && python -m pytest -v
 
 smoke:    ## Run integration smoke tests against running stack
-	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py -v -x
+	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py tests/test_phase5_integration.py -v -x
 
-test-e2e: ## Run Phase 4 Playwright e2e + a11y (web + API must be up)
+test-e2e: ## Run Playwright e2e + a11y (web + API must be up)
 	cd apps/web && npx playwright test --project=chromium
 
 # ── Linting ───────────────────────────────────────────────────────────
