@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modumesh.local/schemas/plugin-input-rules.v1.json",
+  "title": "ModuMesh Generator Input Schema Rules",
+  "description": "Meta-rules that every plugin input JSON Schema must satisfy (schemaVersion 1).",
+  "type": "object",
+  "required": ["$schema", "type", "additionalProperties"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Must declare a JSON Schema dialect."
+    },
+    "type": {
+      "const": "object",
+      "description": "Generator inputs must be a JSON object."
+    },
+    "additionalProperties": {
+      "const": false,
+      "description": "Reject undeclared input fields."
+    },
+    "properties": {
+      "type": "object"
+    },
+    "required": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "properties": { "type": "object" }
+        },
+        "required": ["properties"]
+      },
+      "then": {
+        "properties": {
+          "properties": {
+            "propertyNames": {
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,63}$"
+            },
+            "maxProperties": 64
+          }
+        }
+      }
+    }
+  ]
+}

@@ -32,6 +32,7 @@ export interface Job {
   jobType: string;
   status: JobStatus;
   inputPayload: Record<string, unknown>;
+  pluginVersion?: string;
   progressPct: number;
   progressMessage?: string;
   errorMessage?: string;
@@ -71,13 +72,30 @@ export interface FileObject {
 }
 
 // ── Plugins ────────────────────────────────────────────────────────────
+export interface PluginOutputDecl {
+  name: string;
+  mediaType: string;
+  required?: boolean;
+}
+
 export interface PluginRecord {
   id: string;
+  pluginId: string;
   name: string;
   version: string;
-  description: string;
+  description?: string;
+  sdkVersion: string;
+  engine: string;
+  entrypoint: string;
+  categories: string[];
+  outputs: PluginOutputDecl[];
+  timeoutSeconds: number;
+  memoryMb: number;
+  networkPolicy: 'deny' | 'allow';
   inputSchema: unknown;
-  outputFormat: string;
   enabled: boolean;
-  createdAt: string;
+  status: string;
+  diagnostics?: string;
+  discoveredAt: string;
+  updatedAt: string;
 }

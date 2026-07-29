@@ -16,6 +16,7 @@ class WorkerSettings(BaseSettings):
     reaper_interval_seconds: int = 15
     sample_step_delay_ms: int = 200
     worker_id: str = ""
+    plugin_dir: str = "/plugins"
 
     model_config = SettingsConfigDict(env_prefix="WORKER_")
 

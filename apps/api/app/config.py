@@ -60,6 +60,7 @@ class APISettings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     log_level: str = "info"
     version: str = "0.1.0"
+    plugin_dir: str = "/plugins"
 
     model_config = SettingsConfigDict(env_prefix="API_")
 
@@ -84,5 +85,6 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
 
 settings = Settings()

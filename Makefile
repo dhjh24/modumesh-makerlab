@@ -5,7 +5,7 @@
 DOCKER_COMPOSE = docker compose -f infra/compose/docker-compose.yml
 DOCKER_COMPOSE_DEV = docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.dev.yml
 
-.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker smoke ci-build help
+.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk smoke ci-build help
 
 # ── Stack lifecycle ───────────────────────────────────────────────────
 
@@ -47,17 +47,25 @@ db-shell: ## Open psql shell
 # ── Testing ───────────────────────────────────────────────────────────
 
 test:     ## Run all unit tests
+	make test-plugin-sdk
 	make test-api
 	make test-worker
 
+test-plugin-sdk: ## Run plugin SDK + contract CLI checks
+	pip install -q -e packages/plugin-sdk-py
+	cd packages/plugin-sdk-py && python -m pytest -v
+	modumesh-plugin-check check plugins/fixture-echo --input plugins/fixture-echo/fixtures/valid-input.json
+
 test-api: ## Run API unit tests
-	cd apps/api && pip install -q -e ".[dev]" && python -m pytest -v
+	pip install -q -e packages/plugin-sdk-py
+	cd apps/api && pip install -q -e ".[dev]" && python -m pytest tests/test_health.py tests/test_state_machine.py tests/test_plugins_unit.py -v
 
 test-worker: ## Run worker unit tests
+	pip install -q -e packages/plugin-sdk-py
 	cd apps/worker && pip install -q -e ".[dev]" && python -m pytest -v
 
 smoke:    ## Run integration smoke tests against running stack
-	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
+	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py -v -x
 
 # ── Linting ───────────────────────────────────────────────────────────
 

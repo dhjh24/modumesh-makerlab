@@ -11,6 +11,7 @@ from app.database import get_db
 from app.domain.states import InvalidTransitionError
 from app.schemas import JobCreate, JobList, JobOut, JobProgress
 from app.services import jobs as job_service
+from app.services import plugins as plugin_service
 from app.services import projects as project_service
 from app.services.queue import enqueue_job
 
@@ -28,22 +29,58 @@ async def create_job(
     db: AsyncSession = Depends(get_db),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> JobOut:
-    if body.job_type != "sample":
-        raise HTTPException(
-            status_code=400,
-            detail="Only job_type 'sample' is supported in Phase 2",
-        )
     project = await project_service.get_project(db, project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    plugin_version = body.plugin_version
+    timeout_seconds = body.timeout_seconds
+
+    if body.job_type == "sample":
+        if body.plugin_version is not None:
+            raise HTTPException(
+                status_code=400,
+                detail="plugin_version is not applicable to job_type 'sample'",
+            )
+    else:
+        entry = await plugin_service.get_plugin(
+            db,
+            body.job_type,
+            body.plugin_version,
+            enabled_only=True,
+        )
+        if entry is None:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Unknown or disabled plugin '{body.job_type}'"
+                    + (f"@{body.plugin_version}" if body.plugin_version else "")
+                ),
+            )
+        plugin_version = entry.version
+        timeout_seconds = min(body.timeout_seconds, entry.timeout_seconds)
+
+        # Validate input against the plugin's declared schema (size + JSON Schema).
+        try:
+            from modumesh_plugin_sdk.validation import validate_input_payload
+
+            validate_input_payload(
+                entry.input_schema,
+                body.input_payload,
+                max_bytes=entry.max_input_bytes,
+            )
+        except Exception as exc:  # noqa: BLE001 — surface contract errors as 400
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     try:
         job, created = await job_service.create_job(
             db,
             project=project,
             job_type=body.job_type,
             input_payload=body.input_payload,
-            timeout_seconds=body.timeout_seconds,
+            timeout_seconds=timeout_seconds,
             idempotency_key=idempotency_key,
+            plugin_version=plugin_version,
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

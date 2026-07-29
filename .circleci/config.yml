@@ -1,6 +1,6 @@
 # ModuMesh MakerLab — CircleCI pipeline
 # Replaces GitHub Actions CI. Mirrors lint, typecheck, unit tests,
-# container build, and Compose integration smoke.
+# plugin contract checks, container build, and Compose integration smoke.
 
 version: 2.1
 
@@ -62,18 +62,42 @@ jobs:
           name: TypeScript — packages/ui
           command: cd packages/ui && npx tsc --noEmit
 
+  plugin-contract:
+    executor: python311
+    steps:
+      - checkout_repo
+      - run:
+          name: Install plugin SDK
+          command: pip install -e "packages/plugin-sdk-py[dev]"
+      - run:
+          name: SDK unit tests
+          command: python -m pytest packages/plugin-sdk-py/tests -v
+      - run:
+          name: Contract CLI — fixture-echo
+          command: |
+            modumesh-plugin-check check plugins/fixture-echo \
+              --input plugins/fixture-echo/fixtures/valid-input.json
+      - run:
+          name: Discover plugins
+          command: modumesh-plugin-check discover plugins
+
   api-tests:
     executor: python311
     steps:
       - checkout_repo
       - run:
           name: Install API package
-          command: cd apps/api && pip install -e ".[dev]"
+          command: |
+            pip install -e packages/plugin-sdk-py
+            cd apps/api && pip install -e ".[dev]"
       - run:
           name: API unit tests with coverage
           command: |
             cd apps/api
-            coverage run -m pytest tests/test_health.py tests/test_state_machine.py -v
+            coverage run -m pytest \
+              tests/test_health.py \
+              tests/test_state_machine.py \
+              tests/test_plugins_unit.py -v
             coverage report
 
   worker-tests:
@@ -82,7 +106,9 @@ jobs:
       - checkout_repo
       - run:
           name: Install worker package
-          command: cd apps/worker && pip install -e ".[dev]"
+          command: |
+            pip install -e packages/plugin-sdk-py
+            cd apps/worker && pip install -e ".[dev]"
       - run:
           name: Worker unit tests
           command: cd apps/worker && python -m pytest -v
@@ -124,12 +150,20 @@ jobs:
             docker compose -f infra/compose/docker-compose.yml exec -T api \
               alembic -c /app/alembic.ini upgrade head
       - run:
+          name: Resync plugins
+          command: |
+            curl -sf -X POST http://localhost:8000/api/v1/plugins/resync | head -c 500
+            echo
+      - run:
           name: Integration smoke tests
           command: |
             docker compose -f infra/compose/docker-compose.yml exec -T api \
               pip install pytest httpx pytest-asyncio
             docker compose -f infra/compose/docker-compose.yml exec -T api \
-              python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
+              python -m pytest \
+                tests/test_integration.py \
+                tests/test_phase2_integration.py \
+                tests/test_phase3_integration.py -v -x
       - run:
           name: Show logs on failure
           when: on_fail
@@ -144,6 +178,7 @@ workflows:
     jobs:
       - lint-format
       - typecheck
+      - plugin-contract
       - api-tests
       - worker-tests
       - container-build

@@ -123,12 +123,16 @@ async def create_job(
     input_payload: Optional[dict[str, Any]] = None,
     timeout_seconds: int = 60,
     idempotency_key: Optional[str] = None,
+    plugin_version: Optional[str] = None,
     actor: str = "api",
 ) -> tuple[GenerationJob, bool]:
     """Create a job and enqueue it.
 
     Returns (job, created). If an idempotency key matches an existing job,
     returns that job with created=False.
+
+    The input_payload and plugin_version recorded here are treated as immutable
+    for the lifetime of the job.
     """
     if project.status == "archived":
         raise ValueError("Cannot create jobs on an archived project")
@@ -142,12 +146,16 @@ async def create_job(
         if existing is not None:
             return existing, False
 
+    # Freeze a shallow copy so later caller mutations cannot alter the record.
+    frozen_input = dict(input_payload or {})
+
     job = GenerationJob(
         id=uuid.uuid4(),
         project_id=project.id,
         job_type=job_type,
         status=JobStatus.CREATED.value,
-        input_payload=input_payload or {},
+        input_payload=frozen_input,
+        plugin_version=plugin_version,
         timeout_seconds=timeout_seconds,
         idempotency_key=key,
         attempt_number=1,
@@ -171,7 +179,11 @@ async def create_job(
         entity_id=job.id,
         action="job.created",
         actor=actor,
-        details={"job_type": job_type, "idempotency_key": key},
+        details={
+            "job_type": job_type,
+            "plugin_version": plugin_version,
+            "idempotency_key": key,
+        },
     )
 
     await transition_job(
@@ -297,6 +309,7 @@ async def retry_job(
         job_type=job.job_type,
         status=JobStatus.CREATED.value,
         input_payload=job.input_payload,
+        plugin_version=job.plugin_version,
         timeout_seconds=job.timeout_seconds,
         idempotency_key=None,  # retries are new attempts; no idempotency reuse
         attempt_number=job.attempt_number + 1,

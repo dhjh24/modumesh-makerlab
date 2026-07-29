@@ -12,7 +12,7 @@ from app.database import check_db_connectivity, close_db
 from app.logging import configure_logging, get_logger
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
-from app.routers import files, health, jobs, projects
+from app.routers import files, health, jobs, plugins, projects
 
 
 @asynccontextmanager
@@ -38,6 +38,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Database (async) — lightweight ping
     db_status = await check_db_connectivity()
     logger.info("database connectivity", **db_status)
+
+    # Plugin registry discovery (best-effort; migrations may not be applied yet)
+    try:
+        from app.database import async_session_factory
+        from app.services import plugins as plugin_service
+
+        async with async_session_factory() as session:
+            summary = await plugin_service.sync_registry(session, actor="startup")
+            await session.commit()
+            logger.info(
+                "plugin registry ready",
+                discovered=summary.get("discovered"),
+                issues=len(summary.get("issues") or []),
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("plugin registry sync skipped", error=str(exc))
 
     yield  # ── Application runs here ─────────────────────────────────
 
@@ -73,6 +89,7 @@ app.include_router(health.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
 app.include_router(files.router)
+app.include_router(plugins.router)
 
 
 @app.get("/")

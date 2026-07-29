@@ -32,6 +32,7 @@ npm run dev    # http://localhost:3000
 cd apps/api
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e ../../packages/plugin-sdk-py
 pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8000
 ```
@@ -42,6 +43,7 @@ uvicorn app.main:app --reload --port 8000
 cd apps/worker
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e ../../packages/plugin-sdk-py
 pip install -e ".[dev]"
 python -m app.main
 ```
@@ -49,10 +51,17 @@ python -m app.main
 ## Testing
 
 ```bash
-# API tests
+# Plugin contract CLI (authors + CI)
+pip install -e packages/plugin-sdk-py
+modumesh-plugin-check check plugins/fixture-echo \
+  --input plugins/fixture-echo/fixtures/valid-input.json
+
+# API tests (install SDK first)
+pip install -e packages/plugin-sdk-py
 cd apps/api && pip install -e ".[dev]" && pytest -v
 
 # Worker tests
+pip install -e packages/plugin-sdk-py
 cd apps/worker && pip install -e ".[dev]" && pytest -v
 
 # TypeScript type checks
@@ -71,9 +80,10 @@ Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
 
 - Prettier lint
 - TypeScript typecheck
+- Plugin contract tests (`modumesh-plugin-check` + SDK unit tests)
 - API and worker unit tests
 - Docker Compose image build
-- Integration smoke against Postgres, Redis, and MinIO
+- Integration smoke against Postgres, Redis, MinIO (Phase 2 + Phase 3 plugin flows)
 
 GitHub Actions workflows are not used.
 

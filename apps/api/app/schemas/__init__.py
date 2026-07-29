@@ -41,6 +41,11 @@ class JobCreate(BaseModel):
     job_type: str = Field(default="sample", max_length=64)
     input_payload: dict[str, Any] = Field(default_factory=dict)
     timeout_seconds: int = Field(default=60, ge=1, le=3600)
+    plugin_version: Optional[str] = Field(
+        default=None,
+        max_length=32,
+        description="Optional plugin version pin. Defaults to latest enabled.",
+    )
 
 
 class JobOut(BaseModel):
@@ -52,6 +57,7 @@ class JobOut(BaseModel):
     job_type: str
     status: str
     input_payload: dict[str, Any]
+    plugin_version: Optional[str] = None
     progress_pct: int
     progress_message: Optional[str] = None
     error_message: Optional[str] = None
@@ -80,6 +86,47 @@ class JobProgress(BaseModel):
     error_message: Optional[str] = None
     cancel_requested: bool
     updated_at: datetime
+
+
+class PluginOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    plugin_id: str
+    version: str
+    name: str
+    description: Optional[str] = None
+    sdk_version: str
+    engine: str
+    entrypoint: str
+    categories: list[Any]
+    outputs: list[Any]
+    timeout_seconds: int
+    memory_mb: int
+    network_policy: str
+    input_schema: dict[str, Any]
+    enabled: bool
+    status: str
+    diagnostics: Optional[str] = None
+    max_input_bytes: int
+    max_output_bytes: int
+    source_path: str
+    discovered_at: datetime
+    updated_at: datetime
+
+
+class PluginList(BaseModel):
+    items: list[PluginOut]
+    total: int
+    issues: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class PluginSyncResult(BaseModel):
+    plugin_dir: str
+    discovered: int
+    upserted: int
+    issues: list[dict[str, Any]]
+    items: list[PluginOut]
 
 
 class FileOut(BaseModel):
