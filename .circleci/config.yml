@@ -3,7 +3,6 @@
 version: 2.1
 orbs:
   node: circleci/node@5
-  python: circleci/python@2
 jobs:
   test-node:
     # Install node dependencies and run tests
@@ -35,15 +34,24 @@ jobs:
           path: ~/artifacts
           destination: node-build
   test-python:
-    # Install dependencies and run tests
+    # Install dependencies and run tests.
+    # NOTE: Do not set pip-dependency-file to pyproject.toml — the python orb
+    # runs `pip install -r <file>`, which treats TOML section headers like
+    # `[project]` as package names and fails with:
+    #   Invalid requirement: '[project]'
+    # Use an editable install against the setuptools project instead.
     docker:
-      - image: cimg/python:3.8-node
+      - image: cimg/python:3.11-node
     steps:
       - checkout
-      - python/install-packages
+      - run:
+          name: Install API package (editable)
+          command: |
+            python -m pip install --upgrade pip
+            cd apps/api && pip install -e ".[dev]"
       - run:
           name: Run tests
-          command: pytest --junitxml=junit.xml || ((($? == 5)) && echo 'Did not find any tests to run.')
+          command: cd apps/api && pytest --junitxml=../../junit.xml || ((($? == 5)) && echo 'Did not find any tests to run.')
       - store_test_results:
           path: junit.xml
   deploy:
