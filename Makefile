@@ -57,7 +57,7 @@ test-worker: ## Run worker unit tests
 	cd apps/worker && pip install -q -e ".[dev]" && python -m pytest -v
 
 smoke:    ## Run integration smoke tests against running stack
-	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py -v -x
+	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
 
 # ── Linting ───────────────────────────────────────────────────────────
 

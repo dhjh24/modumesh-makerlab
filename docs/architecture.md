@@ -42,6 +42,27 @@ User → Web → API → Redis Queue → Worker → Plugin → MinIO → API →
 2. **Plugins are untrusted** — non-root, timeouts, memory caps, no network.
 3. **Immutable records** — plugin version, input, output, validation, checksums.
 4. **No shop integration until Phase 7 exit gate passes.**
+5. **Strict job state machine** — only allowlisted transitions; retries create new attempts.
+
+## Phase 2 — Projects & Job Engine
+
+Durable projects and generation jobs with Redis-backed queue processing.
+
+### Job state machine
+
+```
+created → queued → running → validating → uploading → completed
+              ↘──────── cancel from any active state ────────→ cancelled
+                         fail from running|validating|uploading → failed
+```
+
+### Queue behavior
+
+- API enqueues job IDs on Redis list `modumesh:jobs:queue` (LPUSH).
+- Worker consumers BRPOP jobs, claim with `SELECT … FOR UPDATE`, then process.
+- Cooperative cancel via DB `cancel_requested` + Redis `modumesh:jobs:cancel:{id}`.
+- Worker leases (`lease_expires_at`) renewed on heartbeat; reaper fails abandoned jobs.
+- Sample job (`job_type=sample`) writes a small JSON artifact to MinIO with SHA-256.
 
 ## Technology Stack
 

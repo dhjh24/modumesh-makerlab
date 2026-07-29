@@ -1,0 +1,137 @@
+"""Generation job API routes."""
+
+from __future__ import annotations
+
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Response
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.domain.states import InvalidTransitionError
+from app.schemas import JobCreate, JobList, JobOut, JobProgress
+from app.services import jobs as job_service
+from app.services import projects as project_service
+from app.services.queue import enqueue_job
+
+router = APIRouter(tags=["jobs"])
+
+
+@router.post(
+    "/api/v1/projects/{project_id}/jobs",
+    response_model=JobOut,
+)
+async def create_job(
+    project_id: UUID,
+    body: JobCreate,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> JobOut:
+    if body.job_type != "sample":
+        raise HTTPException(
+            status_code=400,
+            detail="Only job_type 'sample' is supported in Phase 2",
+        )
+    project = await project_service.get_project(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        job, created = await job_service.create_job(
+            db,
+            project=project,
+            job_type=body.job_type,
+            input_payload=body.input_payload,
+            timeout_seconds=body.timeout_seconds,
+            idempotency_key=idempotency_key,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    if created:
+        # Commit before enqueue so workers never claim a non-durable row.
+        await db.commit()
+        await enqueue_job(str(job.id))
+
+    response.status_code = 201 if created else 200
+    if not created:
+        response.headers["Idempotent-Replayed"] = "true"
+    return JobOut.model_validate(job)
+
+
+@router.get("/api/v1/projects/{project_id}/jobs", response_model=JobList)
+async def list_project_jobs(
+    project_id: UUID,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: AsyncSession = Depends(get_db),
+) -> JobList:
+    project = await project_service.get_project(db, project_id)
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    items, total = await job_service.list_jobs(
+        db, project_id=project_id, limit=limit, offset=offset
+    )
+    return JobList(items=[JobOut.model_validate(j) for j in items], total=total)
+
+
+@router.get("/api/v1/jobs/{job_id}", response_model=JobOut)
+async def get_job(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> JobOut:
+    job = await job_service.get_job(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return JobOut.model_validate(job)
+
+
+@router.get("/api/v1/jobs/{job_id}/progress", response_model=JobProgress)
+async def get_job_progress(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> JobProgress:
+    job = await job_service.get_job(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return JobProgress(
+        id=job.id,
+        status=job.status,
+        progress_pct=job.progress_pct,
+        progress_message=job.progress_message,
+        error_message=job.error_message,
+        cancel_requested=job.cancel_requested,
+        updated_at=job.updated_at,
+    )
+
+
+@router.post("/api/v1/jobs/{job_id}/cancel", response_model=JobOut)
+async def cancel_job(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> JobOut:
+    job = await job_service.get_job(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    try:
+        job = await job_service.cancel_job(db, job)
+    except InvalidTransitionError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return JobOut.model_validate(job)
+
+
+@router.post("/api/v1/jobs/{job_id}/retry", response_model=JobOut, status_code=201)
+async def retry_job(
+    job_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> JobOut:
+    job = await job_service.get_job(db, job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    try:
+        new_job = await job_service.retry_job(db, job)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    await db.commit()
+    await enqueue_job(str(new_job.id))
+    return JobOut.model_validate(new_job)

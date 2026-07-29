@@ -73,7 +73,7 @@ jobs:
           name: API unit tests with coverage
           command: |
             cd apps/api
-            coverage run -m pytest tests/test_health.py -v
+            coverage run -m pytest tests/test_health.py tests/test_state_machine.py -v
             coverage report
 
   worker-tests:
@@ -127,9 +127,9 @@ jobs:
           name: Integration smoke tests
           command: |
             docker compose -f infra/compose/docker-compose.yml exec -T api \
-              pip install pytest httpx
+              pip install pytest httpx pytest-asyncio
             docker compose -f infra/compose/docker-compose.yml exec -T api \
-              python -m pytest tests/test_integration.py -v -x
+              python -m pytest tests/test_integration.py tests/test_phase2_integration.py -v -x
       - run:
           name: Show logs on failure
           when: on_fail
