@@ -5,11 +5,19 @@ title = "ModuMesh MakerLab"
 useDefault = true
 
 [allowlist]
-description = "Dev placeholders and fixtures"
+description = "Dev placeholders, local secrets file, and fixtures"
 paths = [
+  '''\.env$''',
   '''\.env\.example$''',
+  '''\.env\..*$''',
+  '''backups/''',
+  '''node_modules/''',
+  '''\.venv/''',
+  '''\.next/''',
   '''docs/''',
   '''plugins/.*/fixtures/''',
+  '''apps/.*/tests/''',
+  '''apps/web/(test-results|playwright-report)/''',
 ]
 regexes = [
   '''change_me''',

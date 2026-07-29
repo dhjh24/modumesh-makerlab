@@ -1,9 +1,15 @@
 #!/usr/bin/env bash
 # Restore PostgreSQL and MinIO from a backup directory created by backup.sh.
+# Override compose file for production:
+#   COMPOSE_FILE=infra/compose/docker-compose.prod.yml ./scripts/restore.sh backups/<stamp>
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-COMPOSE=(docker compose -f "$ROOT/infra/compose/docker-compose.yml")
+COMPOSE_FILE="${COMPOSE_FILE:-$ROOT/infra/compose/docker-compose.yml}"
+if [[ "$COMPOSE_FILE" != /* ]]; then
+  COMPOSE_FILE="$ROOT/$COMPOSE_FILE"
+fi
+COMPOSE=(docker compose -f "$COMPOSE_FILE")
 SRC_DIR="${1:?Usage: restore.sh /path/to/backup-dir}"
 
 if [[ ! -f "$SRC_DIR/postgres.dump" ]]; then
@@ -11,7 +17,7 @@ if [[ ! -f "$SRC_DIR/postgres.dump" ]]; then
   exit 1
 fi
 
-echo "==> Restoring PostgreSQL from $SRC_DIR/postgres.dump"
+echo "==> Restoring PostgreSQL from $SRC_DIR/postgres.dump (compose=$COMPOSE_FILE)"
 # Terminate connections, drop/recreate DB, restore.
 "${COMPOSE[@]}" exec -T postgres \
   psql -U "${POSTGRES_USER:-modumesh}" -d postgres -v ON_ERROR_STOP=1 <<SQL
@@ -29,13 +35,19 @@ SQL
 
 if [[ -d "$SRC_DIR/minio" ]]; then
   echo "==> Restoring MinIO objects"
-  MINIO_ACCESS_KEY="${MINIO_ACCESS_KEY:-modumesh}"
-  MINIO_SECRET_KEY="${MINIO_SECRET_KEY:-change_me_in_production}"
-  BUCKET="${MINIO_BUCKET:-modumesh-models}"
-  docker run --rm --network "${COMPOSE_PROJECT_NAME:-compose}_default" \
+  if [[ -z "${MINIO_ACCESS_KEY:-}" || -z "${MINIO_SECRET_KEY:-}" ]]; then
+    MINIO_ACCESS_KEY="$("${COMPOSE[@]}" exec -T api printenv MINIO_ACCESS_KEY)"
+    MINIO_SECRET_KEY="$("${COMPOSE[@]}" exec -T api printenv MINIO_SECRET_KEY)"
+    BUCKET="${MINIO_BUCKET:-$("${COMPOSE[@]}" exec -T api printenv MINIO_BUCKET)}"
+  else
+    BUCKET="${MINIO_BUCKET:-modumesh-models}"
+  fi
+  BUCKET="${BUCKET:-modumesh-models}"
+  NETWORK="${COMPOSE_NETWORK:-${COMPOSE_PROJECT_NAME:-compose}_default}"
+  docker run --rm --network "$NETWORK" \
     -v "$SRC_DIR/minio:/backup:ro" \
     --entrypoint /bin/sh \
-    minio/mc:latest \
+    minio/mc:RELEASE.2025-04-16T18-13-26Z \
     -c "mc alias set local http://minio:9000 '$MINIO_ACCESS_KEY' '$MINIO_SECRET_KEY' && \
         mc mb --ignore-existing local/$BUCKET && \
         mc mirror --overwrite /backup local/$BUCKET"

@@ -69,11 +69,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("shutdown complete")
 
 
+_docs_url = "/docs" if settings.api.docs_enabled else None
+_redoc_url = "/redoc" if settings.api.docs_enabled else None
+_openapi_url = "/openapi.json" if settings.api.docs_enabled else None
+
 app = FastAPI(
     title="ModuMesh MakerLab API",
     version=settings.api.version,
     description="Self-hosted 3D generator platform API",
     lifespan=lifespan,
+    docs_url=_docs_url,
+    redoc_url=_redoc_url,
+    openapi_url=_openapi_url,
 )
 
 # Middleware order: last added runs first on request.

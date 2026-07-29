@@ -33,7 +33,8 @@ services:
       retries: 5
 
   minio:
-    image: minio/minio:latest
+    # Pin tag for reproducible standalone releases (bump intentionally).
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
     restart: always
     command: server /data --console-address ":9001"
     environment:
@@ -74,6 +75,9 @@ services:
       API_CORS_ORIGINS: ${API_CORS_ORIGINS:-https://makerlab.example.com}
       API_AUTH_ENABLED: 'true'
       API_SESSION_COOKIE_SECURE: 'true'
+      API_DOCS_ENABLED: 'false'
+      API_STORAGE_TEST_ENABLED: 'false'
+      API_METRICS_ENABLED: ${API_METRICS_ENABLED:-true}
       API_BOOTSTRAP_ADMIN_USERNAME: ${API_BOOTSTRAP_ADMIN_USERNAME:-admin}
       API_BOOTSTRAP_ADMIN_PASSWORD: ${API_BOOTSTRAP_ADMIN_PASSWORD:?set API_BOOTSTRAP_ADMIN_PASSWORD}
       API_DOWNLOAD_SIGNING_SECRET: ${API_DOWNLOAD_SIGNING_SECRET:?set API_DOWNLOAD_SIGNING_SECRET}

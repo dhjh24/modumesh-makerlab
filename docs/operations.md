@@ -53,6 +53,11 @@ Sessions are opaque bearer tokens (hashed at rest) delivered as `Authorization: 
 chmod +x scripts/*.sh
 ./scripts/backup.sh
 # writes backups/<timestamp>/{postgres.dump,minio/,SHA256SUMS,MANIFEST.txt}
+
+# Production compose:
+COMPOSE_FILE=infra/compose/docker-compose.prod.yml \
+COMPOSE_PROJECT_NAME=compose \
+  ./scripts/backup.sh
 ```
 
 Schedule via cron or systemd timer. Store backups off-host.
@@ -64,6 +69,10 @@ Schedule via cron or systemd timer. Store backups off-host.
 docker compose -f infra/compose/docker-compose.yml stop worker api
 ./scripts/restore.sh backups/<timestamp>
 docker compose -f infra/compose/docker-compose.yml start api worker
+
+# Production:
+COMPOSE_FILE=infra/compose/docker-compose.prod.yml \
+  ./scripts/restore.sh backups/<timestamp>
 ```
 
 ### Automated restore test
@@ -72,6 +81,17 @@ docker compose -f infra/compose/docker-compose.yml start api worker
 ./scripts/test-restore.sh
 # Expect: RESTORE_TEST_OK ...
 ```
+
+## Unresolved residual risks (accepted for standalone RC)
+
+| Risk | Mitigation / follow-up |
+|------|------------------------|
+| In-process rate limits (not Redis) | Single API replica recommended; sticky proxy if scaled |
+| Public `/metrics` when enabled | Prefer internal scrape; set `API_METRICS_ENABLED=false` or firewall |
+| Plugin network deny is in-process | Documented sandbox; not a full network namespace |
+| No OAuth/OIDC | Local sessions only (ADR-0004); Phase 7+ |
+| Retention purge is manual | Cron/call `POST /api/v1/admin/retention/purge` |
+| Default bootstrap password | Must change before exposing publicly |
 
 ## Upgrade
 

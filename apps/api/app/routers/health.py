@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response
 
+from app.config import settings
 from app.database import check_db_connectivity
 from app.minio import check_minio_connectivity, minio_write_test
 from app.redis import check_redis_connectivity
@@ -28,7 +29,7 @@ async def health_check() -> dict:
     return {
         "status": "ok" if all_ok else "degraded",
         "service": "modumesh-api",
-        "version": "0.1.0",
+        "version": settings.api.version,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": {
             "database": db_status,
@@ -76,5 +77,7 @@ async def liveness_check() -> dict:
 
 @router.get("/health/storage-test")
 async def storage_test() -> dict:
-    """End-to-end MinIO write/read test."""
+    """End-to-end MinIO write/read test (disabled unless explicitly enabled)."""
+    if not settings.api.storage_test_enabled:
+        raise HTTPException(status_code=404, detail="Storage test disabled")
     return await minio_write_test()

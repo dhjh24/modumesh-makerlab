@@ -24,6 +24,8 @@ makerlab.example.com {
 	handle /health* {
 		reverse_proxy api:8000
 	}
+	# Prefer scraping /metrics on the internal Docker network.
+	# Only expose publicly when API_METRICS_ENABLED=true and network access is restricted.
 	handle /metrics {
 		reverse_proxy api:8000
 	}

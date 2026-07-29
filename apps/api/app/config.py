@@ -78,6 +78,10 @@ class APISettings(BaseSettings):
     # Retention (days); 0 disables automatic purge scheduling hints
     retention_days: int = 90
     metrics_enabled: bool = True
+    # OpenAPI UI (/docs, /redoc) — disable in production
+    docs_enabled: bool = True
+    # Allow unauthenticated MinIO write probe (disable in production)
+    storage_test_enabled: bool = False
 
     model_config = SettingsConfigDict(env_prefix="API_")
 

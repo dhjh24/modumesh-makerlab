@@ -59,7 +59,7 @@ class TestCrossUserIsolation:
     def test_owner_cannot_read_other_project(self, admin_client: httpx.Client) -> None:
         suffix = uuid.uuid4().hex[:8]
         username = f"owner_{suffix}"
-        password = "owner-pass-12345"
+        password = "OwnerPassForAuthzTest!"
 
         created = admin_client.post(
             "/api/v1/auth/users",

@@ -33,5 +33,7 @@ Use before tagging a release candidate. Stop before Phase 7.
 ## Approval
 
 - [ ] Ops docs reviewed (`docs/operations.md`)
-- [ ] Unresolved risks documented
+- [ ] Unresolved risks documented (see residual risks table in `docs/operations.md`)
 - [ ] Release owner sign-off
+
+**Stop before Phase 7** (shop integration / public API freeze).
