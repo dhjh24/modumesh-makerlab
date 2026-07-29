@@ -107,3 +107,16 @@ Production CadQuery generator proving the standalone MakerLab loop:
 2. Worker executes CadQuery under plugin sandbox limits (mm units, deterministic tessellation).
 3. Outputs: STL, STEP, GLB (browser preview without STEP parsing), PNG thumbnail, metadata JSON.
 4. Mesh validation report (watertight, volume, bbox, checksum, degenerate warnings) recorded with plugin + project version.
+
+## Phase 6 — Standalone release hardening
+
+Self-hosted production readiness (no public API freeze / shop integration):
+
+1. **Auth** — local users with `owner` / `admin` roles; opaque sessions (hashed); HttpOnly cookie + Bearer.
+2. **Authorization** — resource checks on projects, jobs, and files; admin-only plugin mutation and status.
+3. **Limits** — per-IP rate limits, max request body size, security headers, tightened CORS.
+4. **Downloads** — HMAC-signed temporary URLs + optional MinIO presign redirect; download audit events.
+5. **Worker isolation** — non-root, `cap_drop ALL`, read-only root + tmpfs, memory/CPU/PIDs limits, plugin network deny.
+6. **Ops** — backup/restore scripts, automated restore test, retention purge, hard project delete, admin status UI.
+7. **Observability** — structured request logs with correlation IDs, `/metrics`, enriched health probes.
+8. **Docs** — `docs/operations.md`, upgrade/rollback/troubleshooting/release checklist; prod Compose + Caddy.

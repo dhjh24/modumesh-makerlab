@@ -137,7 +137,12 @@ export default function ProjectEditorPage() {
         if (viewable) {
           const fmt = inferModelFormat(viewable.filename, viewable.content_type);
           if (fmt) {
-            setPreviewSrc(fileDownloadUrl(viewable.id));
+            try {
+              const signed = await api.signedDownloadUrl(viewable.id);
+              setPreviewSrc(signed.url);
+            } catch {
+              setPreviewSrc(fileDownloadUrl(viewable.id));
+            }
             setPreviewFormat(fmt);
             setMobileTab('preview');
           }
@@ -216,15 +221,20 @@ export default function ProjectEditorPage() {
     setStatusMessage(`Loaded fixture ${kind.toUpperCase()}`);
   };
 
-  const openFile = (file: FileObject) => {
+  const openFile = async (file: FileObject) => {
     const fmt = inferModelFormat(file.filename, file.content_type);
-    if (fmt) {
-      setPreviewSrc(fileDownloadUrl(file.id));
-      setPreviewFormat(fmt);
-      setMobileTab('preview');
-      setStatusMessage(`Previewing ${file.filename}`);
-    } else {
-      window.open(fileDownloadUrl(file.id), '_blank', 'noopener,noreferrer');
+    try {
+      const signed = await api.signedDownloadUrl(file.id);
+      if (fmt) {
+        setPreviewSrc(signed.url);
+        setPreviewFormat(fmt);
+        setMobileTab('preview');
+        setStatusMessage(`Previewing ${file.filename}`);
+      } else {
+        window.open(signed.url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
     }
   };
 

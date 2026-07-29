@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.deps import AuthContext, require_admin, require_auth
 from app.schemas import PluginList, PluginOut, PluginSyncResult
 from app.services import plugins as plugin_service
 
@@ -16,6 +17,7 @@ router = APIRouter(tags=["plugins"])
 async def list_plugins(
     enabled_only: bool = Query(False),
     include_inactive: bool = Query(False),
+    auth: AuthContext = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ) -> PluginList:
     items = await plugin_service.list_plugins(
@@ -28,8 +30,11 @@ async def list_plugins(
 
 
 @router.post("/api/v1/plugins/resync", response_model=PluginSyncResult)
-async def resync_plugins(db: AsyncSession = Depends(get_db)) -> PluginSyncResult:
-    summary = await plugin_service.sync_registry(db, actor="api")
+async def resync_plugins(
+    auth: AuthContext = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+) -> PluginSyncResult:
+    summary = await plugin_service.sync_registry(db, actor=auth.actor)
     items = await plugin_service.list_plugins(db, include_inactive=True)
     return PluginSyncResult(
         plugin_dir=summary["plugin_dir"],
@@ -44,6 +49,7 @@ async def resync_plugins(db: AsyncSession = Depends(get_db)) -> PluginSyncResult
 async def get_plugin(
     plugin_id: str,
     version: str | None = Query(None),
+    auth: AuthContext = Depends(require_auth),
     db: AsyncSession = Depends(get_db),
 ) -> PluginOut:
     entry = await plugin_service.get_plugin(db, plugin_id, version)
@@ -59,6 +65,7 @@ async def get_plugin(
 async def enable_plugin(
     plugin_id: str,
     version: str,
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> PluginOut:
     entry = await plugin_service.get_plugin(db, plugin_id, version)
@@ -68,7 +75,7 @@ async def enable_plugin(
         raise HTTPException(
             status_code=409, detail=f"Cannot enable plugin in status={entry.status}"
         )
-    entry = await plugin_service.set_enabled(db, entry, True)
+    entry = await plugin_service.set_enabled(db, entry, True, actor=auth.actor)
     return PluginOut.model_validate(entry)
 
 
@@ -79,10 +86,11 @@ async def enable_plugin(
 async def disable_plugin(
     plugin_id: str,
     version: str,
+    auth: AuthContext = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ) -> PluginOut:
     entry = await plugin_service.get_plugin(db, plugin_id, version)
     if entry is None:
         raise HTTPException(status_code=404, detail="Plugin not found")
-    entry = await plugin_service.set_enabled(db, entry, False)
+    entry = await plugin_service.set_enabled(db, entry, False, actor=auth.actor)
     return PluginOut.model_validate(entry)

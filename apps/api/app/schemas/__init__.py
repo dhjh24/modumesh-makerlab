@@ -163,3 +163,90 @@ class AuditEventOut(BaseModel):
 class ErrorOut(BaseModel):
     detail: str
     code: Optional[str] = None
+
+
+# ── Auth ──────────────────────────────────────────────────────────────
+
+
+class LoginRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=64)
+    password: str = Field(..., min_length=1, max_length=128)
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    username: Optional[str] = None
+    display_name: str
+    role: str
+    is_active: bool
+    created_at: datetime
+    last_login_at: Optional[datetime] = None
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    user: UserOut
+
+
+class UserCreate(BaseModel):
+    username: str = Field(..., min_length=3, max_length=64)
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: str = Field(..., min_length=1, max_length=255)
+    role: str = Field(default="owner", pattern="^(owner|admin)$")
+
+
+class SignedDownloadOut(BaseModel):
+    file_id: UUID
+    url: str
+    expires_at: datetime
+    expires_in_seconds: int
+
+
+class AdminStatusOut(BaseModel):
+    timestamp: datetime
+    services: dict[str, Any]
+    queue_depth: int
+    active_jobs: int
+    failed_jobs: int
+    project_count: int
+    storage_bytes: int
+    file_count: int
+    plugins: list[dict[str, Any]]
+    retention_days: int
+    version: str
+
+
+class RetentionPurgeResult(BaseModel):
+    purged_projects: int
+    retention_days: int
+    skipped: bool = False
+    reason: Optional[str] = None
+    projects: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class VersionLockOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    project_id: UUID
+    plugin_id: str
+    plugin_version: str
+    locked_by: Optional[str] = None
+    locked_at: datetime
+    notes: Optional[str] = None
+
+
+class VersionLockCreate(BaseModel):
+    plugin_id: str = Field(..., min_length=1, max_length=64)
+    plugin_version: str = Field(..., min_length=1, max_length=32)
+    notes: Optional[str] = None
+
+
+class ProjectDeleteResult(BaseModel):
+    project_id: str
+    files_removed: int
+    object_failures: list[str] = Field(default_factory=list)

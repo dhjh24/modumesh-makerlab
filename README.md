@@ -35,16 +35,19 @@ cd modumesh-makerlab
 # 2. Install frontend dependencies
 npm install
 
-# 3. Copy environment config
+# 3. Copy environment config (change bootstrap admin password)
 cp .env.example .env
 
 # 4. Start everything
 docker compose -f infra/compose/docker-compose.yml up -d
+docker compose -f infra/compose/docker-compose.yml exec api alembic -c /app/alembic.ini upgrade head
 
-# 5. Open the web UI
-open http://localhost:3000
+# 5. Open the web UI and sign in (default: admin / change_me_admin)
+open http://localhost:3000/login
 ```
 
+Production self-host: see `docs/operations.md` and `infra/compose/docker-compose.prod.yml`.
+Phase 6 standalone hardening is complete; shop integration waits for Phase 7.
 ## Services
 
 | Service  | Port | Description                        |

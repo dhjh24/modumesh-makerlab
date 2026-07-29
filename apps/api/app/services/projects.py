@@ -9,24 +9,15 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import Project, User
+from app.models import Project, User, VersionLock
+from app.services import auth as auth_service
 from app.services.audit import record_audit
 
-DEFAULT_OWNER_ID = uuid.UUID("00000000-0000-4000-8000-000000000001")
+DEFAULT_OWNER_ID = auth_service.DEFAULT_OWNER_ID
 
 
 async def ensure_default_owner(session: AsyncSession) -> User:
-    user = await session.get(User, DEFAULT_OWNER_ID)
-    if user is not None:
-        return user
-    user = User(
-        id=DEFAULT_OWNER_ID,
-        external_id="local-default",
-        display_name="Local Owner",
-    )
-    session.add(user)
-    await session.flush()
-    return user
+    return await auth_service.ensure_bootstrap_users(session)
 
 
 async def create_project(
@@ -65,6 +56,7 @@ async def get_project(session: AsyncSession, project_id: uuid.UUID) -> Optional[
 async def list_projects(
     session: AsyncSession,
     *,
+    owner_id: Optional[uuid.UUID] = None,
     include_archived: bool = False,
     limit: int = 50,
     offset: int = 0,
@@ -72,6 +64,8 @@ async def list_projects(
     filters = []
     if not include_archived:
         filters.append(Project.status == "active")
+    if owner_id is not None:
+        filters.append(Project.owner_id == owner_id)
 
     count_q = select(func.count()).select_from(Project)
     list_q = select(Project).order_by(Project.created_at.desc()).limit(limit).offset(offset)
@@ -135,3 +129,60 @@ async def archive_project(
         details={},
     )
     return project
+
+
+async def set_version_lock(
+    session: AsyncSession,
+    project: Project,
+    *,
+    plugin_id: str,
+    plugin_version: str,
+    actor: str,
+    notes: Optional[str] = None,
+) -> VersionLock:
+    result = await session.execute(
+        select(VersionLock).where(
+            VersionLock.project_id == project.id,
+            VersionLock.plugin_id == plugin_id,
+        )
+    )
+    lock = result.scalar_one_or_none()
+    if lock is None:
+        lock = VersionLock(
+            id=uuid.uuid4(),
+            project_id=project.id,
+            plugin_id=plugin_id,
+            plugin_version=plugin_version,
+            locked_by=actor,
+            notes=notes,
+        )
+        session.add(lock)
+        action = "version_lock.created"
+    else:
+        lock.plugin_version = plugin_version
+        lock.locked_by = actor
+        lock.locked_at = datetime.now(timezone.utc)
+        lock.notes = notes
+        action = "version_lock.updated"
+    await session.flush()
+    await record_audit(
+        session,
+        entity_type="project",
+        entity_id=project.id,
+        action=action,
+        actor=actor,
+        details={
+            "plugin_id": plugin_id,
+            "plugin_version": plugin_version,
+        },
+    )
+    return lock
+
+
+async def list_version_locks(
+    session: AsyncSession, project_id: uuid.UUID
+) -> list[VersionLock]:
+    result = await session.execute(
+        select(VersionLock).where(VersionLock.project_id == project_id)
+    )
+    return list(result.scalars().all())

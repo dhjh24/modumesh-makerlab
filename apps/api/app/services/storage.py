@@ -92,3 +92,24 @@ def object_exists(object_key: str) -> bool:
         return True
     except Exception:
         return False
+
+
+def delete_object(object_key: str) -> bool:
+    """Delete an object from MinIO. Returns True if a delete was attempted."""
+    if minio_mod.minio_client is None:
+        raise RuntimeError("MinIO client is not initialized")
+    minio_mod.minio_client.remove_object(settings.minio.bucket, object_key)
+    return True
+
+
+def presigned_get_url(object_key: str, expires_seconds: int = 300) -> str:
+    """Return a MinIO presigned GET URL (direct object access)."""
+    if minio_mod.minio_client is None:
+        raise RuntimeError("MinIO client is not initialized")
+    from datetime import timedelta
+
+    return minio_mod.minio_client.presigned_get_object(
+        settings.minio.bucket,
+        object_key,
+        expires=timedelta(seconds=expires_seconds),
+    )

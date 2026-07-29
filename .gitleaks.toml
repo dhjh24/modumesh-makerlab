@@ -1,0 +1,17 @@
+# Gitleaks configuration for ModuMesh MakerLab secret scanning.
+title = "ModuMesh MakerLab"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Dev placeholders and fixtures"
+paths = [
+  '''\.env\.example$''',
+  '''docs/''',
+  '''plugins/.*/fixtures/''',
+]
+regexes = [
+  '''change_me''',
+  '''modumesh_dev''',
+]

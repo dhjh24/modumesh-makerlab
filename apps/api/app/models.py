@@ -54,7 +54,7 @@ class SchemaMigration(Base):
 
 
 class User(Base):
-    """Owner placeholder — full auth lands in a later phase."""
+    """Local user account with owner/admin roles (Phase 6)."""
 
     __tablename__ = "users"
 
@@ -63,6 +63,17 @@ class User(Base):
     )
     external_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False, default="local-owner")
+    username: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, unique=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    role: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'owner'")
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("true")
+    )
+    last_login_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
@@ -74,6 +85,76 @@ class User(Base):
     )
 
     projects: Mapped[list[Project]] = relationship(back_populates="owner")
+    sessions: Mapped[list[Session]] = relationship(back_populates="user")
+
+    __table_args__ = (
+        CheckConstraint("role IN ('owner', 'admin')", name="ck_users_role"),
+    )
+
+
+class Session(Base):
+    """Opaque bearer/cookie session token (hashed at rest)."""
+
+    __tablename__ = "sessions"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=_uuid
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
+    )
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_seen_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    user_agent: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+
+    user: Mapped[User] = relationship(back_populates="sessions")
+
+    __table_args__ = (
+        Index("ix_sessions_user_id", "user_id"),
+        Index("ix_sessions_expires_at", "expires_at"),
+    )
+
+
+class VersionLock(Base):
+    """Groundwork for pinning a project to a plugin version."""
+
+    __tablename__ = "version_locks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=_uuid
+    )
+    project_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("projects.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    plugin_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    plugin_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    locked_by: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    locked_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
+    )
+    notes: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    __table_args__ = (
+        Index("ix_version_locks_project_id", "project_id"),
+        Index(
+            "uq_version_locks_project_plugin",
+            "project_id",
+            "plugin_id",
+            unique=True,
+        ),
+    )
 
 
 class Project(Base):

@@ -1,0 +1,15 @@
+# Overlay used by scripts/test-restore.sh — no host port publishing.
+services:
+  postgres:
+    ports: []
+  redis:
+    ports: []
+  minio:
+    ports: []
+  api:
+    ports: []
+  worker:
+    ports: []
+  web:
+    ports: []
+    profiles: ['disabled']

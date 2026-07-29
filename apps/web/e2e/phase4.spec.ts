@@ -1,27 +1,15 @@
 import { expect, test } from '@playwright/test';
-
-const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8000';
-
-async function waitForApi(request: import('@playwright/test').APIRequestContext) {
-  for (let i = 0; i < 40; i++) {
-    try {
-      const res = await request.get(`${API}/health/live`);
-      if (res.ok()) return;
-    } catch {
-      /* retry */
-    }
-    await new Promise((r) => setTimeout(r, 1000));
-  }
-  throw new Error('API not reachable for e2e');
-}
+import { API, authHeaders, uiLogin, waitForApi } from './auth';
 
 test.describe('Phase 4 core flows', () => {
   test.beforeAll(async ({ request }) => {
     await waitForApi(request);
-    await request.post(`${API}/api/v1/plugins/resync`);
+    const headers = await authHeaders(request);
+    await request.post(`${API}/api/v1/plugins/resync`, { headers });
   });
 
   test('home dashboard shows catalog and can create a project', async ({ page }) => {
+    await uiLogin(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
@@ -34,10 +22,10 @@ test.describe('Phase 4 core flows', () => {
   });
 
   test('generator catalog renders schema form from plugin registry', async ({ page }) => {
+    await uiLogin(page);
     await page.goto('/generators');
     await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
 
-    // Prefer fixture-mesh if listed; otherwise first plugin.
     const mesh = page.getByRole('button', { name: /Fixture Mesh/i });
     if (await mesh.count()) {
       await mesh.first().click();
@@ -47,9 +35,7 @@ test.describe('Phase 4 core flows', () => {
         .first()
         .click();
     }
-
     await expect(page.getByText('Schema preview')).toBeVisible();
-    // Schema-driven fields from registry (Nameplate is a real plugin in Phase 5).
     await expect(page.locator('.mm-schema-form')).toBeVisible();
   });
 
@@ -57,16 +43,18 @@ test.describe('Phase 4 core flows', () => {
     page,
     request,
   }) => {
+    const headers = await authHeaders(request);
     const create = await request.post(`${API}/api/v1/projects`, {
+      headers,
       data: { name: `Job lifecycle ${Date.now()}`, description: 'phase4 e2e' },
     });
     expect(create.ok()).toBeTruthy();
     const project = await create.json();
 
+    await uiLogin(page);
     await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
 
-    // Fill schema form
     const message = page.getByLabel(/^Message/);
     await message.fill('phase4 lifecycle');
     await page.getByRole('button', { name: 'Generate' }).click();
@@ -83,7 +71,6 @@ test.describe('Phase 4 core flows', () => {
         .or(status.getByText('Failed', { exact: true })),
     ).toBeVisible({ timeout: 90_000 });
 
-    // Version history should list the job
     await expect(page.getByText(/fixture-echo/i).first()).toBeVisible();
 
     const url = page.url();
@@ -94,10 +81,13 @@ test.describe('Phase 4 core flows', () => {
   });
 
   test('STL and GLB fixtures render in the viewer', async ({ page, request }) => {
+    const headers = await authHeaders(request);
     const create = await request.post(`${API}/api/v1/projects`, {
+      headers,
       data: { name: `Viewer ${Date.now()}` },
     });
     const project = await create.json();
+    await uiLogin(page);
     await page.goto(`/projects/${project.id}`);
 
     await page.getByRole('button', { name: 'Fixture STL', exact: true }).click();
@@ -107,7 +97,6 @@ test.describe('Phase 4 core flows', () => {
     await expect(page.getByRole('button', { name: 'Build plate' })).toBeVisible();
     await expect(page.getByRole('button', { name: 'Reset camera' })).toBeVisible();
 
-    // Wait for dimensions (model loaded)
     await expect(page.getByText(/Dimensions:/i)).toBeVisible({ timeout: 30_000 });
 
     await page.getByRole('button', { name: 'Fixture GLB', exact: true }).click();

@@ -5,15 +5,22 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import check_db_connectivity, close_db
 from app.logging import configure_logging, get_logger
+from app.metrics import metrics
+from app.middleware import (
+    CorrelationLoggingMiddleware,
+    RateLimitMiddleware,
+    RequestSizeLimitMiddleware,
+    SecurityHeadersMiddleware,
+)
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
-from app.routers import files, health, jobs, plugins, projects
+from app.routers import admin, auth, files, health, jobs, plugins, projects
 
 
 @asynccontextmanager
@@ -22,13 +29,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger = get_logger("app")
     logger.info("starting up", service="modumesh-api", version=settings.api.version)
 
-    # ── Initialize dependencies ──────────────────────────────────────
-    # Redis (async)
     await init_redis()
     redis_status = await check_redis_connectivity()
     logger.info("redis connectivity", **redis_status)
 
-    # MinIO (sync)
     try:
         init_minio()
         minio_status = check_minio_connectivity()
@@ -36,29 +40,29 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as exc:
         logger.warning("minio initialization failed", error=str(exc))
 
-    # Database (async) — lightweight ping
     db_status = await check_db_connectivity()
     logger.info("database connectivity", **db_status)
 
-    # Plugin registry discovery (best-effort; migrations may not be applied yet)
     try:
         from app.database import async_session_factory
+        from app.services import auth as auth_service
         from app.services import plugins as plugin_service
 
         async with async_session_factory() as session:
+            await auth_service.ensure_bootstrap_users(session)
             summary = await plugin_service.sync_registry(session, actor="startup")
             await session.commit()
             logger.info(
-                "plugin registry ready",
+                "bootstrap ready",
                 discovered=summary.get("discovered"),
                 issues=len(summary.get("issues") or []),
+                auth_enabled=settings.api.auth_enabled,
             )
     except Exception as exc:  # noqa: BLE001
-        logger.warning("plugin registry sync skipped", error=str(exc))
+        logger.warning("startup bootstrap skipped", error=str(exc))
 
-    yield  # ── Application runs here ─────────────────────────────────
+    yield
 
-    # ── Shutdown ─────────────────────────────────────────────────────
     logger.info("shutting down")
     await close_redis()
     await close_db()
@@ -72,7 +76,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# ── Middleware: CORS (browser clients on the web origin) ──────────────
+# Middleware order: last added runs first on request.
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RequestSizeLimitMiddleware)
+app.add_middleware(RateLimitMiddleware)
+app.add_middleware(CorrelationLoggingMiddleware)
+
 _cors_origins = [
     origin.strip()
     for origin in (settings.api.cors_origins or "").split(",")
@@ -83,26 +92,21 @@ if _cors_origins:
         CORSMiddleware,
         allow_origins=_cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Idempotency-Key",
+            "X-Correlation-ID",
+            "X-API-Token",
+            "Accept",
+        ],
         expose_headers=["X-Correlation-ID", "X-Checksum-SHA256", "X-Object-Key"],
     )
 
-# ── Middleware: correlation ID ────────────────────────────────────────
-
-
-@app.middleware("http")
-async def correlation_id_middleware(request: Request, call_next):
-    from uuid import uuid4
-
-    correlation_id = request.headers.get("X-Correlation-ID") or str(uuid4())
-    request.state.correlation_id = correlation_id
-    response = await call_next(request)
-    response.headers["X-Correlation-ID"] = correlation_id
-    return response
-
-
 app.include_router(health.router)
+app.include_router(auth.router)
+app.include_router(admin.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
 app.include_router(files.router)
@@ -118,7 +122,16 @@ async def root() -> dict:
     }
 
 
-# ── Configure logging on import ──────────────────────────────────────
+@app.get("/metrics")
+async def prometheus_metrics() -> Response:
+    if not settings.api.metrics_enabled:
+        return Response(status_code=404, content="metrics disabled")
+    return Response(
+        content=metrics.render_prometheus(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
+
+
 configure_logging(
     log_level=settings.api.log_level,
     service="modumesh-api",

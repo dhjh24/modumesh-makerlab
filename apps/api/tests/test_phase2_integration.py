@@ -49,6 +49,9 @@ def api() -> httpx.Client:
         # Fail fast if stack is down
         live = client.get("/health/live")
         assert live.status_code == 200
+        from tests.conftest_auth import login
+
+        login(client)
         yield client
 
 

@@ -15,6 +15,7 @@ once accepted — amendments create a new ADR.
 | 0001 | Record architecture decisions | Accepted |
 | 0002 | Monorepo tooling              | Accepted |
 | 0003 | Plugin contract and registry  | Accepted |
+| 0004 | Local session auth            | Accepted |
 
 ## Template
 

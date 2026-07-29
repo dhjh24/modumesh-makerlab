@@ -1,8 +1,10 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { API, authHeaders, uiLogin } from './auth';
 
 test.describe('Phase 4 accessibility @a11y', () => {
   test('home has no serious axe violations', async ({ page }) => {
+    await uiLogin(page);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
@@ -13,11 +15,11 @@ test.describe('Phase 4 accessibility @a11y', () => {
   });
 
   test('generators page keyboard focus and labels', async ({ page }) => {
+    await uiLogin(page);
     await page.goto('/generators');
     await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
 
     await page.keyboard.press('Tab');
-    // Skip link or nav should be reachable
     const focused = page.locator(':focus');
     await expect(focused).toBeVisible();
 
@@ -25,7 +27,6 @@ test.describe('Phase 4 accessibility @a11y', () => {
     await mesh.click();
     const form = page.locator('.mm-schema-form');
     await expect(form).toBeVisible();
-    // Every visible input/select in the form should have an accessible name
     const controls = form.locator('input, select, textarea');
     const count = await controls.count();
     for (let i = 0; i < count; i++) {
@@ -47,17 +48,18 @@ test.describe('Phase 4 accessibility @a11y', () => {
   });
 
   test('editor announces status updates', async ({ page, request }) => {
-    const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8000';
+    const headers = await authHeaders(request);
     const create = await request.post(`${API}/api/v1/projects`, {
+      headers,
       data: { name: `A11y ${Date.now()}` },
     });
     const project = await create.json();
+    await uiLogin(page);
     await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
     await expect(page.getByLabel('Job progress')).toBeVisible();
     await expect(page.locator('[aria-live="polite"]').first()).toBeVisible();
 
-    // Reduced motion should not break viewer toolbar
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.getByRole('button', { name: 'Fixture STL', exact: true }).click();
     await expect(page.getByRole('button', { name: 'Wireframe' })).toBeVisible();

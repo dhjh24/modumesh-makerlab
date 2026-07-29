@@ -1,0 +1,35 @@
+# Production reverse proxy for ModuMesh MakerLab.
+# Replace makerlab.example.com with your hostname and set ACME email.
+
+{
+	email admin@example.com
+}
+
+makerlab.example.com {
+	encode gzip zstd
+
+	# Security headers (complement API middleware)
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# API behind /api and health probes
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+	handle /health* {
+		reverse_proxy api:8000
+	}
+	handle /metrics {
+		reverse_proxy api:8000
+	}
+
+	# Web UI (Next.js)
+	handle {
+		reverse_proxy web:3000
+	}
+}

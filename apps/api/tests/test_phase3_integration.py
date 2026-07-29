@@ -30,6 +30,9 @@ def client() -> httpx.Client:
         live = c.get(f"{BASE}/health/live")
         if live.status_code != 200:
             pytest.skip("API not reachable — start the docker stack")
+        from tests.conftest_auth import login
+
+        login(c)
         yield c
 
 

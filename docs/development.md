@@ -92,16 +92,29 @@ Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
 - Prettier lint
 - TypeScript typecheck
 - Plugin contract tests (`modumesh-plugin-check` + SDK unit tests)
-- API and worker unit tests
+- API and worker unit tests (including Phase 6 auth/token unit tests)
+- Security scanning (pip-audit, gitleaks, Trivy on API image)
 - Docker Compose image build
-- Integration smoke against Postgres, Redis, MinIO (Phase 2–5 plugin flows)
+- Integration smoke against Postgres, Redis, MinIO (Phase 2–6 authz + plugin flows)
+- Worker security constraint verification
 - Nameplate CadQuery geometry regression tests
+- Automated backup/restore test (`scripts/test-restore.sh`)
 
 GitHub Actions workflows are not used.
+
+## Production / operations
+
+See `docs/operations.md` for fresh install, backup/restore, upgrade, rollback,
+troubleshooting, and the release checklist. Production Compose:
+
+```bash
+docker compose -f infra/compose/docker-compose.prod.yml --env-file .env up -d
+```
 
 ## Docker Compose Profiles
 
 | Profile | Services     | Command                                                                                         |
 | ------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | default | All          | `docker compose -f infra/compose/docker-compose.yml up`                                         |
+| prod    | Proxy-only   | `docker compose -f infra/compose/docker-compose.prod.yml --env-file .env up`                    |
 | dev     | + hot reload | `docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.dev.yml up` |

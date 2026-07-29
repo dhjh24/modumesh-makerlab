@@ -1,0 +1,165 @@
+# Standalone production Compose for ModuMesh MakerLab (Phase 6).
+# Infrastructure ports are not published; only the reverse proxy is exposed.
+#
+#   cp .env.example .env   # set strong secrets (required)
+#   docker compose -f infra/compose/docker-compose.prod.yml --env-file .env up -d
+#
+# See docs/operations.md for TLS, backup, upgrade, and rollback.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-modumesh}
+      POSTGRES_USER: ${POSTGRES_USER:-modumesh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-modumesh}']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ['redis-server', '--appendonly', 'yes']
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?set MINIO_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?set MINIO_SECRET_KEY}
+    volumes:
+      - miniodata:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 1.0
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-modumesh}
+      POSTGRES_USER: ${POSTGRES_USER:-modumesh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      REDIS_HOST: redis
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-https://makerlab.example.com}
+      API_AUTH_ENABLED: 'true'
+      API_SESSION_COOKIE_SECURE: 'true'
+      API_BOOTSTRAP_ADMIN_USERNAME: ${API_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      API_BOOTSTRAP_ADMIN_PASSWORD: ${API_BOOTSTRAP_ADMIN_PASSWORD:?set API_BOOTSTRAP_ADMIN_PASSWORD}
+      API_DOWNLOAD_SIGNING_SECRET: ${API_DOWNLOAD_SIGNING_SECRET:?set API_DOWNLOAD_SIGNING_SECRET}
+      API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-120}
+      API_MAX_REQUEST_BYTES: ${API_MAX_REQUEST_BYTES:-1048576}
+      API_RETENTION_DAYS: ${API_RETENTION_DAYS:-90}
+      API_PLUGIN_DIR: /plugins
+    volumes:
+      - ../../plugins:/plugins:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    restart: always
+    read_only: true
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 4g
+    cpus: 2.0
+    environment:
+      REDIS_HOST: redis
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-modumesh}
+      POSTGRES_USER: ${POSTGRES_USER:-modumesh}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
+      WORKER_PLUGIN_TIMEOUT_SECONDS: 300
+      WORKER_MAX_MEMORY_MB: 2048
+      WORKER_PLUGIN_DIR: /plugins
+      MODUMESH_DENY_DOCKER_SOCK: '1'
+      TMPDIR: /tmp
+      HOME: /tmp
+    volumes:
+      - ../../plugins:/plugins:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+    restart: always
+    mem_limit: 512m
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
+      API_INTERNAL_URL: http://api:8000
+    depends_on:
+      - api
+
+  proxy:
+    image: caddy:2.8-alpine
+    restart: always
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile.prod:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+
+volumes:
+  pgdata:
+  miniodata:
+  caddy_data:
+  caddy_config:

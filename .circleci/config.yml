@@ -112,7 +112,8 @@ jobs:
             coverage run -m pytest \
               tests/test_health.py \
               tests/test_state_machine.py \
-              tests/test_plugins_unit.py -v
+              tests/test_plugins_unit.py \
+              tests/test_phase6_unit.py -v
             coverage report
 
   worker-tests:
@@ -128,6 +129,26 @@ jobs:
           name: Worker unit tests
           command: cd apps/worker && python -m pytest -v
 
+  security-scan:
+    executor: python311
+    steps:
+      - checkout_repo
+      - run:
+          name: Install API deps + pip-audit
+          command: |
+            pip install -e packages/plugin-sdk-py
+            cd apps/api && pip install -e ".[dev]"
+            pip install pip-audit
+      - run:
+          name: pip-audit API dependencies
+          command: pip-audit
+      - run:
+          name: Secret scan (gitleaks)
+          command: |
+            curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+              | tar -xz gitleaks
+            ./gitleaks detect --source . --config .gitleaks.toml --no-git
+
   container-build:
     executor: machine_ubuntu
     steps:
@@ -135,6 +156,15 @@ jobs:
       - run:
           name: Build Compose images
           command: docker compose -f infra/compose/docker-compose.yml build
+      - run:
+          name: Trivy scan API image
+          command: |
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+              | sudo sh -s -- -b /usr/local/bin
+            IMG=$(docker compose -f infra/compose/docker-compose.yml images -q api | head -n1)
+            if [ -n "$IMG" ]; then
+              trivy image --severity HIGH,CRITICAL --exit-code 1 "$IMG"
+            fi
 
   integration-smoke:
     executor: machine_ubuntu
@@ -165,21 +195,32 @@ jobs:
             docker compose -f infra/compose/docker-compose.yml exec -T api \
               alembic -c /app/alembic.ini upgrade head
       - run:
-          name: Resync plugins
+          name: Login + resync plugins
           command: |
-            curl -sf -X POST http://localhost:8000/api/v1/plugins/resync | head -c 500
+            TOKEN=$(curl -sf -X POST http://localhost:8000/api/v1/auth/login \
+              -H 'Content-Type: application/json' \
+              -d '{"username":"admin","password":"change_me_admin"}' \
+              | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+            curl -sf -X POST http://localhost:8000/api/v1/plugins/resync \
+              -H "Authorization: Bearer $TOKEN" | head -c 500
             echo
       - run:
           name: Integration smoke tests
           command: |
             docker compose -f infra/compose/docker-compose.yml exec -T api \
-              pip install pytest httpx pytest-asyncio
+              pip install pytest httpx pytest-asyncio bcrypt
             docker compose -f infra/compose/docker-compose.yml exec -T api \
               python -m pytest \
                 tests/test_integration.py \
                 tests/test_phase2_integration.py \
                 tests/test_phase3_integration.py \
-                tests/test_phase5_integration.py -v -x
+                tests/test_phase5_integration.py \
+                tests/test_phase6_authz.py -v -x
+      - run:
+          name: Verify worker security constraints
+          command: |
+            chmod +x scripts/verify-worker-security.sh
+            ./scripts/verify-worker-security.sh
       - run:
           name: Wait for Web
           command: |
@@ -218,6 +259,16 @@ jobs:
           when: always
           command: docker compose -f infra/compose/docker-compose.yml down -v
 
+  restore-test:
+    executor: machine_ubuntu
+    steps:
+      - checkout_repo
+      - run:
+          name: Automated restore test
+          command: |
+            chmod +x scripts/test-restore.sh
+            ./scripts/test-restore.sh
+
 workflows:
   ci:
     jobs:
@@ -226,7 +277,11 @@ workflows:
       - plugin-contract
       - api-tests
       - worker-tests
+      - security-scan
       - container-build
       - integration-smoke:
+          requires:
+            - container-build
+      - restore-test:
           requires:
             - container-build

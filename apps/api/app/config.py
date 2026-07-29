@@ -61,6 +61,23 @@ class APISettings(BaseSettings):
     log_level: str = "info"
     version: str = "0.1.0"
     plugin_dir: str = "/plugins"
+    # Auth / sessions
+    auth_enabled: bool = True
+    bootstrap_admin_username: str = "admin"
+    bootstrap_admin_password: str = "change_me_admin"
+    session_ttl_hours: int = 24
+    session_cookie_secure: bool = False
+    session_cookie_samesite: str = "lax"
+    # Signing secret for temporary download URLs (override in production).
+    download_signing_secret: str = "change_me_download_secret"
+    download_url_ttl_seconds: int = 300
+    # Rate / size limits
+    rate_limit_per_minute: int = 120
+    rate_limit_auth_per_minute: int = 20
+    max_request_bytes: int = 1_048_576
+    # Retention (days); 0 disables automatic purge scheduling hints
+    retention_days: int = 90
+    metrics_enabled: bool = True
 
     model_config = SettingsConfigDict(env_prefix="API_")
 

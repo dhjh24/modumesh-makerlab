@@ -61,6 +61,13 @@ services:
       MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
       API_CORS_ORIGINS: http://localhost:3000
       API_PLUGIN_DIR: /plugins
+      API_AUTH_ENABLED: ${API_AUTH_ENABLED:-true}
+      API_BOOTSTRAP_ADMIN_USERNAME: ${API_BOOTSTRAP_ADMIN_USERNAME:-admin}
+      API_BOOTSTRAP_ADMIN_PASSWORD: ${API_BOOTSTRAP_ADMIN_PASSWORD:-change_me_admin}
+      API_DOWNLOAD_SIGNING_SECRET: ${API_DOWNLOAD_SIGNING_SECRET:-change_me_download_secret}
+      API_RATE_LIMIT_PER_MINUTE: ${API_RATE_LIMIT_PER_MINUTE:-120}
+      API_MAX_REQUEST_BYTES: ${API_MAX_REQUEST_BYTES:-1048576}
+      API_RETENTION_DAYS: ${API_RETENTION_DAYS:-90}
     # Plugin source is baked read-only into the image. Optional bind mount for
     # local plugin development (still mounted read-only; no docker.sock).
     volumes:
@@ -78,6 +85,18 @@ services:
       context: ../..
       dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
+    # Phase 6 worker isolation (image already runs as non-root `modumesh`).
+    read_only: true
+    tmpfs:
+      - /tmp:size=512M,mode=1777
+      - /home/modumesh:size=64M,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2.0
     environment:
       REDIS_HOST: redis
       POSTGRES_HOST: postgres
@@ -97,6 +116,8 @@ services:
       WORKER_PLUGIN_DIR: /plugins
       MODUMESH_DENY_DOCKER_SOCK: '1'
       MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
+      TMPDIR: /tmp
+      HOME: /tmp
     volumes:
       - ../../plugins:/plugins:ro
     depends_on:

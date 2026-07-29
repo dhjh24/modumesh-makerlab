@@ -659,3 +659,53 @@ textarea.mm-input {
     min-height: 360px;
   }
 }
+
+.mm-login {
+  max-width: 28rem;
+  margin: 2rem auto;
+  animation: mm-fade-up 0.5s ease both;
+}
+
+.mm-login__form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.mm-nav-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mm-admin-grid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-top: 1.5rem;
+}
+
+.mm-admin-grid h2 {
+  font-family: var(--mm-font-display);
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+
+.mm-muted {
+  color: var(--mm-ink-muted);
+}
+
+@keyframes mm-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

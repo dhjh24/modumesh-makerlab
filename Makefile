@@ -5,7 +5,7 @@
 DOCKER_COMPOSE = docker compose -f infra/compose/docker-compose.yml
 DOCKER_COMPOSE_DEV = docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.dev.yml
 
-.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk test-nameplate smoke test-e2e ci-build help
+.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk test-nameplate smoke test-e2e ci-build backup restore test-restore verify-worker security-scan help
 
 # ── Stack lifecycle ───────────────────────────────────────────────────
 
@@ -14,6 +14,9 @@ start:    ## Start the full stack in background
 
 start-dev: ## Start with hot-reload for development
 	$(DOCKER_COMPOSE_DEV) up -d
+
+start-prod: ## Start production compose (proxy only exposed)
+	docker compose -f infra/compose/docker-compose.prod.yml --env-file .env up -d
 
 stop:     ## Stop the stack
 	$(DOCKER_COMPOSE) down
@@ -44,6 +47,23 @@ migrate-history: ## Show migration history
 db-shell: ## Open psql shell
 	$(DOCKER_COMPOSE) exec postgres psql -U modumesh modumesh
 
+# ── Backup / restore / security ───────────────────────────────────────
+
+backup:   ## Backup Postgres + MinIO
+	./scripts/backup.sh
+
+restore:  ## Restore from BACKUP_DIR=...
+	./scripts/restore.sh $(BACKUP_DIR)
+
+test-restore: ## Automated isolated restore test
+	./scripts/test-restore.sh
+
+verify-worker: ## Verify worker container security constraints
+	./scripts/verify-worker-security.sh
+
+security-scan: ## Dependency, secret, and container scans
+	./scripts/security-scan.sh
+
 # ── Testing ───────────────────────────────────────────────────────────
 
 test:     ## Run all unit tests
@@ -66,14 +86,14 @@ test-nameplate: ## Run Nameplate unit + geometry regression tests
 
 test-api: ## Run API unit tests
 	pip install -q -e packages/plugin-sdk-py
-	cd apps/api && pip install -q -e ".[dev]" && python -m pytest tests/test_health.py tests/test_state_machine.py tests/test_plugins_unit.py -v
+	cd apps/api && pip install -q -e ".[dev]" && python -m pytest tests/test_health.py tests/test_state_machine.py tests/test_plugins_unit.py tests/test_phase6_unit.py -v
 
 test-worker: ## Run worker unit tests
 	pip install -q -e packages/plugin-sdk-py
 	cd apps/worker && pip install -q -e ".[dev]" && python -m pytest -v
 
 smoke:    ## Run integration smoke tests against running stack
-	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py tests/test_phase5_integration.py -v -x
+	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py tests/test_phase5_integration.py tests/test_phase6_authz.py -v -x
 
 test-e2e: ## Run Playwright e2e + a11y (web + API must be up)
 	cd apps/web && npx playwright test --project=chromium

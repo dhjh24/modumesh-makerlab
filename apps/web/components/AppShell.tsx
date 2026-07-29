@@ -1,15 +1,32 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import type { ReactNode } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
+import { api, AuthUser, getStoredToken, setStoredToken } from '../lib/api';
 
 const NAV = [
   { href: '/', label: 'Home' },
   { href: '/generators', label: 'Generators' },
+  { href: '/admin', label: 'Admin', adminOnly: true },
 ];
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
   const router = useRouter();
   const pageTitle = title ? `${title} · ModuMesh MakerLab` : 'ModuMesh MakerLab';
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!getStoredToken()) return;
+    api
+      .me()
+      .then(setUser)
+      .catch(() => setStoredToken(null));
+  }, []);
+
+  async function onLogout() {
+    await api.logout();
+    setUser(null);
+    await router.push('/login');
+  }
 
   return (
     <div className="mm-shell">
@@ -21,7 +38,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           ModuMesh <span>MakerLab</span>
         </Link>
         <nav className="mm-nav" aria-label="Primary">
-          {NAV.map((item) => {
+          {NAV.filter((item) => !item.adminOnly || user?.role === 'admin').map((item) => {
             const current =
               item.href === '/' ? router.pathname === '/' : router.pathname.startsWith(item.href);
             return (
@@ -30,10 +47,16 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
               </Link>
             );
           })}
+          {user ? (
+            <button type="button" className="mm-nav-btn" onClick={onLogout}>
+              Sign out ({user.username || user.display_name})
+            </button>
+          ) : router.pathname !== '/login' ? (
+            <Link href="/login">Sign in</Link>
+          ) : null}
         </nav>
       </header>
       <main id="main" className="mm-main">
-        {/* Keep document title in sync for screen readers without forcing Head in every page */}
         <span className="mm-sr-only" aria-live="polite">
           {pageTitle}
         </span>
