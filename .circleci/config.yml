@@ -78,6 +78,11 @@ jobs:
             modumesh-plugin-check check plugins/fixture-echo \
               --input plugins/fixture-echo/fixtures/valid-input.json
       - run:
+          name: Contract CLI — fixture-mesh
+          command: |
+            modumesh-plugin-check check plugins/fixture-mesh \
+              --input plugins/fixture-mesh/fixtures/valid-input.json
+      - run:
           name: Discover plugins
           command: modumesh-plugin-check discover plugins
 
@@ -164,6 +169,35 @@ jobs:
                 tests/test_integration.py \
                 tests/test_phase2_integration.py \
                 tests/test_phase3_integration.py -v -x
+      - run:
+          name: Wait for Web
+          command: |
+            for i in $(seq 1 40); do
+              if curl -sf http://localhost:3000/api/health > /dev/null 2>&1; then
+                echo "Web is live"
+                exit 0
+              fi
+              echo "Waiting for Web... ($i)"
+              sleep 3
+            done
+            echo "Web did not start in time"
+            docker compose -f infra/compose/docker-compose.yml logs web --tail=40
+            exit 1
+      - run:
+          name: Install Node.js 22 for Playwright
+          command: |
+            curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+            sudo apt-get install -y nodejs
+            node -v && npm -v
+      - run:
+          name: Install Playwright + run Phase 4 e2e/a11y
+          command: |
+            npm ci
+            cd apps/web
+            npx playwright install --with-deps chromium
+            PLAYWRIGHT_BASE_URL=http://localhost:3000 \
+            PLAYWRIGHT_API_URL=http://localhost:8000 \
+              npx playwright test --project=chromium
       - run:
           name: Show logs on failure
           when: on_fail

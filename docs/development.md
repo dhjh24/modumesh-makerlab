@@ -55,6 +55,8 @@ python -m app.main
 pip install -e packages/plugin-sdk-py
 modumesh-plugin-check check plugins/fixture-echo \
   --input plugins/fixture-echo/fixtures/valid-input.json
+modumesh-plugin-check check plugins/fixture-mesh \
+  --input plugins/fixture-mesh/fixtures/valid-input.json
 
 # API tests (install SDK first)
 pip install -e packages/plugin-sdk-py
@@ -72,6 +74,10 @@ npx prettier --check .
 
 # Integration smoke (stack must be running)
 make smoke
+
+# Web e2e + a11y (stack must be running on :3000 / :8000)
+cd apps/web && npx playwright install chromium
+npm run test:e2e --workspace=@modumesh/web
 ```
 
 ## CI

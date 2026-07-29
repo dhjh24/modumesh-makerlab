@@ -1,11 +1,20 @@
-/** UI component library placeholder. */
+/**
+ * @modumesh/ui — shared React primitives and schema-driven forms.
+ */
 
-export interface ButtonProps {
-  label: string;
-  onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'danger';
-}
+export { Button } from './Button';
+export type { ButtonProps } from './Button';
 
-export function Button(props: ButtonProps): string {
-  return `<button class="mm-button mm-button--${props.variant ?? 'primary'}">${props.label}</button>`;
-}
+export { Badge } from './Badge';
+export type { BadgeProps } from './Badge';
+
+export { EmptyState, LoadingState, OfflineState, RetryState } from './StateViews';
+export type { StateViewProps } from './StateViews';
+
+export { ErrorPanel } from './ErrorPanel';
+export type { ErrorPanelProps } from './ErrorPanel';
+
+export { JobStatusBadge, jobStatusLabel } from './JobStatusBadge';
+
+export { SchemaForm, defaultsFromSchema, validateAgainstSchema } from './SchemaForm';
+export type { SchemaFormProps, SchemaFormErrors } from './SchemaForm';

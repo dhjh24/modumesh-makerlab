@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import check_db_connectivity, close_db
@@ -70,6 +71,22 @@ app = FastAPI(
     description="Self-hosted 3D generator platform API",
     lifespan=lifespan,
 )
+
+# ── Middleware: CORS (browser clients on the web origin) ──────────────
+_cors_origins = [
+    origin.strip()
+    for origin in (settings.api.cors_origins or "").split(",")
+    if origin.strip()
+]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+        expose_headers=["X-Correlation-ID", "X-Checksum-SHA256", "X-Object-Key"],
+    )
 
 # ── Middleware: correlation ID ────────────────────────────────────────
 

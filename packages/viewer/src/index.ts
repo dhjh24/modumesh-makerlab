@@ -1,14 +1,10 @@
-/** Viewer placeholder — will integrate Three.js / React Three Fiber. */
+/**
+ * @modumesh/viewer — reusable STL/GLB preview (React Three Fiber).
+ *
+ * Import this package only from pages that need 3D. Prefer
+ * `next/dynamic(..., { ssr: false })` so home/catalog bundles stay light.
+ */
 
-export type ModelFormat = 'stl' | 'glb' | 'obj' | 'step';
-
-export interface ViewerProps {
-  src: string;
-  format: ModelFormat;
-  width?: number;
-  height?: number;
-}
-
-export function createViewer(container: HTMLElement, props: ViewerProps): void {
-  console.log('Viewer placeholder:', props.src);
-}
+export type { ModelFormat, ModelViewerProps, ViewerDimensions } from './types';
+export { ModelViewer } from './ModelViewer';
+export { formatDimensions } from './math';

@@ -1,0 +1,139 @@
+/**
+ * Browser API client. Uses same-origin `/api/v1` rewrites by default so the
+ * heavyweight 3D stack is never required for API traffic and CORS is optional.
+ */
+
+export class ApiError extends Error {
+  status: number;
+  body: string;
+  correlationId?: string;
+
+  constructor(message: string, status: number, body: string, correlationId?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+    this.correlationId = correlationId;
+  }
+}
+
+function apiBase(): string {
+  const pub = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+  if (typeof window === 'undefined') {
+    return process.env.API_INTERNAL_URL || pub || 'http://localhost:8000';
+  }
+  // Browser: explicit public API URL (Compose), otherwise same-origin rewrites.
+  if (pub) return pub;
+  return '';
+}
+
+export function fileDownloadUrl(fileId: string): string {
+  const base = apiBase();
+  return `${base}/api/v1/files/${fileId}/download`;
+}
+
+export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const base = apiBase();
+  const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...init,
+      headers: {
+        Accept: 'application/json',
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(init.headers || {}),
+      },
+    });
+  } catch (err) {
+    const offline = err instanceof TypeError;
+    throw new ApiError(
+      offline ? 'Unable to reach the MakerLab API. Check your connection.' : 'Request failed.',
+      0,
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
+  const correlationId = response.headers.get('X-Correlation-ID') || undefined;
+  const text = await response.text();
+  if (!response.ok) {
+    let friendly = `Request failed (${response.status}).`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: unknown };
+      if (typeof parsed.detail === 'string') friendly = parsed.detail;
+      else if (parsed.detail) friendly = JSON.stringify(parsed.detail);
+    } catch {
+      if (text) friendly = text.slice(0, 240);
+    }
+    throw new ApiError(friendly, response.status, text, correlationId);
+  }
+
+  if (!text) return undefined as T;
+  return JSON.parse(text) as T;
+}
+
+export const api = {
+  listProjects: (limit = 20) =>
+    apiFetch<{ items: import('@modumesh/shared-types').Project[]; total: number }>(
+      `/api/v1/projects?limit=${limit}`,
+    ),
+  getProject: (id: string) =>
+    apiFetch<import('@modumesh/shared-types').Project>(`/api/v1/projects/${id}`),
+  createProject: (body: { name: string; description?: string }) =>
+    apiFetch<import('@modumesh/shared-types').Project>(`/api/v1/projects`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  updateProject: (id: string, body: { name?: string; description?: string }) =>
+    apiFetch<import('@modumesh/shared-types').Project>(`/api/v1/projects/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  listPlugins: (enabledOnly = true) =>
+    apiFetch<import('@modumesh/shared-types').PluginList>(
+      `/api/v1/plugins?enabled_only=${enabledOnly ? 'true' : 'false'}`,
+    ),
+  getPlugin: (pluginId: string) =>
+    apiFetch<import('@modumesh/shared-types').PluginRecord>(`/api/v1/plugins/${pluginId}`),
+  listProjectJobs: (projectId: string, limit = 50) =>
+    apiFetch<import('@modumesh/shared-types').JobList>(
+      `/api/v1/projects/${projectId}/jobs?limit=${limit}`,
+    ),
+  createJob: (
+    projectId: string,
+    body: import('@modumesh/shared-types').JobCreate,
+    idempotencyKey?: string,
+  ) =>
+    apiFetch<import('@modumesh/shared-types').Job>(`/api/v1/projects/${projectId}/jobs`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+      headers: idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : undefined,
+    }),
+  getJob: (jobId: string) =>
+    apiFetch<import('@modumesh/shared-types').Job>(`/api/v1/jobs/${jobId}`),
+  getJobProgress: (jobId: string) =>
+    apiFetch<import('@modumesh/shared-types').JobProgress>(`/api/v1/jobs/${jobId}/progress`),
+  cancelJob: (jobId: string) =>
+    apiFetch<import('@modumesh/shared-types').Job>(`/api/v1/jobs/${jobId}/cancel`, {
+      method: 'POST',
+    }),
+  retryJob: (jobId: string) =>
+    apiFetch<import('@modumesh/shared-types').Job>(`/api/v1/jobs/${jobId}/retry`, {
+      method: 'POST',
+    }),
+  listJobFiles: (jobId: string) =>
+    apiFetch<import('@modumesh/shared-types').FileList>(`/api/v1/jobs/${jobId}/files`),
+  listProjectFiles: (projectId: string) =>
+    apiFetch<import('@modumesh/shared-types').FileList>(`/api/v1/projects/${projectId}/files`),
+  listRecentJobs: async (limitProjects = 8, perProject = 5) => {
+    const projects = await api.listProjects(limitProjects);
+    const batches = await Promise.all(
+      projects.items.map((p) =>
+        api.listProjectJobs(p.id, perProject).catch(() => ({ items: [], total: 0 })),
+      ),
+    );
+    const jobs = batches.flatMap((b) => b.items);
+    jobs.sort((a, b) => b.created_at.localeCompare(a.created_at));
+    return jobs.slice(0, 20);
+  },
+};

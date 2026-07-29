@@ -73,6 +73,7 @@ modumesh-makerlab/
 │   └── ui/             # Shared UI components
 ├── plugins/
 │   ├── fixture-echo/   # Non-CAD example plugin (Phase 3)
+│   ├── fixture-mesh/   # STL/GLB fixture plugin (Phase 4)
 │   └── nameplate/      # Reference CadQuery plugin (Phase 5)
 ├── infra/
 │   └── compose/        # Docker Compose files

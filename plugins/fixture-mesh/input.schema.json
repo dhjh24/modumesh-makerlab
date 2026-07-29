@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "label"],
+  "properties": {
+    "format": {
+      "title": "Output format",
+      "type": "string",
+      "enum": ["stl", "glb", "both"],
+      "default": "both",
+      "description": "Which packaged mesh fixture(s) to emit."
+    },
+    "label": {
+      "title": "Label",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "default": "fixture-cube",
+      "description": "Human-readable label written into meta.json."
+    },
+    "scale": {
+      "title": "Scale",
+      "type": "number",
+      "minimum": 0.25,
+      "maximum": 4,
+      "default": 1,
+      "description": "Uniform scale factor recorded in metadata (fixture geometry is pre-baked).",
+      "x-unit": "×"
+    },
+    "include_build_plate": {
+      "title": "Note build plate",
+      "type": "boolean",
+      "default": true,
+      "description": "When true, meta.json notes that the viewer should show a build-plate grid."
+    }
+  }
+}

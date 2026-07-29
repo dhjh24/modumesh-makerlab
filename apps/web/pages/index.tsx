@@ -1,163 +1,233 @@
-import type { NextPage } from 'next';
 import Head from 'next/head';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/router';
+import { FormEvent, useCallback, useEffect, useState } from 'react';
+import type { Job, PluginRecord, Project } from '@modumesh/shared-types';
+import {
+  Button,
+  EmptyState,
+  ErrorPanel,
+  JobStatusBadge,
+  LoadingState,
+  OfflineState,
+  RetryState,
+} from '@modumesh/ui';
+import { AppShell } from '../components/AppShell';
+import { api, ApiError } from '../lib/api';
+import { formatRelativeTime, useOnline } from '../lib/hooks';
 
-type ServiceStatus = 'ok' | 'degraded' | 'error' | 'loading';
+export default function HomePage() {
+  const router = useRouter();
+  const online = useOnline();
+  const [projects, setProjects] = useState<Project[] | null>(null);
+  const [plugins, setPlugins] = useState<PluginRecord[] | null>(null);
+  const [jobs, setJobs] = useState<Job[] | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
 
-interface HealthCheck {
-  status: string;
-  service: string;
-  version: string;
-  timestamp: string;
-  checks: Record<string, { status: string; latency_ms?: number; error?: string }>;
-}
-
-const Home: NextPage = () => {
-  const [health, setHealth] = useState<HealthCheck | null>(null);
-  const [status, setStatus] = useState<ServiceStatus>('loading');
-
-  useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((data: HealthCheck) => {
-        setHealth(data);
-        setStatus(data.status as ServiceStatus);
-      })
-      .catch(() => {
-        setStatus('error');
-      });
+  const load = useCallback(async () => {
+    setError(null);
+    try {
+      const [p, g, j] = await Promise.all([
+        api.listProjects(12),
+        api.listPlugins(true),
+        api.listRecentJobs(),
+      ]);
+      setProjects(p.items);
+      setPlugins(g.items);
+      setJobs(j);
+    } catch (err) {
+      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
+    }
   }, []);
 
-  const statusColor = (s: string) => {
-    switch (s) {
-      case 'ok':
-        return '#22c55e';
-      case 'ready':
-        return '#22c55e';
-      case 'alive':
-        return '#22c55e';
-      case 'degraded':
-        return '#f59e0b';
-      case 'error':
-      case 'not_ready':
-        return '#ef4444';
-      default:
-        return '#6b7280';
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const onCreate = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setCreating(true);
+    setError(null);
+    try {
+      const project = await api.createProject({
+        name: name.trim(),
+        description: description.trim() || undefined,
+      });
+      await router.push(`/projects/${project.id}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
+      setCreating(false);
     }
   };
 
+  if (!online) {
+    return (
+      <AppShell title="Offline">
+        <OfflineState
+          title="You are offline"
+          description="Reconnect to load projects, generators, and job activity."
+          actionLabel="Retry"
+          onAction={() => void load()}
+        />
+      </AppShell>
+    );
+  }
+
   return (
-    <div
-      style={{
-        fontFamily: 'system-ui, sans-serif',
-        padding: '2rem',
-        maxWidth: 800,
-        margin: '0 auto',
-      }}
-    >
+    <AppShell title="Home">
       <Head>
         <title>ModuMesh MakerLab</title>
-        <meta name="description" content="Self-hosted 3D generator platform" />
+        <meta name="description" content="Schema-driven generators, queued jobs, and 3D preview." />
       </Head>
 
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.75rem', fontWeight: 700, margin: 0 }}>ModuMesh MakerLab</h1>
-        <p style={{ color: '#6b7280', margin: '0.25rem 0 0' }}>Self-hosted 3D generator platform</p>
-      </header>
+      <h1 className="mm-h1">ModuMesh MakerLab</h1>
+      <p className="mm-lead">
+        Pick a generator, tune parameters from its schema, queue a job, and inspect the result.
+      </p>
 
-      {/* Overall Status */}
-      <section
-        style={{
-          padding: '1rem',
-          borderRadius: 8,
-          border: '1px solid #e5e7eb',
-          marginBottom: '1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-        }}
-      >
-        <span
-          style={{
-            width: 12,
-            height: 12,
-            borderRadius: '50%',
-            backgroundColor: statusColor(status),
-            display: 'inline-block',
-          }}
+      {error ? (
+        <ErrorPanel
+          message={error.message}
+          technicalDetail={[
+            error.correlationId ? `correlation_id=${error.correlationId}` : null,
+            `status=${error.status}`,
+            error.body,
+          ]
+            .filter(Boolean)
+            .join('\n')}
+          onRetry={() => void load()}
         />
-        <span style={{ fontWeight: 600 }}>
-          {status === 'loading'
-            ? 'Checking...'
-            : status === 'ok'
-              ? 'All Systems Operational'
-              : status === 'degraded'
-                ? 'Degraded Performance'
-                : 'Service Unavailable'}
-        </span>
-        {health && (
-          <span style={{ color: '#6b7280', fontSize: '0.875rem', marginLeft: 'auto' }}>
-            v{health.version}
-          </span>
+      ) : null}
+
+      <div className="mm-grid-3" style={{ marginTop: '1rem' }}>
+        <section className="mm-panel" aria-labelledby="recent-projects">
+          <h2 id="recent-projects">Recent projects</h2>
+          {projects === null && !error ? (
+            <LoadingState title="Loading projects…" />
+          ) : projects && projects.length === 0 ? (
+            <EmptyState
+              title="No projects yet"
+              description="Create a project to start generating."
+            />
+          ) : (
+            <ul className="mm-list">
+              {projects?.map((p) => (
+                <li key={p.id}>
+                  <Link href={`/projects/${p.id}`}>
+                    <strong>{p.name}</strong>
+                    <div className="mm-meta">{formatRelativeTime(p.updated_at)}</div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section className="mm-panel" aria-labelledby="create-project">
+          <h2 id="create-project">Create project</h2>
+          <form className="mm-inline-form" onSubmit={onCreate}>
+            <div className="mm-field">
+              <label className="mm-field__label" htmlFor="project-name">
+                Name
+              </label>
+              <input
+                id="project-name"
+                className="mm-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                maxLength={255}
+                disabled={creating}
+              />
+            </div>
+            <div className="mm-field">
+              <label className="mm-field__label" htmlFor="project-desc">
+                Description
+              </label>
+              <textarea
+                id="project-desc"
+                className="mm-input"
+                rows={3}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                disabled={creating}
+              />
+            </div>
+            <Button type="submit" disabled={creating || !name.trim()}>
+              {creating ? 'Creating…' : 'Create project'}
+            </Button>
+          </form>
+        </section>
+
+        <section className="mm-panel" aria-labelledby="generators">
+          <h2 id="generators">Generator catalog</h2>
+          {plugins === null && !error ? (
+            <LoadingState title="Loading generators…" />
+          ) : plugins && plugins.length === 0 ? (
+            <EmptyState
+              title="No plugins discovered"
+              description="Install a compatible plugin under /plugins and resync the registry."
+            />
+          ) : (
+            <>
+              <ul className="mm-list">
+                {plugins?.slice(0, 6).map((g) => (
+                  <li key={`${g.plugin_id}@${g.version}`}>
+                    <Link href={`/generators?plugin=${encodeURIComponent(g.plugin_id)}`}>
+                      <strong>{g.name}</strong>
+                      <div className="mm-meta">
+                        {g.plugin_id} · v{g.version}
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <div style={{ marginTop: '0.75rem' }}>
+                <Link href="/generators">Browse all generators</Link>
+              </div>
+            </>
+          )}
+        </section>
+      </div>
+
+      <section className="mm-panel" style={{ marginTop: '1rem' }} aria-labelledby="job-activity">
+        <h2 id="job-activity">Job activity</h2>
+        {jobs === null && !error ? (
+          <LoadingState title="Loading jobs…" />
+        ) : jobs && jobs.length === 0 ? (
+          <EmptyState
+            title="No jobs yet"
+            description="Submit a generation from a project editor."
+          />
+        ) : jobs === null && error ? (
+          <RetryState
+            title="Could not load jobs"
+            actionLabel="Retry"
+            onAction={() => void load()}
+          />
+        ) : (
+          <ul className="mm-list">
+            {jobs?.map((job) => (
+              <li key={job.id}>
+                <Link href={`/projects/${job.project_id}?job=${job.id}`}>
+                  <div className="mm-row">
+                    <strong>{job.job_type}</strong>
+                    <JobStatusBadge status={job.status} />
+                  </div>
+                  <div className="mm-meta">
+                    {formatRelativeTime(job.created_at)}
+                    {job.progress_message ? ` · ${job.progress_message}` : ''}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         )}
       </section>
-
-      {/* Service Checks */}
-      {health?.checks && (
-        <section>
-          <h2 style={{ fontSize: '1.125rem', fontWeight: 600, marginBottom: '0.75rem' }}>
-            Services
-          </h2>
-          {Object.entries(health.checks).map(([name, check]) => (
-            <div
-              key={name}
-              style={{
-                padding: '0.75rem 1rem',
-                borderRadius: 8,
-                border: '1px solid #e5e7eb',
-                marginBottom: '0.5rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-              }}
-            >
-              <span
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: '50%',
-                  backgroundColor: statusColor(check.status),
-                  display: 'inline-block',
-                }}
-              />
-              <span style={{ fontWeight: 500, textTransform: 'capitalize' }}>{name}</span>
-              <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>{check.status}</span>
-              {check.latency_ms !== undefined && (
-                <span style={{ color: '#9ca3af', fontSize: '0.8rem', marginLeft: 'auto' }}>
-                  {check.latency_ms}ms
-                </span>
-              )}
-              {check.error && (
-                <span style={{ color: '#ef4444', fontSize: '0.8rem', marginLeft: 'auto' }}>
-                  {check.error}
-                </span>
-              )}
-            </div>
-          ))}
-        </section>
-      )}
-
-      {status === 'loading' && !health && (
-        <p style={{ color: '#6b7280' }}>Loading service status...</p>
-      )}
-
-      <footer style={{ marginTop: '2rem', color: '#9ca3af', fontSize: '0.75rem' }}>
-        <a href="/api/health" style={{ color: '#3b82f6' }}>
-          Raw Health API
-        </a>
-      </footer>
-    </div>
+    </AppShell>
   );
-};
-
-export default Home;
+}
