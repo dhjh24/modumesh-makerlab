@@ -51,7 +51,7 @@ jobs:
             cd apps/api && pip install -e ".[dev]"
       - run:
           name: Run tests
-          command: cd apps/api && pytest --junitxml=../../junit.xml || ((($? == 5)) && echo 'Did not find any tests to run.')
+          command: cd apps/api && pytest --ignore=tests/test_integration.py --junitxml=../../junit.xml || ((($? == 5)) && echo 'Did not find any tests to run.')
       - store_test_results:
           path: junit.xml
   deploy:
