@@ -37,3 +37,4 @@ Closes #<!-- issue number -->
 - [ ] I have performed a self-review of my own code
 - [ ] I have commented complex code and public API surfaces
 - [ ] New and existing tests pass locally
+- [ ] CircleCI pipeline is green (or changes are docs-only)

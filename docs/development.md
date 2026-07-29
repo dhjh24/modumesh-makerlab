@@ -32,6 +32,7 @@ npm run dev    # http://localhost:3000
 cd apps/api
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e ../../packages/plugin-sdk-py
 pip install -e ".[dev]"
 uvicorn app.main:app --reload --port 8000
 ```
@@ -42,6 +43,7 @@ uvicorn app.main:app --reload --port 8000
 cd apps/worker
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e ../../packages/plugin-sdk-py
 pip install -e ".[dev]"
 python -m app.main
 ```
@@ -74,9 +76,16 @@ make smoke
 
 ## CI
 
-Continuous integration (`.github/workflows/ci.yml`) runs prettier, typecheck,
-plugin contract tests, API/worker unit tests, container builds, and integration
-smoke (including Phase 2 + Phase 3 plugin flows).
+Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
+
+- Prettier lint
+- TypeScript typecheck
+- Plugin contract tests (`modumesh-plugin-check` + SDK unit tests)
+- API and worker unit tests
+- Docker Compose image build
+- Integration smoke against Postgres, Redis, MinIO (Phase 2 + Phase 3 plugin flows)
+
+GitHub Actions workflows are not used.
 
 ## Docker Compose Profiles
 

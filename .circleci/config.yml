@@ -1,0 +1,187 @@
+# ModuMesh MakerLab — CircleCI pipeline
+# Replaces GitHub Actions CI. Mirrors lint, typecheck, unit tests,
+# plugin contract checks, container build, and Compose integration smoke.
+
+version: 2.1
+
+orbs:
+  node: circleci/node@7.1.0
+
+executors:
+  node22:
+    docker:
+      - image: cimg/node:22.11
+    working_directory: ~/project
+  python311:
+    docker:
+      - image: cimg/python:3.11
+    working_directory: ~/project
+  machine_ubuntu:
+    machine:
+      image: ubuntu-2204:current
+    working_directory: ~/project
+
+commands:
+  checkout_repo:
+    steps:
+      - checkout
+      - run:
+          name: Show revision
+          command: git rev-parse --short HEAD && git status -sb
+
+jobs:
+  lint-format:
+    executor: node22
+    steps:
+      - checkout_repo
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: Prettier check
+          command: npx prettier --check .
+
+  typecheck:
+    executor: node22
+    steps:
+      - checkout_repo
+      - node/install-packages:
+          pkg-manager: npm
+      - run:
+          name: TypeScript — apps/web
+          command: cd apps/web && npx tsc --noEmit
+      - run:
+          name: TypeScript — packages/shared-types
+          command: cd packages/shared-types && npx tsc --noEmit
+      - run:
+          name: TypeScript — packages/plugin-sdk
+          command: cd packages/plugin-sdk && npx tsc --noEmit
+      - run:
+          name: TypeScript — packages/viewer
+          command: cd packages/viewer && npx tsc --noEmit
+      - run:
+          name: TypeScript — packages/ui
+          command: cd packages/ui && npx tsc --noEmit
+
+  plugin-contract:
+    executor: python311
+    steps:
+      - checkout_repo
+      - run:
+          name: Install plugin SDK
+          command: pip install -e "packages/plugin-sdk-py[dev]"
+      - run:
+          name: SDK unit tests
+          command: python -m pytest packages/plugin-sdk-py/tests -v
+      - run:
+          name: Contract CLI — fixture-echo
+          command: |
+            modumesh-plugin-check check plugins/fixture-echo \
+              --input plugins/fixture-echo/fixtures/valid-input.json
+      - run:
+          name: Discover plugins
+          command: modumesh-plugin-check discover plugins
+
+  api-tests:
+    executor: python311
+    steps:
+      - checkout_repo
+      - run:
+          name: Install API package
+          command: |
+            pip install -e packages/plugin-sdk-py
+            cd apps/api && pip install -e ".[dev]"
+      - run:
+          name: API unit tests with coverage
+          command: |
+            cd apps/api
+            coverage run -m pytest \
+              tests/test_health.py \
+              tests/test_state_machine.py \
+              tests/test_plugins_unit.py -v
+            coverage report
+
+  worker-tests:
+    executor: python311
+    steps:
+      - checkout_repo
+      - run:
+          name: Install worker package
+          command: |
+            pip install -e packages/plugin-sdk-py
+            cd apps/worker && pip install -e ".[dev]"
+      - run:
+          name: Worker unit tests
+          command: cd apps/worker && python -m pytest -v
+
+  container-build:
+    executor: machine_ubuntu
+    steps:
+      - checkout_repo
+      - run:
+          name: Build Compose images
+          command: docker compose -f infra/compose/docker-compose.yml build
+
+  integration-smoke:
+    executor: machine_ubuntu
+    steps:
+      - checkout_repo
+      - run:
+          name: Start stack
+          command: |
+            cp .env.example .env
+            docker compose -f infra/compose/docker-compose.yml up -d --build
+      - run:
+          name: Wait for API
+          command: |
+            for i in $(seq 1 40); do
+              if curl -sf http://localhost:8000/health/live > /dev/null 2>&1; then
+                echo "API is live"
+                exit 0
+              fi
+              echo "Waiting for API... ($i)"
+              sleep 3
+            done
+            echo "API did not start in time"
+            docker compose -f infra/compose/docker-compose.yml logs api --tail=40
+            exit 1
+      - run:
+          name: Run migrations
+          command: |
+            docker compose -f infra/compose/docker-compose.yml exec -T api \
+              alembic -c /app/alembic.ini upgrade head
+      - run:
+          name: Resync plugins
+          command: |
+            curl -sf -X POST http://localhost:8000/api/v1/plugins/resync | head -c 500
+            echo
+      - run:
+          name: Integration smoke tests
+          command: |
+            docker compose -f infra/compose/docker-compose.yml exec -T api \
+              pip install pytest httpx pytest-asyncio
+            docker compose -f infra/compose/docker-compose.yml exec -T api \
+              python -m pytest \
+                tests/test_integration.py \
+                tests/test_phase2_integration.py \
+                tests/test_phase3_integration.py -v -x
+      - run:
+          name: Show logs on failure
+          when: on_fail
+          command: docker compose -f infra/compose/docker-compose.yml logs --tail=80
+      - run:
+          name: Cleanup
+          when: always
+          command: docker compose -f infra/compose/docker-compose.yml down -v
+
+workflows:
+  ci:
+    jobs:
+      - lint-format
+      - typecheck
+      - plugin-contract
+      - api-tests
+      - worker-tests
+      - container-build
+      - integration-smoke:
+          requires:
+            - container-build
