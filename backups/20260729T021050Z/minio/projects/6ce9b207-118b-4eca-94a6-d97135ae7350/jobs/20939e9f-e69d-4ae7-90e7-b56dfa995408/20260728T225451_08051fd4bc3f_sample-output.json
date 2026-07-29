@@ -1,0 +1,11 @@
+{
+  "attempt": 1,
+  "generated_at": "2026-07-28T22:54:51.405972+00:00",
+  "input": {
+    "n": 1
+  },
+  "job_id": "20939e9f-e69d-4ae7-90e7-b56dfa995408",
+  "job_type": "sample",
+  "message": "ModuMesh MakerLab sample artifact (Phase 2)",
+  "project_id": "6ce9b207-118b-4eca-94a6-d97135ae7350"
+}

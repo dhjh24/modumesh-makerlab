@@ -1,0 +1,5 @@
+stamp=20260729T021050Z
+created_at=2026-07-29T02:10:51Z
+postgres_db=modumesh
+minio_bucket=modumesh-models
+compose_file=/home/dirk/modumesh-makerlab/infra/compose/docker-compose.yml

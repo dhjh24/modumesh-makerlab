@@ -1,0 +1,42 @@
+[
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 62,
+  "EndLine": 62,
+  "StartColumn": 10,
+  "EndColumn": 38,
+  "Match": "password = \"owner-pass-12345\"",
+  "Secret": "owner-pass-12345",
+  "File": "/repo/apps/api/tests/test_phase6_authz.py",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 3.75,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "/repo/apps/api/tests/test_phase6_authz.py:generic-api-key:62"
+ },
+ {
+  "RuleID": "generic-api-key",
+  "Description": "Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
+  "StartLine": 156,
+  "EndLine": 156,
+  "StartColumn": 22,
+  "EndColumn": 60,
+  "Match": "Idempotency-Key\": \"idem-key-phase2-001\"",
+  "Secret": "idem-key-phase2-001",
+  "File": "/repo/apps/api/tests/test_phase2_integration.py",
+  "SymlinkFile": "",
+  "Commit": "",
+  "Entropy": 3.64215,
+  "Author": "",
+  "Email": "",
+  "Date": "",
+  "Message": "",
+  "Tags": [],
+  "Fingerprint": "/repo/apps/api/tests/test_phase2_integration.py:generic-api-key:156"
+ }
+]
