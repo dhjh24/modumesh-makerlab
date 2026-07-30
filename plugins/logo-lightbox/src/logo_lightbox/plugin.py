@@ -62,7 +62,109 @@ def _sanitize_svg(content: str) -> str:
     return cleaned
 
 
+# ── PNG Tracing ──────────────────────────────────────────────────────
+
+def _png_to_svg_trace(
+    png_data: bytes,
+    threshold: int = 128,
+    smoothing: float = 1.0,
+) -> str:
+    """Convert a PNG bitmap to SVG paths using potrace via subprocess.
+
+    Returns the SVG markup string with traced paths.
+    """
+    import subprocess
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as tmp:
+        png_path = Path(tmp) / "input.png"
+        bmp_path = Path(tmp) / "input.bmp"
+        svg_path = Path(tmp) / "output.svg"
+
+        png_path.write_bytes(png_data)
+
+        # Convert PNG to BMP for potrace (potrace reads BMP/PGM/PPM)
+        try:
+            from PIL import Image
+            img = Image.open(str(png_path))
+            # Convert to grayscale
+            if img.mode != "L":
+                img = img.convert("L")
+            # Apply threshold
+            img = img.point(lambda p: 255 if p > threshold else 0, mode="1")
+            img.save(str(bmp_path), format="BMP")
+        except ImportError:
+            raise RuntimeError("Pillow (PIL) is required for PNG tracing")
+
+        # Run potrace
+        result = subprocess.run(
+            [
+                "potrace",
+                "-s",  # SVG output
+                "--svg",
+                "-o", str(svg_path),
+                "-t", str(smoothing),
+                str(bmp_path),
+            ],
+            capture_output=True, text=True, timeout=30,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"potrace failed (exit={result.returncode}): {result.stderr[-500:]}")
+
+        if not svg_path.is_file():
+            raise RuntimeError("potrace did not produce SVG output")
+
+        svg_content = svg_path.read_text(encoding="utf-8")
+        # Wrap in a proper SVG tag with viewBox
+        return svg_content
+
+
 # ── Validation Report ─────────────────────────────────────────────────
+
+def _estimate_material(params: dict[str, Any], part_volumes_mm3: dict[str, float]) -> dict[str, Any]:
+    """Estimate print time, filament usage, and cost from part volumes."""
+    material = params.get("material", "PLA")
+    price_per_kg = float(params.get("filament_price_per_kg", 25))
+    led_cost = float(params.get("led_kit_cost", 5))
+
+    # Density g/cm³ for common materials
+    densities = {"PLA": 1.24, "PETG": 1.27, "ABS": 1.04, "ASA": 1.07, "PC": 1.20}
+    density = densities.get(material, 1.24)
+
+    total_volume_mm3 = sum(part_volumes_mm3.values())
+    total_volume_cm3 = total_volume_mm3 / 1000.0
+    mass_g = total_volume_cm3 * density
+    filament_cost = (mass_g / 1000.0) * price_per_kg
+    total_cost = filament_cost + led_cost
+
+    # Rough print time: ~10 mm³/s for standard 0.4mm nozzle
+    print_time_s = total_volume_mm3 / 10.0
+
+    return {
+        "material": material,
+        "total_volume_cm3": round(total_volume_cm3, 2),
+        "estimated_mass_g": round(mass_g, 1),
+        "filament_cost_usd": round(filament_cost, 2),
+        "led_kit_cost_usd": led_cost,
+        "total_estimated_cost_usd": round(total_cost, 2),
+        "estimated_print_time_min": round(print_time_s / 60.0, 1),
+        "density_g_per_cm3": density,
+        "disclaimer": "Estimates are approximate. Actual print time, material use, and cost depend on printer, settings, and infill.",
+    }
+
+
+def _check_artwork_suggestions(
+    artwork_type: str, text_val: str, issues: list[str],
+) -> list[str]:
+    """Add artwork repair suggestions as warnings."""
+    suggestions: list[str] = []
+    if artwork_type == "text" and text_val:
+        if len(text_val) > 15:
+            suggestions.append("Long text may appear small at 200×150mm. Consider increasing box size.")
+        if text_val.isupper() and len(text_val) > 8:
+            suggestions.append("ALL CAPS text may not fit well. Consider mixed case.")
+    return suggestions
+
 
 def _build_validation_report(params: dict[str, Any], issues: list[str]) -> dict[str, Any]:
     """Create a validation-report.json with preflight and geometry checks."""
@@ -218,8 +320,9 @@ def run(ctx: "PluginContext") -> None:
         "has_artwork_data": bool(artwork_data),
     }
 
-    # SVG sanitization
+    # SVG sanitization / PNG tracing
     issues: list[str] = []
+    has_traced = False
     if artwork_type == "svg" and artwork_data:
         try:
             decoded = base64.b64decode(artwork_data).decode("utf-8", errors="replace")
@@ -227,7 +330,21 @@ def run(ctx: "PluginContext") -> None:
         except (ValueError, Exception) as exc:
             issues.append(f"ERROR: SVG sanitization failed: {exc}")
     elif artwork_type == "png" and artwork_data:
-        issues.append("WARNING: PNG tracing not yet implemented (GM-4). Using placeholder opening.")
+        try:
+            threshold = int(inp.get("trace_threshold", 128))
+            smoothing = float(inp.get("trace_smoothing", 1.0))
+            png_bytes = base64.b64decode(artwork_data)
+            traced_svg = _png_to_svg_trace(png_bytes, threshold=threshold, smoothing=smoothing)
+            # Save traced SVG for reprocessing
+            (Path(ctx.work_dir) / "_traced.svg").write_text(traced_svg, encoding="utf-8")
+            has_traced = True
+            issues.append("INFO: PNG traced to SVG via potrace. Verify artwork quality before printing.")
+        except Exception as exc:
+            issues.append(f"WARNING: PNG tracing failed: {exc}. Using placeholder opening.")
+
+    # Artwork suggestions
+    suggestions = _check_artwork_suggestions(artwork_type, text_val, issues)
+    issues.extend(suggestions)
 
     # Geometry validation
     if wt * 2 >= w or wt * 2 >= h:
@@ -257,7 +374,7 @@ def run(ctx: "PluginContext") -> None:
 
     # Write design manifest
     ctx.set_progress(95, "writing design manifest")
-    ctx.write_json("design.json", {
+    design = {
         "schema_version": "1",
         "generator": "logo-lightbox",
         "generator_version": _VERSION,
@@ -270,8 +387,18 @@ def run(ctx: "PluginContext") -> None:
             "preview.glb": {"size_bytes": part_meta.get("glb_bytes", 0)},
         },
         "generation_duration_s": round(duration_s, 2),
-        "warnings": [i for i in issues if i.startswith("WARNING")],
+        "warnings": [i for i in issues if i.startswith("WARNING") or i.startswith("INFO")],
         "generated_at": datetime.now(timezone.utc).isoformat(),
-    })
+    }
+
+    # Material estimate (based on STL file sizes as volume proxy)
+    part_volumes = {
+        "face": part_meta.get("face_bytes", 0),
+        "enclosure": part_meta.get("enclosure_bytes", 0),
+        "back_panel": part_meta.get("back_bytes", 0),
+    }
+    design["material_estimate"] = _estimate_material(params, part_volumes)
+
+    ctx.write_json("design.json", design)
 
     ctx.set_progress(100, "logo light box complete")

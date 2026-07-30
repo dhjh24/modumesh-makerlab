@@ -122,6 +122,47 @@
       "type": "string",
       "maxLength": 1048576,
       "description": "Base64-encoded SVG or PNG data. Max 1 MB. Used when artwork_type is svg or png."
+    },
+    "trace_threshold": {
+      "title": "Trace threshold",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255,
+      "default": 128,
+      "description": "Black/white threshold for PNG-to-SVG tracing (0=all white, 255=all black)."
+    },
+    "trace_smoothing": {
+      "title": "Trace smoothing",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 5,
+      "default": 1,
+      "description": "Curve smoothing factor for traced SVG paths."
+    },
+    "material": {
+      "title": "Material",
+      "type": "string",
+      "enum": ["PLA", "PETG", "ABS", "ASA", "PC"],
+      "default": "PLA",
+      "description": "Filament material for print-time and cost estimation."
+    },
+    "filament_price_per_kg": {
+      "title": "Filament price per kg",
+      "type": "number",
+      "minimum": 10,
+      "maximum": 200,
+      "default": 25,
+      "description": "Estimated filament cost per kilogram in USD.",
+      "x-unit": "USD/kg"
+    },
+    "led_kit_cost": {
+      "title": "LED kit cost",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 5,
+      "description": "Estimated cost of the LED strip/kit in USD.",
+      "x-unit": "USD"
     }
   }
 }
