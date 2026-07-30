@@ -1,0 +1,17 @@
+[project]
+name = "modumesh-logo-lightbox-plugin"
+version = "1.0.0"
+description = "Logo Light Box generator for ModuMesh MakerLab"
+requires-python = ">=3.11"
+dependencies = [
+    "cadquery>=2.7.0,<2.8.0",
+    "trimesh>=4.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["logo_lightbox*"]
