@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-modumesh}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
     ports:
-      - '5432:5432'
+      - '5434:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -18,7 +18,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - '6382:6379'
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -48,7 +48,7 @@ services:
       dockerfile: apps/api/Dockerfile
     restart: unless-stopped
     ports:
-      - '8000:8000'
+      - '${MAKERLAB_API_HOST_PORT:-8002}:8000'
     environment:
       POSTGRES_HOST: postgres
       POSTGRES_DB: ${POSTGRES_DB:-modumesh}
@@ -59,7 +59,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-modumesh}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-change_me_in_production}
       MINIO_BUCKET: ${MINIO_BUCKET:-modumesh-models}
-      API_CORS_ORIGINS: http://localhost:3000
+      API_CORS_ORIGINS: ${API_CORS_ORIGINS:-https://makerlab.example.com}
+      # Override for LAN dev access, e.g.:
+      #   API_CORS_ORIGINS=http://SERVER_LAN_IP:3002
       API_PLUGIN_DIR: /plugins
     # Plugin source is baked read-only into the image. Optional bind mount for
     # local plugin development (still mounted read-only; no docker.sock).
@@ -111,16 +113,39 @@ services:
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
+      args:
+        # Production: empty = same-origin /api/v1/… via Next.js rewrites
+        - NEXT_PUBLIC_API_URL=
+        # Server-side rewrite target (Docker internal DNS)
+        - API_INTERNAL_URL=http://api:8000
     restart: unless-stopped
     ports:
-      - '3000:3000'
+      - '3002:3000'
     environment:
-      # Browser talks to host-mapped API; CORS allows localhost:3000.
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Production: browser uses same-origin /api/v1/… rewrites (no CORS needed)
+      NEXT_PUBLIC_API_URL: ""
+      # Server-side: Next.js rewrites /api/v1/* → api:8000
       API_INTERNAL_URL: http://api:8000
     depends_on:
       - api
 
+  # ── Optional Caddy reverse proxy (production HTTPS) ─────────────────
+  # Uncomment and configure for TLS termination + same-origin API proxy.
+  # Set your domain in infra/caddy/Caddyfile before enabling.
+  # caddy:
+  #   image: caddy:2-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - '80:80'
+  #     - '443:443'
+  #   volumes:
+  #     - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddydata:/data
+  #   depends_on:
+  #     - web
+  #     - api
+
 volumes:
   pgdata:
   miniodata:
+  caddydata:
