@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+.next/
+coverage/
+.venv/
+venv/
+.pytest_cache/
+**/__pycache__/
+playwright-report/
+test-results/
+backups/
+package-lock.json
+*.min.js
+*.min.css
