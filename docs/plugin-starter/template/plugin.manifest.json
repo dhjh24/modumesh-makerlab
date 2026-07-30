@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1",
+  "id": "my-generator",
+  "name": "My Generator",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "my_generator.plugin:run",
+  "description": "Describe what your generator does here.",
+  "author": "Your Name",
+  "license": "MIT",
+  "categories": ["parametric"],
+  "tags": ["custom"],
+  "maturity": "experimental",
+  "capabilities": {
+    "deterministic": true,
+    "preview": false,
+    "multipart": false,
+    "text": false,
+    "imageUpload": false
+  },
+  "outputs": [
+    {
+      "name": "model.stl",
+      "mediaType": "model/stl",
+      "required": true,
+      "purpose": "printable"
+    },
+    {
+      "name": "meta.json",
+      "mediaType": "application/json",
+      "required": true,
+      "purpose": "metadata"
+    }
+  ],
+  "timeoutSeconds": 60,
+  "memoryMb": 256,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 65536,
+  "maxOutputBytes": 1048576
+}
