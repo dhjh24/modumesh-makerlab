@@ -1,0 +1,17 @@
+[project]
+name = "modumesh-qr-code-sign-plugin"
+version = "1.0.0"
+description = "QR Code Sign generator for ModuMesh MakerLab"
+requires-python = ">=3.11"
+dependencies = [
+    "cadquery>=2.7.0,<2.8.0",
+    "qrcode>=7.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["qr_code_sign*"]
