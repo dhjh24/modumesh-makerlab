@@ -19,6 +19,10 @@ const nextConfig = {
         source: '/backend-health/:path*',
         destination: `${apiInternal}/health/:path*`,
       },
+      {
+        source: '/health/:path*',
+        destination: `${apiInternal}/health/:path*`,
+      },
     ];
   },
 };

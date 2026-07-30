@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 const NAV = [
   { href: '/', label: 'Home' },
   { href: '/generators', label: 'Generators' },
+  { href: '/health', label: 'Health' },
 ];
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
