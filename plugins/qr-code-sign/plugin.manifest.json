@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1",
+  "id": "qr-code-sign",
+  "name": "QR Code Sign",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "qr_code_sign.plugin:run",
+  "description": "Generate a 3D-printable sign with an embedded QR code. Enter any text or URL to encode.",
+  "author": "MakerLab Team",
+  "license": "MIT",
+  "categories": ["cad", "parametric", "signage"],
+  "tags": ["qr", "code", "sign", "plaque"],
+  "maturity": "experimental",
+  "capabilities": {
+    "preview": false,
+    "deterministic": true,
+    "multipart": false,
+    "text": true
+  },
+  "outputs": [
+    {"name": "model.stl", "mediaType": "model/stl", "required": true, "purpose": "printable"},
+    {"name": "meta.json", "mediaType": "application/json", "required": true, "purpose": "metadata"}
+  ],
+  "timeoutSeconds": 120,
+  "memoryMb": 2048,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 8192,
+  "maxOutputBytes": 5242880
+}

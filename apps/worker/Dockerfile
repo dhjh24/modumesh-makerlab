@@ -8,7 +8,7 @@ COPY packages/plugin-sdk-py/ packages/plugin-sdk-py/
 COPY apps/worker/pyproject.toml apps/worker/
 RUN pip install --no-cache-dir -e packages/plugin-sdk-py -e apps/worker
 # Install nameplate plugin dependencies (CadQuery, trimesh)
-RUN pip install --no-cache-dir "cadquery>=2.7.0,<2.8.0" trimesh>=4.0.0 pillow>=10.0.0
+RUN pip install --no-cache-dir "cadquery>=2.7.0,<2.8.0" trimesh>=4.0.0 pillow>=10.0.0 "qrcode>=7.0"
 COPY apps/worker/app/ app/
 COPY plugins/ /plugins/
 # Read-only plugin source for the non-root worker user.

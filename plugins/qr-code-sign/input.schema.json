@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["data"],
+  "properties": {
+    "data": {
+      "title": "QR Code data",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "default": "https://modumesh.local",
+      "description": "Text or URL to encode in the QR code."
+    },
+    "width": {
+      "title": "Width",
+      "type": "number",
+      "minimum": 30,
+      "maximum": 300,
+      "default": 80,
+      "description": "Sign width in millimeters.",
+      "x-unit": "mm"
+    },
+    "height": {
+      "title": "Height",
+      "type": "number",
+      "minimum": 30,
+      "maximum": 300,
+      "default": 80,
+      "description": "Sign height in millimeters.",
+      "x-unit": "mm"
+    },
+    "thickness": {
+      "title": "Thickness",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3,
+      "description": "Base plate thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "module_height": {
+      "title": "Module height",
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 5,
+      "default": 1.5,
+      "description": "Height of raised QR modules in millimeters.",
+      "x-unit": "mm"
+    },
+    "raised": {
+      "title": "Raised modules",
+      "type": "boolean",
+      "default": true,
+      "description": "True=raised black modules, False=engraved."
+    },
+    "margin_mm": {
+      "title": "Margin",
+      "type": "number",
+      "minimum": 2,
+      "maximum": 20,
+      "default": 5,
+      "description": "Minimum margin around QR code.",
+      "x-unit": "mm"
+    },
+    "corner_radius": {
+      "title": "Corner radius",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 2,
+      "description": "Radius of rounded corners.",
+      "x-unit": "mm"
+    }
+  }
+}
