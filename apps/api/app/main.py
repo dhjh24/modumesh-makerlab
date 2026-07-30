@@ -12,6 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import check_db_connectivity, close_db
 from app.logging import configure_logging, get_logger
+from app.middleware import RateLimitMiddleware
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
 from app.routers import admin, catalog, compare, files, health, jobs, plugins, projects, shop, shop_connector, submissions
@@ -130,6 +131,7 @@ app.include_router(admin.router)
 app.include_router(catalog.router)
 app.include_router(files.router)
 app.include_router(plugins.router)
+app.add_middleware(RateLimitMiddleware)
 
 
 @app.get("/")
