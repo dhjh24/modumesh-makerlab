@@ -29,4 +29,3 @@ Operators should:
 - Prefer scraping `/metrics` on the internal network; set `API_METRICS_ENABLED=false` if unused.
 - Run `./scripts/security-scan.sh` and `./scripts/verify-worker-security.sh` before release.
 - Follow `docs/operations.md` and `docs/release-checklist.md`.
-

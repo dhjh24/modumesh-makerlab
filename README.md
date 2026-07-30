@@ -48,6 +48,7 @@ open http://localhost:3000/login
 
 Production self-host: see `docs/operations.md` and `infra/compose/docker-compose.prod.yml`.
 Phase 6 standalone hardening is complete; shop integration waits for Phase 7.
+
 ## Services
 
 | Service  | Port | Description                        |

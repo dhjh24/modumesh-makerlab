@@ -20,4 +20,5 @@ apps/web/test-results/
 blob-report/
 backups/
 /tmp/
+circleci-build-logs*.txt
 

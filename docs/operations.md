@@ -40,9 +40,9 @@ make migrate
 
 ## Authentication model
 
-| Role | Capabilities |
-|------|----------------|
-| `owner` | Own projects, jobs, files; catalog read |
+| Role    | Capabilities                                                                                              |
+| ------- | --------------------------------------------------------------------------------------------------------- |
+| `owner` | Own projects, jobs, files; catalog read                                                                   |
 | `admin` | All of the above + all projects, plugin enable/disable/resync, admin status, retention purge, user create |
 
 Sessions are opaque bearer tokens (hashed at rest) delivered as `Authorization: Bearer` and/or `modumesh_session` HttpOnly cookie. Download links use short-lived HMAC signatures.
@@ -84,14 +84,14 @@ COMPOSE_FILE=infra/compose/docker-compose.prod.yml \
 
 ## Unresolved residual risks (accepted for standalone RC)
 
-| Risk | Mitigation / follow-up |
-|------|------------------------|
-| In-process rate limits (not Redis) | Single API replica recommended; sticky proxy if scaled |
-| Public `/metrics` when enabled | Prefer internal scrape; set `API_METRICS_ENABLED=false` or firewall |
-| Plugin network deny is in-process | Documented sandbox; not a full network namespace |
-| No OAuth/OIDC | Local sessions only (ADR-0004); Phase 7+ |
-| Retention purge is manual | Cron/call `POST /api/v1/admin/retention/purge` |
-| Default bootstrap password | Must change before exposing publicly |
+| Risk                               | Mitigation / follow-up                                              |
+| ---------------------------------- | ------------------------------------------------------------------- |
+| In-process rate limits (not Redis) | Single API replica recommended; sticky proxy if scaled              |
+| Public `/metrics` when enabled     | Prefer internal scrape; set `API_METRICS_ENABLED=false` or firewall |
+| Plugin network deny is in-process  | Documented sandbox; not a full network namespace                    |
+| No OAuth/OIDC                      | Local sessions only (ADR-0004); Phase 7+                            |
+| Retention purge is manual          | Cron/call `POST /api/v1/admin/retention/purge`                      |
+| Default bootstrap password         | Must change before exposing publicly                                |
 
 ## Upgrade
 
@@ -120,14 +120,14 @@ Alembic migrations in this release are additive (auth/sessions/version_locks). D
 
 ## Observability
 
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /health/live` | Liveness |
-| `GET /health/ready` | Readiness (Postgres, Redis, MinIO) |
-| `GET /health` | Aggregated dependency status |
-| `GET /metrics` | Prometheus text metrics |
-| `GET /api/v1/admin/status` | Admin dashboard data |
-| `X-Correlation-ID` | Propagated on every API response; included in structured request logs |
+| Endpoint                   | Purpose                                                               |
+| -------------------------- | --------------------------------------------------------------------- |
+| `GET /health/live`         | Liveness                                                              |
+| `GET /health/ready`        | Readiness (Postgres, Redis, MinIO)                                    |
+| `GET /health`              | Aggregated dependency status                                          |
+| `GET /metrics`             | Prometheus text metrics                                               |
+| `GET /api/v1/admin/status` | Admin dashboard data                                                  |
+| `X-Correlation-ID`         | Propagated on every API response; included in structured request logs |
 
 ## Worker security
 
@@ -156,14 +156,14 @@ Example Caddyfile: `infra/compose/Caddyfile.prod`.
 
 ## Troubleshooting
 
-| Symptom | Check |
-|---------|-------|
-| 401 on API | Login; token expired; `API_AUTH_ENABLED` |
-| 403 on project | Wrong owner; use admin or correct user |
+| Symptom           | Check                                                           |
+| ----------------- | --------------------------------------------------------------- |
+| 401 on API        | Login; token expired; `API_AUTH_ENABLED`                        |
+| 403 on project    | Wrong owner; use admin or correct user                          |
 | Jobs stuck queued | Worker logs; Redis; `verify-worker-security` / read-only `/tmp` |
-| Download 401 | Use signed URL (`POST .../signed-url`) or session |
-| Ready 503 | Postgres/Redis/MinIO health |
-| Rate limit 429 | `API_RATE_LIMIT_PER_MINUTE` |
+| Download 401      | Use signed URL (`POST .../signed-url`) or session               |
+| Ready 503         | Postgres/Redis/MinIO health                                     |
+| Rate limit 429    | `API_RATE_LIMIT_PER_MINUTE`                                     |
 
 ## Release checklist
 

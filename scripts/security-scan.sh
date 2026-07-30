@@ -7,15 +7,16 @@ cd "$ROOT"
 FAIL=0
 
 echo "==> Python dependency audit (pip-audit)"
-if command -v pip-audit >/dev/null 2>&1; then
-  pip-audit -r <(pip freeze) || FAIL=1
-else
+python -m pip install -q --upgrade 'pip>=26.1.2' 'setuptools>=83.0.0' 'wheel' 'click>=8.3.3'
+if ! command -v pip-audit >/dev/null 2>&1; then
   pip install -q pip-audit
-  (
-    cd apps/api && pip install -q -e ".[dev]" >/dev/null
-    pip-audit || FAIL=1
-  )
 fi
+(
+  cd "$ROOT"
+  pip install -q -e packages/plugin-sdk-py
+  cd apps/api && pip install -q -e ".[dev]"
+  pip-audit --skip-editable || FAIL=1
+)
 
 echo "==> npm audit (production)"
 npm audit --omit=dev --audit-level=high || FAIL=1

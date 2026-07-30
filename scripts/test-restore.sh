@@ -8,7 +8,16 @@ PROJECT="modumesh-restore-test-$$"
 COMPOSE=(docker compose -p "$PROJECT" -f "$ROOT/infra/compose/docker-compose.yml" -f "$ROOT/infra/compose/docker-compose.restore-test.yml")
 export COMPOSE_PROJECT_NAME="$PROJECT"
 WORKDIR="$(mktemp -d /tmp/modumesh-restore-XXXXXX)"
-trap 'echo "==> Cleaning up"; "${COMPOSE[@]}" down -v >/dev/null 2>&1 || true; rm -rf "$WORKDIR"' EXIT
+cleanup() {
+  echo "==> Cleaning up"
+  "${COMPOSE[@]}" down -v >/dev/null 2>&1 || true
+  # MinIO mc writes backup files as root; delete via container if needed.
+  if [[ -d "$WORKDIR" ]]; then
+    docker run --rm -v "$WORKDIR:/w" alpine:3.20 sh -c 'rm -rf /w/*' >/dev/null 2>&1 || true
+    rm -rf "$WORKDIR" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
 
 cp "$ROOT/.env.example" "$WORKDIR/.env"
 set -a
