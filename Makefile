@@ -5,7 +5,7 @@
 DOCKER_COMPOSE = docker compose -f infra/compose/docker-compose.yml
 DOCKER_COMPOSE_DEV = docker compose -f infra/compose/docker-compose.yml -f infra/compose/docker-compose.dev.yml
 
-.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk smoke ci-build help
+.PHONY: start stop logs reset migrate api-shell db-shell ps lint test test-api test-worker test-plugin-sdk smoke test-e2e ci-build help
 
 # ── Stack lifecycle ───────────────────────────────────────────────────
 
@@ -55,6 +55,7 @@ test-plugin-sdk: ## Run plugin SDK + contract CLI checks
 	pip install -q -e packages/plugin-sdk-py
 	cd packages/plugin-sdk-py && python -m pytest -v
 	modumesh-plugin-check check plugins/fixture-echo --input plugins/fixture-echo/fixtures/valid-input.json
+	modumesh-plugin-check check plugins/fixture-mesh --input plugins/fixture-mesh/fixtures/valid-input.json
 
 test-api: ## Run API unit tests
 	pip install -q -e packages/plugin-sdk-py
@@ -66,6 +67,9 @@ test-worker: ## Run worker unit tests
 
 smoke:    ## Run integration smoke tests against running stack
 	$(DOCKER_COMPOSE) exec api python -m pytest tests/test_integration.py tests/test_phase2_integration.py tests/test_phase3_integration.py -v -x
+
+test-e2e: ## Run Phase 4 Playwright e2e + a11y (web + API must be up)
+	cd apps/web && npx playwright test --project=chromium
 
 # ── Linting ───────────────────────────────────────────────────────────
 

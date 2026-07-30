@@ -9,10 +9,12 @@ monorepo with three application services and four shared packages.
 
 ### Web (Next.js)
 
-- SSR React frontend
-- `/api/health` endpoint
-- Three.js / R3F model viewer (Phase 4)
-- REST client to API service
+- SSR React frontend (Pages Router)
+- Home dashboard, generator catalog, project editor
+- Schema-driven parameter forms from plugin `input_schema`
+- Lazy-loaded Three.js / R3F viewer (`@modumesh/viewer`) for STL/GLB
+- REST client to API (`NEXT_PUBLIC_API_URL` or same-origin `/api/v1` rewrites)
+- `/api/health` endpoint (web process only)
 
 ### API (FastAPI)
 
@@ -35,7 +37,7 @@ monorepo with three application services and four shared packages.
 - Discovered from `API_PLUGIN_DIR` / `WORKER_PLUGIN_DIR` (default `/plugins`)
 - Manifest contract: `docs/plugins.md` and ADR-0003
 - Enable/disable state persisted in PostgreSQL `plugin_registry`
-- Example non-CAD plugin: `plugins/fixture-echo`
+- Example non-CAD plugins: `plugins/fixture-echo`, `plugins/fixture-mesh` (STL/GLB fixtures)
 - Nameplate CadQuery plugin lands in Phase 5
 
 ## Data Flow
@@ -86,3 +88,15 @@ created → queued → running → validating → uploading → completed
 | CAD Engine | CadQuery (Phase 5) |
 | 3D Viewer  | Three.js / R3F     |
 | Schema     | JSON Schema        |
+
+## Phase 4 — Viewer & Schema-Driven Editor
+
+User-facing catalog and editor without hard-coded generator forms:
+
+1. **Home** — recent projects, create project, catalog preview, job activity.
+2. **Catalog** — `GET /api/v1/plugins` metadata + schema preview forms.
+3. **Editor** — parameter panel (schema form), lazy 3D viewer, project/version/file panels, job status polling (`queued` → `completed`/`failed`/`cancelled`).
+4. **Viewer** — STL/GLB, orbit controls, wireframe, build plate, bounding box, dimensions; reduced-motion aware.
+5. **Fixtures** — `public/fixtures/sample-cube.{stl,glb}` and `plugins/fixture-mesh` for job-produced meshes.
+
+Phase 5 adds the real CadQuery Nameplate generator — do not hard-code that form here.

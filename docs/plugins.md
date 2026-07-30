@@ -23,22 +23,22 @@ modumesh-plugin-check check plugins/fixture-echo \
 
 Validated against `packages/plugin-sdk/schemas/manifest.v1.json`.
 
-| Field | Required | Notes |
-| ----- | -------- | ----- |
-| `schemaVersion` | yes | Must be `"1"` |
-| `id` | yes | Lowercase kebab-case; becomes `job_type` |
-| `name` | yes | Human-readable |
-| `version` | yes | SemVer |
-| `sdkVersion` | yes | Target SDK; host accepts same **major** |
-| `engine` | yes | `python` (CadQuery plugins also use `python`) |
-| `entrypoint` | yes | `module:function` |
-| `categories` | yes | Non-empty list |
-| `outputs` | yes | Declared filenames + media types |
-| `timeoutSeconds` | yes | 1–3600; job timeout is capped by this |
-| `memoryMb` | yes | Best-effort RLIMIT_AS |
-| `networkPolicy` | yes | `deny` (default) or `allow` |
-| `inputSchema` | yes | Inline object or relative `.json` path |
-| `maxInputBytes` / `maxOutputBytes` | no | Defaults 64 KiB / 1 MiB |
+| Field                              | Required | Notes                                         |
+| ---------------------------------- | -------- | --------------------------------------------- |
+| `schemaVersion`                    | yes      | Must be `"1"`                                 |
+| `id`                               | yes      | Lowercase kebab-case; becomes `job_type`      |
+| `name`                             | yes      | Human-readable                                |
+| `version`                          | yes      | SemVer                                        |
+| `sdkVersion`                       | yes      | Target SDK; host accepts same **major**       |
+| `engine`                           | yes      | `python` (CadQuery plugins also use `python`) |
+| `entrypoint`                       | yes      | `module:function`                             |
+| `categories`                       | yes      | Non-empty list                                |
+| `outputs`                          | yes      | Declared filenames + media types              |
+| `timeoutSeconds`                   | yes      | 1–3600; job timeout is capped by this         |
+| `memoryMb`                         | yes      | Best-effort RLIMIT_AS                         |
+| `networkPolicy`                    | yes      | `deny` (default) or `allow`                   |
+| `inputSchema`                      | yes      | Inline object or relative `.json` path        |
+| `maxInputBytes` / `maxOutputBytes` | no       | Defaults 64 KiB / 1 MiB                       |
 
 ## Generator input schemas
 
@@ -70,17 +70,17 @@ outside `work_dir`.
 
 ## Security boundaries
 
-| Control | Behavior |
-| ------- | -------- |
-| Plugin source | Read-only (`:ro` mount / `chmod a-w`) |
-| Work directory | Per-job temp dir only |
-| Network | Disabled by default (`networkPolicy=deny` + socket hooks) |
-| Host filesystem | Path traversal rejected; outputs must be single path segments |
-| Docker socket | Not mounted; `DOCKER_*` stripped; optional hard deny |
-| Credentials | `POSTGRES_*`, `MINIO_*`, `REDIS_*`, secrets stripped from env |
-| Size limits | `maxInputBytes` / `maxOutputBytes` enforced |
-| Outputs | Must be declared; required outputs enforced; media types checked |
-| Timeout | `min(job.timeout, manifest.timeoutSeconds)` |
+| Control         | Behavior                                                         |
+| --------------- | ---------------------------------------------------------------- |
+| Plugin source   | Read-only (`:ro` mount / `chmod a-w`)                            |
+| Work directory  | Per-job temp dir only                                            |
+| Network         | Disabled by default (`networkPolicy=deny` + socket hooks)        |
+| Host filesystem | Path traversal rejected; outputs must be single path segments    |
+| Docker socket   | Not mounted; `DOCKER_*` stripped; optional hard deny             |
+| Credentials     | `POSTGRES_*`, `MINIO_*`, `REDIS_*`, secrets stripped from env    |
+| Size limits     | `maxInputBytes` / `maxOutputBytes` enforced                      |
+| Outputs         | Must be declared; required outputs enforced; media types checked |
+| Timeout         | `min(job.timeout, manifest.timeoutSeconds)`                      |
 
 ## Versioning policy
 
@@ -93,9 +93,9 @@ outside `work_dir`.
 
 ## Compatibility matrix
 
-| Host / SDK | Manifest `schemaVersion` | Plugin `sdkVersion` | Engine |
-| ---------- | ------------------------ | ------------------- | ------ |
-| MakerLab Phase 3 (`1.0.0`) | `1` | `1.x` | `python` |
+| Host / SDK                 | Manifest `schemaVersion` | Plugin `sdkVersion` | Engine   |
+| -------------------------- | ------------------------ | ------------------- | -------- |
+| MakerLab Phase 3 (`1.0.0`) | `1`                      | `1.x`               | `python` |
 
 ## Migration rules
 
@@ -110,19 +110,20 @@ outside `work_dir`.
 
 ## Example plugin
 
-See `plugins/fixture-echo` — a non-CAD plugin that writes `echo.json` and
-`note.txt`. Do **not** use `plugins/nameplate` yet (Phase 5 CadQuery).
+See `plugins/fixture-echo` (JSON/text) and `plugins/fixture-mesh` (packaged
+STL/GLB) for Phase 3–4 fixtures. Do **not** use `plugins/nameplate` yet
+(Phase 5 CadQuery).
 
 ## API surface
 
-| Method | Path | Purpose |
-| ------ | ---- | ------- |
-| GET | `/api/v1/plugins` | List discovered plugins |
-| GET | `/api/v1/plugins/{id}` | Latest (or `?version=`) |
-| POST | `/api/v1/plugins/resync` | Re-scan plugin directory |
-| POST | `/api/v1/plugins/{id}/versions/{ver}/enable` | Enable |
-| POST | `/api/v1/plugins/{id}/versions/{ver}/disable` | Disable |
-| POST | `/api/v1/projects/{id}/jobs` | `job_type=<plugin_id>` |
+| Method | Path                                          | Purpose                  |
+| ------ | --------------------------------------------- | ------------------------ |
+| GET    | `/api/v1/plugins`                             | List discovered plugins  |
+| GET    | `/api/v1/plugins/{id}`                        | Latest (or `?version=`)  |
+| POST   | `/api/v1/plugins/resync`                      | Re-scan plugin directory |
+| POST   | `/api/v1/plugins/{id}/versions/{ver}/enable`  | Enable                   |
+| POST   | `/api/v1/plugins/{id}/versions/{ver}/disable` | Disable                  |
+| POST   | `/api/v1/projects/{id}/jobs`                  | `job_type=<plugin_id>`   |
 
 ## Contract CLI
 

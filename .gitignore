@@ -13,3 +13,8 @@ venv/
 .DS_Store
 coverage/
 .turbo/
+playwright-report/
+test-results/
+apps/web/playwright-report/
+apps/web/test-results/
+blob-report/
