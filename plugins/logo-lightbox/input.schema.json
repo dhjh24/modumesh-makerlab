@@ -1,0 +1,127 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [],
+  "properties": {
+    "artwork_type": {
+      "title": "Artwork type",
+      "type": "string",
+      "enum": ["text", "svg", "png"],
+      "default": "text",
+      "description": "Source type for the light box face."
+    },
+    "text": {
+      "title": "Text",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "description": "Text to display on the light box (when artwork_type=text). Alphanumeric and basic punctuation."
+    },
+    "width": {
+      "title": "Width",
+      "type": "number",
+      "minimum": 50,
+      "maximum": 500,
+      "default": 200,
+      "description": "External width in millimeters.",
+      "x-unit": "mm"
+    },
+    "height": {
+      "title": "Height",
+      "type": "number",
+      "minimum": 50,
+      "maximum": 500,
+      "default": 150,
+      "description": "External height in millimeters.",
+      "x-unit": "mm"
+    },
+    "box_depth": {
+      "title": "Box depth",
+      "type": "number",
+      "minimum": 15,
+      "maximum": 100,
+      "default": 30,
+      "description": "Internal enclosure depth in millimeters.",
+      "x-unit": "mm"
+    },
+    "face_thickness": {
+      "title": "Face thickness",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 2,
+      "description": "Face plate thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "wall_thickness": {
+      "title": "Wall thickness",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 2,
+      "description": "Enclosure wall thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "back_thickness": {
+      "title": "Back panel thickness",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 2,
+      "description": "Back panel thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "diffuser_gap": {
+      "title": "Diffuser gap",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 3,
+      "description": "Gap between face plate and LED surface in millimeters.",
+      "x-unit": "mm"
+    },
+    "led_cavity_depth": {
+      "title": "LED cavity depth",
+      "type": "number",
+      "minimum": 5,
+      "maximum": 50,
+      "default": 15,
+      "description": "Depth of the LED cavity inside the enclosure in millimeters.",
+      "x-unit": "mm"
+    },
+    "back_style": {
+      "title": "Back style",
+      "type": "string",
+      "enum": ["snap-fit", "screw", "slide-in"],
+      "default": "snap-fit",
+      "description": "How the back panel attaches to the enclosure."
+    },
+    "cable_exit": {
+      "title": "Cable exit",
+      "type": "string",
+      "enum": ["none", "left", "right", "bottom", "rear"],
+      "default": "bottom",
+      "description": "Position of the cable routing notch."
+    },
+    "mounting": {
+      "title": "Mounting",
+      "type": "string",
+      "enum": ["none", "tabletop", "keyholes", "screws"],
+      "default": "none",
+      "description": "Mounting method for the assembled box."
+    },
+    "rights_confirmed": {
+      "title": "Artwork rights confirmed",
+      "type": "boolean",
+      "default": false,
+      "description": "Confirm that you have permission to use the uploaded artwork."
+    },
+    "artwork_data": {
+      "title": "Artwork data",
+      "type": "string",
+      "maxLength": 1048576,
+      "description": "Base64-encoded SVG or PNG data. Max 1 MB. Used when artwork_type is svg or png."
+    }
+  }
+}

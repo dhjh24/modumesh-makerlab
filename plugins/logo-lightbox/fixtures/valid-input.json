@@ -1,0 +1,16 @@
+{
+  "artwork_type": "text",
+  "text": "MAKER",
+  "width": 200,
+  "height": 150,
+  "box_depth": 30,
+  "face_thickness": 2,
+  "wall_thickness": 2,
+  "back_thickness": 2,
+  "diffuser_gap": 3,
+  "led_cavity_depth": 15,
+  "back_style": "snap-fit",
+  "cable_exit": "bottom",
+  "mounting": "none",
+  "rights_confirmed": true
+}
