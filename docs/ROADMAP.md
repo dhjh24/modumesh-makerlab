@@ -64,12 +64,12 @@ The present deployment has a likely remote-browser failure: `apps/web/Dockerfile
 || GM-8 | Release hardening | Planned | GM-7 | Security, accessibility, mobile, recovery, observability, and e2e test gates pass in CI |
 ||| 7 | Mesh repair and print inspector | **Done** | GM-8, Phase 6 | Reports manifold state, dimensions, wall risk, overhang risk, and repair result |
 ||| 8 | Slicing and cost estimate | **Done** | Phase 7 | Pinned printer profiles produce 3MF, time, filament, and cost estimates |
-||| 9 | Generator capability and runtime contract | **Active** | Phase 8 | Local CPU, local GPU, and sidecar plugins share one stable job interface |
-|| 10 | TripoSR fast image-to-3D | Planned | Phase 9 | Image job yields previewable mesh on the documented GPU tier |
-|| 11 | Hunyuan3D quality image-to-3D | Planned | Phase 10 | Shape-only tier works first; texture tier is a separate hardware profile |
-|| 12 | Compare mode and runtime routing | Planned | Phase 11 | One input can run on two generators, with clear cost and hardware controls |
-|| 13 | ModuMesh Shop connector | Planned | Phase 12 | Only approved, priced, printable versions can enter the cart |
-|| 14 | Community plugin release controls | Planned | Phase 13 | Signed packages, compatibility checks, quotas, and admin controls are active |
+||| 9 | Generator capability and runtime contract | **Done** | Phase 8 | Local CPU, local GPU, and sidecar plugins share one stable job interface |
+||| 10 | TripoSR fast image-to-3D | **Scaffolded** | Phase 9 | Image job yields previewable mesh on the documented GPU tier |
+||| 11 | Hunyuan3D quality image-to-3D | **Scaffolded** | Phase 10 | Shape-only tier works first; texture tier is a separate hardware profile |
+||| 12 | Compare mode and runtime routing | **Active** | Phase 11 | One input can run on two generators, with clear cost and hardware controls |
+||| 13 | ModuMesh Shop connector | **Active** | Phase 12 | Only approved, priced, printable versions can enter the cart |
+||| 14 | Community plugin release controls | **Active** | Phase 13 | Signed packages, compatibility checks, quotas, and admin controls are active |
 
 ## Phase 0 — Deployment connectivity and health
 

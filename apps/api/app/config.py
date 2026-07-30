@@ -74,11 +74,19 @@ class WorkerSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="WORKER_")
 
 
+class AdminSettings(BaseSettings):
+    plugin_signing_secret: str = "dev-secret"
+    admin_api_key: str = ""
+
+    model_config = SettingsConfigDict(env_prefix="ADMIN_")
+
+
 class Settings(BaseSettings):
     postgres: PostgresSettings = PostgresSettings()
     redis: RedisSettings = RedisSettings()
     minio: MinIOSettings = MinIOSettings()
     api: APISettings = APISettings()
+    admin: AdminSettings = AdminSettings()
 
     model_config = SettingsConfigDict(
         env_file=".env",

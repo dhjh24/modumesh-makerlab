@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_data"],
+  "properties": {
+    "image_data": {
+      "title": "Image data",
+      "type": "string",
+      "maxLength": 5242880,
+      "description": "Base64-encoded PNG or JPEG image of the object. Max 5 MB."
+    },
+    "remove_background": {
+      "title": "Remove background",
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically remove image background before processing."
+    }
+  }
+}
