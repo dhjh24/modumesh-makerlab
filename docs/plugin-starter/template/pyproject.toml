@@ -1,0 +1,14 @@
+[project]
+name = "modumesh-my-generator-plugin"
+version = "1.0.0"
+description = "My custom generator plugin for ModuMesh MakerLab"
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["my_generator*"]

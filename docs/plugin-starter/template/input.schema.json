@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["label"],
+  "properties": {
+    "label": {
+      "title": "Label",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "default": "my-part",
+      "description": "Human-readable label for the generated part."
+    },
+    "scale": {
+      "title": "Scale",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "default": 1,
+      "description": "Scale factor.",
+      "x-unit": "×"
+    }
+  }
+}
