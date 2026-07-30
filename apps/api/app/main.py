@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -21,6 +22,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan — startup and shutdown."""
     logger = get_logger("app")
     logger.info("starting up", service="modumesh-api", version=settings.api.version)
+
+    # ── Auto-run Alembic migrations ───────────────────────────────────
+    try:
+        import subprocess
+
+        result = subprocess.run(
+            ["alembic", "-c", os.path.join(os.path.dirname(__file__), "..", "alembic.ini"), "upgrade", "head"],
+            capture_output=True, text=True, timeout=120,
+            env={**os.environ, "PYTHONPATH": os.path.join(os.path.dirname(__file__), "..")},
+        )
+        if result.returncode == 0:
+            logger.info("alembic migrations applied", output=result.stdout.strip())
+        else:
+            logger.warning("alembic migration failed", stderr=result.stderr.strip())
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("alembic migration skipped (non-fatal)", error=str(exc))
 
     # ── Initialize dependencies ──────────────────────────────────────
     # Redis (async)

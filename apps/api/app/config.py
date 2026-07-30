@@ -57,7 +57,7 @@ class MinIOSettings(BaseSettings):
 class APISettings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
-    cors_origins: str = "http://localhost:3000"
+    cors_origins: str = "http://localhost:3002"
     log_level: str = "info"
     version: str = "0.1.0"
     plugin_dir: str = "/plugins"

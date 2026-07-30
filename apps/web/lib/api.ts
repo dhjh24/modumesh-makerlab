@@ -20,7 +20,7 @@ export class ApiError extends Error {
 function apiBase(): string {
   const pub = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
   if (typeof window === 'undefined') {
-    return process.env.API_INTERNAL_URL || pub || 'http://localhost:8000';
+    return process.env.API_INTERNAL_URL || pub || 'http://api:8000';
   }
   // Browser: explicit public API URL (Compose), otherwise same-origin rewrites.
   if (pub) return pub;

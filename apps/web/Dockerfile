@@ -12,14 +12,16 @@ RUN npm ci
 COPY apps/web/ ./apps/web/
 COPY packages/ ./packages/
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ARG API_INTERNAL_URL=http://api:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_INTERNAL_URL=$API_INTERNAL_URL
 RUN npm run build --workspace=@modumesh/web
 
 FROM node:22-alpine
 RUN addgroup -S modumesh && adduser -S -G modumesh modumesh
 WORKDIR /app
 ENV NODE_ENV=production
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV HOSTNAME=0.0.0.0
 # Copy the full standalone output (it includes server.js + node_modules at correct relative paths)
 COPY --from=builder /app/apps/web/.next/standalone/ ./
 # Copy static assets to where server.js expects them

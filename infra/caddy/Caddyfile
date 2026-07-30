@@ -1,0 +1,63 @@
+# ─── ModuMesh MakerLab — Caddy Configuration ───────────────────────────
+#
+# Production: replace makerlab.example.com with your real domain.
+# TLS is automatic via Let's Encrypt (requires port 80 + 443 open).
+#
+# Development (no TLS):
+#   :8080 {
+#       reverse_proxy /api/v1/* api:8000
+#       reverse_proxy /backend-health* api:8000
+#       reverse_proxy /* web:3000
+#   }
+
+makerlab.example.com {
+
+    # ── Logging ──────────────────────────────────────────────────────
+    log {
+        output file /data/caddy/logs/access.log
+        format json
+    }
+
+    # ── Security headers ─────────────────────────────────────────────
+    header {
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "DENY"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    # ── API proxy — same-origin /api/v1/* → api:8000 ────────────────
+    # This is the only API path the browser ever needs.
+    # CORS is not required because the frontend and API are same-origin.
+    @api {
+        path /api/v1/*
+    }
+    reverse_proxy @api api:8000 {
+        transport http {
+            read_timeout 120s
+            write_timeout 120s
+        }
+    }
+
+    # ── Backend health proxy (server-side rewrites from Next.js) ────
+    @backend-health {
+        path /backend-health*
+    }
+    reverse_proxy @backend-health api:8000 {
+        transparent
+    }
+
+    # ── FastAPI docs / OpenAPI spec ──────────────────────────────────
+    @api-docs {
+        path /docs /openapi.json /redoc
+    }
+    reverse_proxy @api-docs api:8000
+
+    # ── Static files / Next.js web app ───────────────────────────────
+    reverse_proxy /* web:3000 {
+        transport http {
+            read_timeout 30s
+        }
+    }
+}
