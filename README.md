@@ -78,13 +78,22 @@ modumesh-makerlab/
 ├── infra/
 │   └── compose/        # Docker Compose files
 ├── docs/
-│   ├── adr/            # Architecture Decision Records
-│   ├── plugins.md      # Plugin author guide
-│   └── architecture.md
+│   ├── adr/              # Architecture Decision Records
+│   ├── plugins.md        # Plugin author guide
+│   ├── architecture.md   # Current architecture
+│   ├── ROADMAP.md        # Plugin-first delivery plan
+│   └── AGENT_PROMPTS.md  # One implementation prompt per phase
 └── tests/
     ├── e2e/            # End-to-end tests
     └── integration/    # Integration tests
 ```
+
+## Planning
+
+- [Plugin-first delivery plan](docs/ROADMAP.md)
+- [Copy-ready implementation prompts](docs/AGENT_PROMPTS.md)
+
+Start with Phase 0. It fixes deployed API reachability before real generator work begins. Run one phase per pull request and pass its exit gate before moving to the next prompt.
 
 ## Development
 
