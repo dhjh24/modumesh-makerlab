@@ -170,6 +170,55 @@
         "sdk": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+(\\.[0-9]+)?$" },
         "worker": { "type": "string", "maxLength": 255 }
       }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["inprocess", "sidecar"], "default": "inprocess" },
+        "hardware": {
+          "type": "string",
+          "enum": [
+            "cpu", "gpu-low", "gpu-medium", "gpu-high",
+            "gpu-low-fp16", "gpu-medium-fp16", "gpu-high-fp16"
+          ],
+          "default": "cpu"
+        },
+        "resources": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu_cores": { "$ref": "#/$defs/resourceRange" },
+            "memory_mb": { "$ref": "#/$defs/resourceRange" },
+            "disk_mb": { "$ref": "#/$defs/resourceRange" }
+          }
+        },
+        "sidecars": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "image"],
+            "properties": {
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,31}$" },
+              "image": { "type": "string", "maxLength": 255 },
+              "port": { "type": "integer", "minimum": 1024, "maximum": 65535 },
+              "command": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "privileged": { "type": "boolean", "default": false }
+      }
+    }
+  },
+  "$defs": {
+    "resourceRange": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number", "minimum": 0 },
+        "max": { "type": "number", "minimum": 0 }
+      }
     }
   }
 }
