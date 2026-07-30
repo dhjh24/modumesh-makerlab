@@ -154,6 +154,41 @@ export interface PluginList {
   issues?: Array<Record<string, unknown>>;
 }
 
+// ── Catalog (GM-1) ────────────────────────────────────────────────────
+export interface CatalogItem {
+  id: string;
+  plugin_id: string;
+  version: string;
+  name: string;
+  description?: string | null;
+  engine: string;
+  categories: string[];
+  outputs: PluginOutputDecl[];
+  timeout_seconds: number;
+  memory_mb: number;
+  author?: string | null;
+  license?: string | null;
+  license_url?: string | null;
+  source_url?: string | null;
+  maturity: 'experimental' | 'stable' | 'deprecated';
+  tags: string[];
+  thumbnail?: string | null;
+  capabilities: {
+    preview?: boolean;
+    deterministic?: boolean;
+    multipart?: boolean;
+    multicolor?: boolean;
+    text?: boolean;
+    imageUpload?: boolean;
+    shopReady?: boolean;
+  };
+  sdk_version: string;
+  source_path: string;
+  input_schema?: Record<string, unknown> | string | null;
+  discovered_at?: string | null;
+  updated_at?: string | null;
+}
+
 // ── JSON Schema (subset used by the form renderer) ─────────────────────
 export type JsonSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array';
 
