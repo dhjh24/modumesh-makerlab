@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1",
+  "id": "hunyuan3d",
+  "name": "Hunyuan3D (quality image-to-3D)",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "hunyuan3d.plugin:run",
+  "description": "High-quality image-to-3D mesh generation using Hunyuan3D. Shape-only tier uses cpu/gpu-low; textured tier requires gpu-medium or higher.",
+  "author": "MakerLab Team",
+  "license": "MIT",
+  "categories": ["3d", "ai", "image-to-3d"],
+  "tags": ["hunyuan3d", "image", "gpu", "quality"],
+  "maturity": "experimental",
+  "capabilities": {"preview": true, "imageUpload": true, "deterministic": false, "multicolor": true},
+  "runtime": {
+    "mode": "inprocess",
+    "hardware": "gpu-low",
+    "resources": {"memory_mb": {"min": 2048, "max": 8192}},
+    "privileged": false
+  },
+  "outputs": [
+    {"name": "model.glb", "mediaType": "model/gltf-binary", "required": true, "purpose": "preview"},
+    {"name": "model.stl", "mediaType": "model/stl", "required": false, "purpose": "printable"},
+    {"name": "texture.png", "mediaType": "image/png", "required": false, "purpose": "metadata"},
+    {"name": "meta.json", "mediaType": "application/json", "required": true, "purpose": "metadata"}
+  ],
+  "timeoutSeconds": 300,
+  "memoryMb": 8192,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json"
+}

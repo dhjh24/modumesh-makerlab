@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["image_data"],
+  "properties": {
+    "image_data": {
+      "title": "Image data",
+      "type": "string",
+      "maxLength": 10485760,
+      "description": "Base64-encoded PNG or JPEG image. Max 10 MB."
+    },
+    "remove_background": {
+      "title": "Remove background",
+      "type": "boolean",
+      "default": true
+    },
+    "generate_texture": {
+      "title": "Generate texture",
+      "type": "boolean",
+      "default": true,
+      "description": "Generate colored texture (requires gpu-medium+)."
+    },
+    "shape_draft": {
+      "title": "Shape draft mode",
+      "type": "boolean",
+      "default": false,
+      "description": "Lower quality but faster shape-only preview. Runs on cpu or gpu-low."
+    },
+    "seed": {
+      "title": "Seed",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2147483647,
+      "default": 42,
+      "description": "Random seed for reproducibility."
+    }
+  }
+}
