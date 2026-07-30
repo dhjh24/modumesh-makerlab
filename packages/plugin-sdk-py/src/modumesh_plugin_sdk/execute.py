@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> None:
             work_dir=work_dir,
             timeout_seconds=int(request.get("timeout_seconds") or plugin.timeout_seconds),
             check_docker_socket=False,  # already checked above
+            use_thread=False,
         )
         enforce_declared_outputs(plugin, result.outputs)
         payload = {

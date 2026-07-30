@@ -20,7 +20,7 @@ COPY apps/api/alembic.ini .
 COPY apps/api/tests/ tests/
 # Plugins are copied read-only into the image; compose may also bind-mount.
 COPY plugins/ /plugins/
-RUN chmod -R a-w /plugins && chown -R modumesh:modumesh /app
+RUN find /plugins -type f -exec chmod 644 {} + && chmod -R a-w /plugins && chown -R modumesh:modumesh /app
 USER modumesh
 ENV API_PLUGIN_DIR=/plugins
 EXPOSE 8000

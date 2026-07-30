@@ -75,11 +75,16 @@ def run_plugin_inprocess(
     on_progress: ProgressCallback | None = None,
     on_log: LogCallback | None = None,
     check_docker_socket: bool = True,
+    use_thread: bool = False,
 ) -> RunResult:
     """Execute a plugin entrypoint in-process with sandbox hooks.
 
     Prefer the subprocess runner for production isolation; this path is used by
     the contract CLI and by the worker when spawning is unavailable.
+
+    When use_thread=False, the plugin runs directly in the current thread.
+    This avoids library-loading issues (e.g. VTK shared-object mapping in threads)
+    but means timeout must be enforced by the caller (e.g. subprocess timeout).
     """
     validate_job_input(plugin, input_payload)
     effective_timeout = min(
@@ -137,14 +142,18 @@ def run_plugin_inprocess(
 
     import concurrent.futures
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-        future = pool.submit(func, ctx)
+    if use_thread:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            future = pool.submit(func, ctx)
+            try:
+                future.result(timeout=effective_timeout)
+            except concurrent.futures.TimeoutError as exc:
+                raise PluginTimeoutError(
+                    f"Plugin exceeded timeout of {effective_timeout}s"
+                ) from exc
+    else:
         try:
-            future.result(timeout=effective_timeout)
-        except concurrent.futures.TimeoutError as exc:
-            raise PluginTimeoutError(
-                f"Plugin exceeded timeout of {effective_timeout}s"
-            ) from exc
+            func(ctx)
         except PluginSecurityError:
             raise
         except ContractError:
@@ -158,7 +167,6 @@ def run_plugin_inprocess(
     # by not cleaning until caller reads files — copy paths are under work.
     if tmp is not None:
         # Detach: TemporaryDirectory would delete on GC; materialize by not auto-clean.
-        # We intentionally keep the directory and disable cleanup.
         tmp._finalizer.detach()  # type: ignore[attr-defined]
     return result
 
