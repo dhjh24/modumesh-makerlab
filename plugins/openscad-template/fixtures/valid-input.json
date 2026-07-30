@@ -1,0 +1,11 @@
+{
+  "template": "storage-box",
+  "width": 120,
+  "depth": 80,
+  "height": 50,
+  "wall_thickness": 2,
+  "bottom_thickness": 2,
+  "corner_radius": 3,
+  "include_lid": false,
+  "lid_clearance": 0.3
+}

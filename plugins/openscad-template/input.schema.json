@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["template"],
+  "properties": {
+    "template": {
+      "title": "Template",
+      "type": "string",
+      "enum": ["storage-box", "grid-organizer", "parts-tray"],
+      "default": "storage-box",
+      "description": "Which parametric template to generate."
+    },
+    "width": {
+      "title": "Width",
+      "type": "number",
+      "minimum": 20,
+      "maximum": 400,
+      "default": 120,
+      "description": "External width in millimeters.",
+      "x-unit": "mm"
+    },
+    "depth": {
+      "title": "Depth",
+      "type": "number",
+      "minimum": 20,
+      "maximum": 400,
+      "default": 80,
+      "description": "External depth in millimeters.",
+      "x-unit": "mm"
+    },
+    "height": {
+      "title": "Height",
+      "type": "number",
+      "minimum": 10,
+      "maximum": 200,
+      "default": 50,
+      "description": "External height in millimeters.",
+      "x-unit": "mm"
+    },
+    "wall_thickness": {
+      "title": "Wall thickness",
+      "type": "number",
+      "minimum": 0.8,
+      "maximum": 10,
+      "default": 2,
+      "description": "Side wall thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "bottom_thickness": {
+      "title": "Bottom thickness",
+      "type": "number",
+      "minimum": 0.8,
+      "maximum": 10,
+      "default": 2,
+      "description": "Bottom thickness in millimeters (ignored for open-bottom templates).",
+      "x-unit": "mm"
+    },
+    "corner_radius": {
+      "title": "Corner radius",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 20,
+      "default": 3,
+      "description": "Corner rounding radius in millimeters. 0 = sharp corners.",
+      "x-unit": "mm"
+    },
+    "include_lid": {
+      "title": "Include lid",
+      "type": "boolean",
+      "default": false,
+      "description": "Generate a matching snap-fit lid with a tab."
+    },
+    "lid_clearance": {
+      "title": "Lid clearance",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 2,
+      "default": 0.3,
+      "description": "Clearance gap between lid and body in millimeters.",
+      "x-unit": "mm"
+    },
+    "grid_cells_x": {
+      "title": "Grid cells (X)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12,
+      "default": 3,
+      "description": "Number of compartments along the width (grid-organizer only)."
+    },
+    "grid_cells_y": {
+      "title": "Grid cells (Y)",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 12,
+      "default": 2,
+      "description": "Number of compartments along the depth (grid-organizer only)."
+    }
+  }
+}
