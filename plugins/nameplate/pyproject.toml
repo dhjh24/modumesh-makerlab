@@ -1,10 +1,17 @@
 [project]
 name = "modumesh-nameplate-plugin"
-version = "0.1.0"
+version = "1.0.0"
 description = "Reference CadQuery plugin for ModuMesh MakerLab"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "cadquery>=2.7.0,<2.8.0",
+    "trimesh>=4.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=75.0.0"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["nameplate*"]

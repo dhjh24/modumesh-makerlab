@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["text"],
+  "properties": {
+    "text": {
+      "title": "Nameplate text",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32,
+      "pattern": "^[a-zA-Z0-9 .,!?&@#'\"()\\-+%%/=:;_]+$",
+      "description": "Text to emboss on the nameplate. Alphanumeric and common punctuation."
+    },
+    "width": {
+      "title": "Width",
+      "type": "number",
+      "minimum": 20,
+      "maximum": 300,
+      "default": 100,
+      "description": "Nameplate width in millimeters.",
+      "x-unit": "mm"
+    },
+    "height": {
+      "title": "Height",
+      "type": "number",
+      "minimum": 10,
+      "maximum": 200,
+      "default": 40,
+      "description": "Nameplate height in millimeters.",
+      "x-unit": "mm"
+    },
+    "thickness": {
+      "title": "Thickness",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 20,
+      "default": 3,
+      "description": "Base plate thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "corner_radius": {
+      "title": "Corner radius",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 50,
+      "default": 5,
+      "description": "Corner rounding radius in millimeters. 0 = sharp corners.",
+      "x-unit": "mm"
+    },
+    "text_depth": {
+      "title": "Text depth",
+      "type": "number",
+      "minimum": 0.2,
+      "maximum": 5,
+      "default": 1,
+      "description": "Depth of engraved or raised text in millimeters.",
+      "x-unit": "mm"
+    },
+    "text_raised": {
+      "title": "Raised text",
+      "type": "boolean",
+      "default": false,
+      "description": "When true, text is raised above the plate surface. When false, text is engraved (cut into the plate)."
+    },
+    "font_size": {
+      "title": "Font size",
+      "type": "number",
+      "minimum": 4,
+      "maximum": 80,
+      "default": 12,
+      "description": "Approximate font height in millimeters.",
+      "x-unit": "mm"
+    },
+    "margin": {
+      "title": "Margin",
+      "type": "number",
+      "minimum": 1,
+      "maximum": 30,
+      "default": 5,
+      "description": "Distance from text to plate edge in millimeters.",
+      "x-unit": "mm"
+    },
+    "hole_mode": {
+      "title": "Mounting holes",
+      "type": "string",
+      "enum": ["none", "two", "four"],
+      "default": "two",
+      "description": "Mounting hole pattern: none, two (left/right centered), or four (all corners)."
+    },
+    "hole_diameter": {
+      "title": "Hole diameter",
+      "type": "number",
+      "minimum": 2,
+      "maximum": 20,
+      "default": 4,
+      "description": "Diameter of mounting holes in millimeters.",
+      "x-unit": "mm"
+    },
+    "font_name": {
+      "title": "Font",
+      "type": "string",
+      "enum": ["Arial", "Arial Bold", "Arial Italic", "Courier New", "Times New Roman", "Times New Roman Bold", "Verdana"],
+      "default": "Arial",
+      "description": "Font family (maps to DejaVu Sans/Serif/Mono on the runtime)."
+    }
+  }
+}

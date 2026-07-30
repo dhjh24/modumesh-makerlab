@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1",
+  "id": "nameplate",
+  "name": "Nameplate Generator",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "nameplate.plugin:run",
+  "description": "Generate custom text nameplates with CadQuery. Supports text, hole mounting, corner rounding, and multiple output formats.",
+  "categories": ["cad", "parametric", "text"],
+  "outputs": [
+    {
+      "name": "model.stl",
+      "mediaType": "model/stl",
+      "required": true
+    },
+    {
+      "name": "model.step",
+      "mediaType": "model/step",
+      "required": false
+    },
+    {
+      "name": "model.glb",
+      "mediaType": "model/gltf-binary",
+      "required": false
+    },
+    {
+      "name": "meta.json",
+      "mediaType": "application/json",
+      "required": true
+    }
+  ],
+  "timeoutSeconds": 120,
+  "memoryMb": 2048,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 131072,
+  "maxOutputBytes": 5242880
+}
