@@ -94,6 +94,33 @@ export const api = {
     ),
   getPlugin: (pluginId: string) =>
     apiFetch<import('@modumesh/shared-types').PluginRecord>(`/api/v1/plugins/${pluginId}`),
+  listCatalog: (params?: {
+    category?: string;
+    engine?: string;
+    maturity?: string;
+    capability?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.set('category', params.category);
+    if (params?.engine) q.set('engine', params.engine);
+    if (params?.maturity) q.set('maturity', params.maturity);
+    if (params?.capability) q.set('capability', params.capability);
+    if (params?.search) q.set('search', params.search);
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.offset) q.set('offset', String(params.offset));
+    return apiFetch<{
+      items: import('@modumesh/shared-types').CatalogItem[];
+      total: number;
+      categories?: string[];
+    }>(`/api/v1/catalog${q.toString() ? `?${q.toString()}` : ''}`);
+  },
+  getCatalogItem: (pluginId: string) =>
+    apiFetch<import('@modumesh/shared-types').CatalogItem>(`/api/v1/catalog/${pluginId}`),
+  listCatalogCategories: () =>
+    apiFetch<{ categories: string[]; total: number }>('/api/v1/catalog/categories'),
   getFullHealth: () =>
     apiFetch<{
       status: string;

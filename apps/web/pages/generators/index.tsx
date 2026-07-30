@@ -1,225 +1,246 @@
 import Head from 'next/head';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { PluginRecord, Project } from '@modumesh/shared-types';
-import {
-  Badge,
-  Button,
-  EmptyState,
-  ErrorPanel,
-  LoadingState,
-  OfflineState,
-  SchemaForm,
-  defaultsFromSchema,
-} from '@modumesh/ui';
+import { useCallback, useEffect, useState } from 'react';
+import type { CatalogItem } from '@modumesh/shared-types';
 import { AppShell } from '../../components/AppShell';
 import { api, ApiError } from '../../lib/api';
-import { useOnline } from '../../lib/hooks';
 
-export default function GeneratorsPage() {
-  const router = useRouter();
-  const online = useOnline();
-  const [plugins, setPlugins] = useState<PluginRecord[] | null>(null);
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [error, setError] = useState<ApiError | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [formValue, setFormValue] = useState<Record<string, unknown>>({});
-  const [projectId, setProjectId] = useState('');
-  const [busy, setBusy] = useState(false);
+const MATURITY_COLORS: Record<string, string> = {
+  experimental: '#eab308',
+  stable: '#22c55e',
+  deprecated: '#ef4444',
+};
+
+function CapabilityBadge({ label, active }: { label: string; active?: boolean }) {
+  if (!active) return null;
+  return (
+    <span
+      style={{
+        display: 'inline-block',
+        fontSize: '0.7rem',
+        padding: '1px 6px',
+        borderRadius: 4,
+        backgroundColor: '#1e293b',
+        color: '#94a3b8',
+        marginRight: 4,
+        marginBottom: 4,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+export default function MarketplacePage() {
+  const [items, setItems] = useState<CatalogItem[] | null>(null);
+  const [total, setTotal] = useState(0);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedMaturity, setSelectedMaturity] = useState('');
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [plist, proj] = await Promise.all([api.listPlugins(true), api.listProjects(50)]);
-      setPlugins(plist.items);
-      setProjects(proj.items);
-      const q = typeof router.query.plugin === 'string' ? router.query.plugin : null;
-      const initial = q || plist.items[0]?.plugin_id || null;
-      setSelectedId(initial);
-      if (proj.items[0]) setProjectId(proj.items[0].id);
+      const [catalog, catResult] = await Promise.all([
+        api.listCatalog({
+          category: selectedCategory || undefined,
+          maturity: selectedMaturity || undefined,
+          search: search || undefined,
+          limit: 50,
+        }),
+        api.listCatalogCategories(),
+      ]);
+      setItems(catalog.items);
+      setTotal(catalog.total);
+      setCategories(catResult.categories);
     } catch (err) {
-      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
+      setError(err instanceof ApiError ? err.message : String(err));
     }
-  }, [router.query.plugin]);
+  }, [selectedCategory, selectedMaturity, search]);
 
   useEffect(() => {
-    if (!router.isReady) return;
     void load();
-  }, [router.isReady, load]);
-
-  const selected = useMemo(
-    () => plugins?.find((p) => p.plugin_id === selectedId) ?? null,
-    [plugins, selectedId],
-  );
-
-  useEffect(() => {
-    if (!selected) return;
-    setFormValue(defaultsFromSchema(selected.input_schema));
-  }, [selected]);
-
-  const openInEditor = async () => {
-    if (!selected) return;
-    setBusy(true);
-    setError(null);
-    try {
-      let pid = projectId;
-      if (!pid) {
-        const created = await api.createProject({
-          name: `${selected.name} project`,
-          description: `Created from generator catalog for ${selected.plugin_id}`,
-        });
-        pid = created.id;
-      }
-      await router.push(`/projects/${pid}?plugin=${encodeURIComponent(selected.plugin_id)}`);
-    } catch (err) {
-      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
-      setBusy(false);
-    }
-  };
-
-  if (!online) {
-    return (
-      <AppShell title="Generators">
-        <OfflineState
-          title="You are offline"
-          description="The generator catalog needs API access."
-          actionLabel="Retry"
-          onAction={() => void load()}
-        />
-      </AppShell>
-    );
-  }
+  }, [load]);
 
   return (
-    <AppShell title="Generators">
+    <AppShell title="Generator Marketplace">
       <Head>
-        <title>Generators · ModuMesh MakerLab</title>
+        <title>Generator Marketplace · ModuMesh MakerLab</title>
       </Head>
-      <h1 className="mm-h1">Generator catalog</h1>
+
+      <h1 className="mm-h1">Generator Marketplace</h1>
       <p className="mm-lead">
-        Driven entirely by plugin registry metadata — install a compatible plugin and it appears
-        here with a usable form from its JSON Schema.
+        Browse, configure, and generate printable 3D parts. All generators work through the
+        same schema-driven editor — no custom forms needed.
       </p>
 
+      {/* Filters */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 12,
+          flexWrap: 'wrap',
+          marginTop: '1rem',
+          marginBottom: '1rem',
+          alignItems: 'center',
+        }}
+      >
+        <input
+          className="mm-input"
+          placeholder="Search generators…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ flex: '1 1 200px', maxWidth: 320 }}
+          aria-label="Search generators"
+        />
+        <select
+          className="mm-input"
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          style={{ width: 160 }}
+          aria-label="Filter by category"
+        >
+          <option value="">All categories</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
+        <select
+          className="mm-input"
+          value={selectedMaturity}
+          onChange={(e) => setSelectedMaturity(e.target.value)}
+          style={{ width: 160 }}
+          aria-label="Filter by maturity"
+        >
+          <option value="">All maturity</option>
+          <option value="experimental">Experimental</option>
+          <option value="stable">Stable</option>
+          <option value="deprecated">Deprecated</option>
+        </select>
+        <button className="mm-btn" onClick={() => void load()} style={{ padding: '8px 16px' }}>
+          Refresh
+        </button>
+      </div>
+
+      {/* Error */}
       {error ? (
-        <ErrorPanel
-          message={error.message}
-          technicalDetail={[
-            error.correlationId ? `correlation_id=${error.correlationId}` : null,
-            `status=${error.status}`,
-            error.body,
-          ]
-            .filter(Boolean)
-            .join('\n')}
-          onRetry={() => void load()}
-        />
-      ) : null}
-
-      {plugins === null && !error ? <LoadingState title="Discovering plugins…" /> : null}
-
-      {plugins && plugins.length === 0 ? (
-        <EmptyState
-          title="No enabled plugins"
-          description="Drop a plugin into the plugins directory and call POST /api/v1/plugins/resync."
-        />
-      ) : null}
-
-      {plugins && plugins.length > 0 ? (
-        <div className="mm-grid-3" style={{ gridTemplateColumns: 'minmax(240px, 320px) 1fr' }}>
-          <section className="mm-panel" aria-label="Installed generators">
-            <h2>Installed</h2>
-            <ul className="mm-list">
-              {plugins.map((p) => (
-                <li key={`${p.plugin_id}@${p.version}`}>
-                  <button
-                    type="button"
-                    className="mm-linkish"
-                    style={{
-                      display: 'block',
-                      width: '100%',
-                      textAlign: 'left',
-                      padding: '0.55rem 0.65rem',
-                      textDecoration: 'none',
-                      background:
-                        selectedId === p.plugin_id ? 'var(--mm-accent-soft)' : 'transparent',
-                      borderRadius: 8,
-                      border: '1px solid transparent',
-                    }}
-                    aria-current={selectedId === p.plugin_id ? 'true' : undefined}
-                    onClick={() => setSelectedId(p.plugin_id)}
-                  >
-                    <strong>{p.name}</strong>
-                    <div className="mm-meta">
-                      {p.plugin_id} · v{p.version}
-                    </div>
-                    <div className="mm-row" style={{ marginTop: 4 }}>
-                      {p.categories?.slice(0, 3).map((c) => (
-                        <Badge key={c}>{c}</Badge>
-                      ))}
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section className="mm-panel" aria-live="polite">
-            {selected ? (
-              <>
-                <h2>{selected.name}</h2>
-                <p className="mm-meta">
-                  {selected.description || 'No description provided.'} · engine {selected.engine} ·
-                  timeout {selected.timeout_seconds}s
-                </p>
-                <div className="mm-row" style={{ margin: '0.75rem 0' }}>
-                  <label className="mm-field__label" htmlFor="target-project">
-                    Open in project
-                  </label>
-                  <select
-                    id="target-project"
-                    className="mm-input"
-                    style={{ maxWidth: 320 }}
-                    value={projectId}
-                    onChange={(e) => setProjectId(e.target.value)}
-                  >
-                    <option value="">Create new project</option>
-                    {projects.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                  <Button onClick={() => void openInEditor()} disabled={busy}>
-                    {busy ? 'Opening…' : 'Open editor'}
-                  </Button>
-                </div>
-                <h3 className="mm-meta" style={{ fontWeight: 700, color: 'var(--mm-ink)' }}>
-                  Schema preview
-                </h3>
-                <SchemaForm
-                  schema={selected.input_schema}
-                  value={formValue}
-                  onChange={setFormValue}
-                  disabled
-                  idPrefix={`preview-${selected.plugin_id}`}
-                />
-                <p className="mm-meta">
-                  Preview only — submit jobs from the{' '}
-                  <Link
-                    href={projectId ? `/projects/${projectId}?plugin=${selected.plugin_id}` : '/'}
-                  >
-                    project editor
-                  </Link>
-                  .
-                </p>
-              </>
-            ) : (
-              <EmptyState title="Select a generator" description="Choose a plugin from the list." />
-            )}
-          </section>
+        <div className="mm-panel" style={{ color: '#ef4444', marginTop: '1rem' }}>
+          <p>{error}</p>
         </div>
       ) : null}
+
+      {/* Grid */}
+      {items === null ? (
+        <p>Loading generators…</p>
+      ) : items.length === 0 ? (
+        <div className="mm-panel" style={{ marginTop: '1rem' }}>
+          <p>
+            {search || selectedCategory || selectedMaturity
+              ? 'No generators match your filters.'
+              : 'No generators available yet.'}
+          </p>
+        </div>
+      ) : (
+        <>
+          <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '0.75rem' }}>
+            {total} generator{total !== 1 ? 's' : ''}
+          </p>
+          <div className="mm-grid-3" style={{ marginTop: 0 }}>
+            {items.map((item) => (
+              <Link
+                key={`${item.plugin_id}@${item.version}`}
+                href={`/generators/${item.plugin_id}`}
+                style={{ textDecoration: 'none' }}
+              >
+                <article
+                  className="mm-panel"
+                  style={{
+                    cursor: 'pointer',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: 8,
+                    }}
+                  >
+                    <h3 style={{ margin: 0, fontSize: '1rem' }}>{item.name}</h3>
+                    <span
+                      style={{
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        borderRadius: 10,
+                        backgroundColor: MATURITY_COLORS[item.maturity] || '#64748b',
+                        color: '#fff',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.maturity}
+                    </span>
+                  </div>
+                  {item.description ? (
+                    <p
+                      style={{
+                        fontSize: '0.8125rem',
+                        color: '#64748b',
+                        margin: '0 0 8px 0',
+                        flex: 1,
+                      }}
+                    >
+                      {item.description}
+                    </p>
+                  ) : null}
+                  <div style={{ marginBottom: 8 }}>
+                    {item.categories.slice(0, 4).map((cat) => (
+                      <CapabilityBadge key={cat} label={cat} active />
+                    ))}
+                  </div>
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: 4,
+                      marginTop: 'auto',
+                    }}
+                  >
+                    <CapabilityBadge label="text" active={item.capabilities.text} />
+                    <CapabilityBadge label="image" active={item.capabilities.imageUpload} />
+                    <CapabilityBadge label="multipart" active={item.capabilities.multipart} />
+                    <CapabilityBadge label="multicolor" active={item.capabilities.multicolor} />
+                    <CapabilityBadge label="preview" active={item.capabilities.preview} />
+                    <CapabilityBadge label="deterministic" active={item.capabilities.deterministic} />
+                    <CapabilityBadge label="shop" active={item.capabilities.shopReady} />
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 8,
+                      fontSize: '0.75rem',
+                      color: '#94a3b8',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>{item.engine}</span>
+                    <span>
+                      {item.license ? (
+                        <span title={item.license_url || ''}>{item.license}</span>
+                      ) : null}
+                      {item.author ? ` · ${item.author}` : ''}
+                    </span>
+                  </div>
+                </article>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </AppShell>
   );
 }
