@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "1",
+  "id": "mesh-inspector",
+  "name": "Mesh Inspector",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "mesh_inspector.plugin:run",
+  "description": "Analyze an STL or GLB file for printability: manifold check, dimensions, wall thickness risk, overhang risk, and separate shells.",
+  "author": "MakerLab Team",
+  "license": "MIT",
+  "categories": ["mesh", "inspection"],
+  "tags": ["printability", "analysis", "repair"],
+  "maturity": "experimental",
+  "capabilities": {
+    "deterministic": true
+  },
+  "outputs": [
+    {
+      "name": "inspection-report.json",
+      "mediaType": "application/json",
+      "required": true,
+      "purpose": "metadata"
+    },
+    {
+      "name": "repaired.stl",
+      "mediaType": "model/stl",
+      "required": false,
+      "purpose": "printable"
+    }
+  ],
+  "timeoutSeconds": 60,
+  "memoryMb": 512,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 65536,
+  "maxOutputBytes": 20971520
+}

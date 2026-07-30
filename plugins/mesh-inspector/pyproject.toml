@@ -1,0 +1,16 @@
+[project]
+name = "modumesh-mesh-inspector-plugin"
+version = "1.0.0"
+description = "STL/GLB mesh inspection and repair for ModuMesh MakerLab"
+requires-python = ">=3.11"
+dependencies = [
+    "trimesh>=4.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=75.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["mesh_inspector*"]

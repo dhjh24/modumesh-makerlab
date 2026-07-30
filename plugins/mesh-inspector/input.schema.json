@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["source_job_id"],
+  "properties": {
+    "source_job_id": {
+      "title": "Source job ID",
+      "type": "string",
+      "minLength": 36,
+      "maxLength": 36,
+      "description": "UUID of the generation job whose outputs to inspect."
+    },
+    "filename": {
+      "title": "Filename",
+      "type": "string",
+      "default": "model.stl",
+      "description": "Which output file to inspect (e.g. model.stl, face.stl)."
+    },
+    "wall_thickness_mm": {
+      "title": "Min wall thickness",
+      "type": "number",
+      "minimum": 0.1,
+      "maximum": 10,
+      "default": 0.8,
+      "description": "Minimum acceptable wall thickness in millimeters.",
+      "x-unit": "mm"
+    },
+    "overhang_angle": {
+      "title": "Max overhang angle",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 90,
+      "default": 45,
+      "description": "Maximum overhang angle in degrees. 45=typical for FDM without supports."
+    },
+    "attempt_repair": {
+      "title": "Attempt repair",
+      "type": "boolean",
+      "default": true,
+      "description": "If the mesh has issues, attempt to repair (close holes, merge vertices)."
+    }
+  }
+}
