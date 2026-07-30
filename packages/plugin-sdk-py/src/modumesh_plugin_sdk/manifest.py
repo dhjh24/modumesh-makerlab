@@ -103,6 +103,49 @@ class LoadedPlugin:
         candidate = self.root / "src"
         return candidate if candidate.is_dir() else self.root
 
+    # ── Marketplace properties (all optional, return None when absent) ──
+
+    @property
+    def author(self) -> str | None:
+        return self.manifest.get("author")
+
+    @property
+    def license_id(self) -> str | None:
+        return self.manifest.get("license")
+
+    @property
+    def license_url(self) -> str | None:
+        return self.manifest.get("licenseUrl")
+
+    @property
+    def source_url(self) -> str | None:
+        return self.manifest.get("sourceUrl")
+
+    @property
+    def maturity(self) -> str:
+        return str(self.manifest.get("maturity", "experimental"))
+
+    @property
+    def tags(self) -> list[str]:
+        return list(self.manifest.get("tags") or [])
+
+    @property
+    def thumbnail(self) -> str | None:
+        return self.manifest.get("thumbnail")
+
+    @property
+    def capabilities(self) -> dict[str, bool]:
+        raw = self.manifest.get("capabilities") or {}
+        return {
+            "preview": bool(raw.get("preview", False)),
+            "deterministic": bool(raw.get("deterministic", False)),
+            "multipart": bool(raw.get("multipart", False)),
+            "multicolor": bool(raw.get("multicolor", False)),
+            "text": bool(raw.get("text", False)),
+            "imageUpload": bool(raw.get("imageUpload", False)),
+            "shopReady": bool(raw.get("shopReady", False)),
+        }
+
 
 def check_sdk_compatibility(sdk_version: str) -> None:
     """Raise CompatibilityError if sdk_version is not host-compatible."""

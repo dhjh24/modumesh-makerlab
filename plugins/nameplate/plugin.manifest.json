@@ -7,7 +7,13 @@
   "engine": "python",
   "entrypoint": "nameplate.plugin:run",
   "description": "Generate custom text nameplates with CadQuery. Supports text, hole mounting, corner rounding, and multiple output formats.",
-  "categories": ["cad", "parametric", "text"],
+  "license": "MIT",
+  "author": "MakerLab Team",
+  "categories": [
+    "cad",
+    "parametric",
+    "text"
+  ],
   "outputs": [
     {
       "name": "model.stl",

@@ -104,7 +104,24 @@ def _payload_from_loaded(plugin: Any) -> dict[str, Any]:
         for o in plugin.outputs
     ]
     diagnostics = "; ".join(plugin.diagnostics) if plugin.diagnostics else None
-    return {
+
+    # Determine plugin status based on license
+    license_id = plugin.license_id
+    if license_id and license_id.upper() in (
+        "MIT", "APACHE-2.0", "BSD-2-CLAUSE", "BSD-3-CLAUSE",
+        "CC0-1.0", "UNLICENSE", "ZLIB", "0BSD",
+        "LGPL-2.1-ONLY", "LGPL-2.1-OR-LATER", "LGPL-3.0-ONLY", "LGPL-3.0-OR-LATER",
+        "GPL-2.0-ONLY", "GPL-3.0-ONLY", "MPL-2.0",
+    ):
+        status = "active"
+    elif license_id:
+        # Known but non-standard SPDX — still catalog-visible
+        status = "active"
+    else:
+        # Missing license → quarantine
+        status = "quarantined"
+
+    payload = {
         "plugin_id": plugin.plugin_id,
         "version": plugin.version,
         "name": plugin.name,
@@ -120,11 +137,28 @@ def _payload_from_loaded(plugin: Any) -> dict[str, Any]:
         "input_schema": plugin.input_schema,
         "manifest": plugin.manifest,
         "source_path": str(plugin.root),
-        "status": "active",
+        "status": status,
         "diagnostics": diagnostics,
         "max_input_bytes": plugin.max_input_bytes,
         "max_output_bytes": plugin.max_output_bytes,
+        # Marketplace fields
+        "author": plugin.author,
+        "license_id": license_id,
+        "license_url": plugin.license_url,
+        "source_url": plugin.source_url,
+        "maturity": plugin.maturity,
+        "tags": plugin.tags,
+        "thumbnail": plugin.thumbnail,
+        "capabilities": plugin.capabilities,
     }
+
+    if status == "quarantined":
+        payload["diagnostics"] = (
+            f"Missing or unrecognized license '{license_id}' — "
+            "plugin quarantined. Set a valid SPDX identifier in the manifest."
+        )
+
+    return payload
 
 
 async def sync_registry(

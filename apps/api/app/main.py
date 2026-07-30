@@ -14,7 +14,7 @@ from app.database import check_db_connectivity, close_db
 from app.logging import configure_logging, get_logger
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
-from app.routers import files, health, jobs, plugins, projects
+from app.routers import catalog, files, health, jobs, plugins, projects
 
 
 @asynccontextmanager
@@ -122,6 +122,7 @@ async def correlation_id_middleware(request: Request, call_next):
 app.include_router(health.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
+app.include_router(catalog.router)
 app.include_router(files.router)
 app.include_router(plugins.router)
 

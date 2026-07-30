@@ -113,6 +113,15 @@ class PluginOut(BaseModel):
     source_path: str
     discovered_at: datetime
     updated_at: datetime
+    # Marketplace fields (GM-1)
+    author: Optional[str] = None
+    license_id: Optional[str] = None
+    license_url: Optional[str] = None
+    source_url: Optional[str] = None
+    maturity: str = "experimental"
+    tags: list[Any] = Field(default_factory=list)
+    thumbnail: Optional[str] = None
+    capabilities: dict[str, Any] = Field(default_factory=dict)
 
 
 class PluginList(BaseModel):

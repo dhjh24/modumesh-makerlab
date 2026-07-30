@@ -7,7 +7,12 @@
   "engine": "python",
   "entrypoint": "fixture_echo.plugin:run",
   "description": "Non-CAD example plugin that writes safe fixture files for contract validation.",
-  "categories": ["fixture", "testing"],
+  "license": "MIT",
+  "author": "MakerLab Team",
+  "categories": [
+    "fixture",
+    "testing"
+  ],
   "outputs": [
     {
       "name": "echo.json",

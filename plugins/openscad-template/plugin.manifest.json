@@ -6,8 +6,15 @@
   "sdkVersion": "1.0.0",
   "engine": "python",
   "entrypoint": "openscad_template.plugin:run",
-  "description": "Generate parametric storage boxes and grid organizers using OpenSCAD. Parameters generate safe .scad definition files — never accepts raw user script input.",
-  "categories": ["cad", "parametric", "openscad", "container"],
+  "description": "Generate parametric storage boxes and grid organizers using OpenSCAD. Parameters generate safe .scad definition files \u2014 never accepts raw user script input.",
+  "license": "MIT",
+  "author": "MakerLab Team",
+  "categories": [
+    "cad",
+    "parametric",
+    "openscad",
+    "container"
+  ],
   "outputs": [
     {
       "name": "model.stl",

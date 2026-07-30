@@ -7,7 +7,13 @@
   "engine": "python",
   "entrypoint": "fixture_mesh.plugin:run",
   "description": "Non-CAD fixture plugin that emits packaged STL/GLB assets for viewer testing.",
-  "categories": ["fixture", "testing", "mesh"],
+  "license": "MIT",
+  "author": "MakerLab Team",
+  "categories": [
+    "fixture",
+    "testing",
+    "mesh"
+  ],
   "outputs": [
     {
       "name": "model.stl",

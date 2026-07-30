@@ -267,10 +267,25 @@ class PluginRegistryEntry(Base):
         server_default=text("NOW()"),
         onupdate=_utcnow,
     )
+    # Marketplace fields (GM-1)
+    author: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    license_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    license_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    source_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    maturity: Mapped[str] = mapped_column(
+        String(32), nullable=False, server_default=text("'experimental'")
+    )
+    tags: Mapped[list[Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'[]'::jsonb")
+    )
+    thumbnail: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    capabilities: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, server_default=text("'{}'::jsonb")
+    )
 
     __table_args__ = (
         CheckConstraint(
-            "status IN ('active', 'invalid', 'incompatible', 'duplicate')",
+            "status IN ('active', 'invalid', 'incompatible', 'duplicate', 'quarantined')",
             name="ck_plugin_registry_status",
         ),
         CheckConstraint(
@@ -280,6 +295,8 @@ class PluginRegistryEntry(Base):
         Index("ix_plugin_registry_plugin_id", "plugin_id"),
         Index("ix_plugin_registry_enabled", "enabled"),
         Index("ix_plugin_registry_status", "status"),
+        Index("ix_plugin_registry_maturity", "maturity"),
+        Index("ix_plugin_registry_license", "license_id"),
     )
 
 
