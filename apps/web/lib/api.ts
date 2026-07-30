@@ -47,11 +47,10 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     });
   } catch (err) {
     const offline = err instanceof TypeError;
-    throw new ApiError(
-      offline ? 'Unable to reach the MakerLab API. Check your connection.' : 'Request failed.',
-      0,
-      err instanceof Error ? err.message : String(err),
-    );
+    const reason = offline
+      ? `Unable to reach the MakerLab API. Tried: ${url}`
+      : `Request failed: ${url}`;
+    throw new ApiError(reason, 0, err instanceof Error ? err.message : String(err));
   }
 
   const correlationId = response.headers.get('X-Correlation-ID') || undefined;
@@ -95,6 +94,17 @@ export const api = {
     ),
   getPlugin: (pluginId: string) =>
     apiFetch<import('@modumesh/shared-types').PluginRecord>(`/api/v1/plugins/${pluginId}`),
+  getFullHealth: () =>
+    apiFetch<{
+      status: string;
+      service: string;
+      version: string;
+      timestamp: string;
+      checks: Record<
+        string,
+        { status: string; latency_ms?: number; error?: string; [key: string]: unknown }
+      >;
+    }>(`/health/full`),
   listProjectJobs: (projectId: string, limit = 50) =>
     apiFetch<import('@modumesh/shared-types').JobList>(
       `/api/v1/projects/${projectId}/jobs?limit=${limit}`,
