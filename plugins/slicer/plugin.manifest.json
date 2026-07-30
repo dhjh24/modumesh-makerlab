@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1",
+  "id": "slicer",
+  "name": "Slicer",
+  "version": "1.0.0",
+  "sdkVersion": "1.0.0",
+  "engine": "python",
+  "entrypoint": "slicer.plugin:run",
+  "description": "Slice an STL file using PrusaSlicer headless. Produces G-code and 3MF with print time and filament estimates.",
+  "author": "MakerLab Team",
+  "license": "MIT",
+  "categories": ["mesh", "slicing"],
+  "tags": ["gcode", "slicer", "prusa"],
+  "maturity": "experimental",
+  "capabilities": {"deterministic": true},
+  "outputs": [
+    {"name": "slicing-report.json", "mediaType": "application/json", "required": true, "purpose": "metadata"},
+    {"name": "output.gcode", "mediaType": "text/plain", "required": true, "purpose": "printable"},
+    {"name": "output.3mf", "mediaType": "model/3mf", "required": false, "purpose": "metadata"}
+  ],
+  "timeoutSeconds": 180,
+  "memoryMb": 1024,
+  "networkPolicy": "deny",
+  "inputSchema": "input.schema.json",
+  "maxInputBytes": 10485760,
+  "maxOutputBytes": 52428800
+}

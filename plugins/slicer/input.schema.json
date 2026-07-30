@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["filename"],
+  "properties": {
+    "filename": {
+      "title": "STL filename",
+      "type": "string",
+      "default": "model.stl",
+      "description": "STL file in the project's output directory to slice."
+    },
+    "printer_profile": {
+      "title": "Printer profile",
+      "type": "string",
+      "enum": ["mk3s", "mk4", "xl"],
+      "default": "mk4",
+      "description": "Prusa printer model."
+    },
+    "nozzle_diameter": {
+      "title": "Nozzle diameter",
+      "type": "number",
+      "enum": [0.25, 0.4, 0.6, 0.8],
+      "default": 0.4,
+      "description": "Nozzle diameter in millimeters."
+    },
+    "layer_height": {
+      "title": "Layer height",
+      "type": "number",
+      "minimum": 0.05,
+      "maximum": 0.4,
+      "default": 0.2,
+      "description": "Layer height in millimeters.",
+      "x-unit": "mm"
+    },
+    "infill": {
+      "title": "Infill",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 15,
+      "description": "Infill percentage."
+    },
+    "supports": {
+      "title": "Supports",
+      "type": "string",
+      "enum": ["none", "everywhere", "touching_buildplate"],
+      "default": "none",
+      "description": "Support structure setting."
+    },
+    "material": {
+      "title": "Material",
+      "type": "string",
+      "enum": ["PLA", "PETG", "ABS"],
+      "default": "PLA",
+      "description": "Filament material."
+    }
+  }
+}

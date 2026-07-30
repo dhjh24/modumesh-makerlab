@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM python:3.11-slim
 RUN groupadd -r modumesh && useradd -r -g modumesh -d /app -s /bin/false modumesh
-RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 fonts-dejavu-core fontconfig-config openscad && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 fonts-dejavu-core fontconfig-config openscad potrace prusa-slicer && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1
 COPY packages/plugin-sdk-py/ packages/plugin-sdk-py/
