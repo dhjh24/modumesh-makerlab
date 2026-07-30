@@ -7,8 +7,8 @@ We welcome contributions! Here's how to get started.
 1. **Fork and clone** the repository.
 2. **Create a feature branch** from `main`: `git checkout -b feat/your-feature`.
 3. **Make your changes** with small, focused commits.
-4. **Run the CircleCI suite locally** where practical (`make test`, `make smoke`, `npx prettier --check .`) before pushing.
-5. **Open a pull request** against `main`. Use the PR template. CircleCI must pass.
+4. **Run the CI suite locally** where practical (`make test`, `make smoke`, `npx prettier --check .`) before pushing.
+5. **Open a pull request** against `main`. Use the PR template. GitHub Actions must pass.
 
 ## Pull Request Guidelines
 

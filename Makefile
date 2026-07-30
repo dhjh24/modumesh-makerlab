@@ -110,7 +110,7 @@ format:   ## Auto-format code
 
 # ── CI helper ─────────────────────────────────────────────────────────
 
-ci-build: ## Build containers (used by CircleCI)
+ci-build: ## Build containers (used by CI)
 	$(DOCKER_COMPOSE) build
 
 # ── Help ──────────────────────────────────────────────────────────────

@@ -87,20 +87,31 @@ npm run test:e2e --workspace=@modumesh/web
 
 ## CI
 
-Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
+Continuous integration runs on **GitHub Actions** (`.github/workflows/ci.yml`):
 
 - Prettier lint
 - TypeScript typecheck
 - Plugin contract tests (`modumesh-plugin-check` + SDK unit tests)
+- Nameplate CadQuery geometry regression tests
 - API and worker unit tests (including Phase 6 auth/token unit tests)
-- Security scanning (pip-audit, gitleaks, Trivy on API image)
+- Security scanning (pip-audit, npm audit, gitleaks, Trivy on API image)
 - Docker Compose image build
 - Integration smoke against Postgres, Redis, MinIO (Phase 2–6 authz + plugin flows)
 - Worker security constraint verification
-- Nameplate CadQuery geometry regression tests
+- Playwright e2e / a11y
 - Automated backup/restore test (`scripts/test-restore.sh`)
 
-GitHub Actions workflows are not used.
+Local equivalents:
+
+```bash
+npx prettier --check .
+npm run typecheck
+make test
+make smoke          # stack must be running
+./scripts/security-scan.sh
+./scripts/verify-worker-security.sh
+./scripts/test-restore.sh
+```
 
 ## Production / operations
 
