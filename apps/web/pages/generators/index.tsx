@@ -72,8 +72,8 @@ export default function MarketplacePage() {
 
       <h1 className="mm-h1">Generator Marketplace</h1>
       <p className="mm-lead">
-        Browse, configure, and generate printable 3D parts. All generators work through the
-        same schema-driven editor — no custom forms needed.
+        Browse, configure, and generate printable 3D parts. All generators work through the same
+        schema-driven editor — no custom forms needed.
       </p>
 
       {/* Filters */}
@@ -104,7 +104,9 @@ export default function MarketplacePage() {
         >
           <option value="">All categories</option>
           {categories.map((c) => (
-            <option key={c} value={c}>{c}</option>
+            <option key={c} value={c}>
+              {c}
+            </option>
           ))}
         </select>
         <select
@@ -152,6 +154,7 @@ export default function MarketplacePage() {
               <Link
                 key={`${item.plugin_id}@${item.version}`}
                 href={`/generators/${item.plugin_id}`}
+                aria-label={item.name}
                 style={{ textDecoration: 'none' }}
               >
                 <article
@@ -215,7 +218,10 @@ export default function MarketplacePage() {
                     <CapabilityBadge label="multipart" active={item.capabilities.multipart} />
                     <CapabilityBadge label="multicolor" active={item.capabilities.multicolor} />
                     <CapabilityBadge label="preview" active={item.capabilities.preview} />
-                    <CapabilityBadge label="deterministic" active={item.capabilities.deterministic} />
+                    <CapabilityBadge
+                      label="deterministic"
+                      active={item.capabilities.deterministic}
+                    />
                     <CapabilityBadge label="shop" active={item.capabilities.shopReady} />
                   </div>
                   <div

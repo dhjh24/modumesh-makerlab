@@ -33,25 +33,29 @@ test.describe('Phase 4 core flows', () => {
     await expect(page.getByRole('heading', { name })).toBeVisible();
   });
 
-  test('generator catalog renders schema form from plugin registry', async ({ page }) => {
+  test('generator marketplace opens schema-driven editor from catalog', async ({ page }) => {
     await page.goto('/generators');
-    await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
+    // Wait for catalog payload (not the loading placeholder).
+    await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
 
-    // Prefer fixture-mesh if listed; otherwise first plugin.
-    const mesh = page.getByRole('button', { name: /Fixture Mesh/i });
-    if (await mesh.count()) {
+    // Prefer fixture-mesh if listed; otherwise fixture-echo.
+    const mesh = page.locator('a[href="/generators/fixture-mesh"]');
+    const echo = page.locator('a[href="/generators/fixture-echo"]');
+    if ((await mesh.count()) > 0) {
       await mesh.first().click();
+      await expect(page).toHaveURL(/\/generators\/fixture-mesh/);
+      await page.getByRole('button', { name: /Use Fixture Mesh/i }).click();
     } else {
-      await page
-        .getByRole('button', { name: /Fixture Echo/i })
-        .first()
-        .click();
+      await expect(echo.first()).toBeVisible();
+      await echo.first().click();
+      await expect(page).toHaveURL(/\/generators\/fixture-echo/);
+      await page.getByRole('button', { name: /Use Fixture Echo/i }).click();
     }
 
-    await expect(page.getByText('Schema preview')).toBeVisible();
-    // Schema-driven fields (no hard-coded Nameplate).
+    await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\?plugin=/);
+    // Schema-driven fields from the plugin registry (not a hard-coded form).
     await expect(page.locator('.mm-schema-form')).toBeVisible();
-    await expect(page.getByText(/Nameplate/i)).toHaveCount(0);
   });
 
   test('editor submits fixture job and shows lifecycle + survives reload', async ({

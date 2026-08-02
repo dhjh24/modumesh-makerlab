@@ -65,7 +65,7 @@ def test_fixture_echo_run(tmp_path: Path):
     result = run_plugin_inprocess(
         plugin,
         job_id="test-job",
-        input_payload={"message": "hello", "tag": "unit"},
+            input_payload={"message": "hello", "tag": "fixture"},
         work_dir=tmp_path,
         check_docker_socket=False,
     )

@@ -14,15 +14,18 @@ test.describe('Phase 4 accessibility @a11y', () => {
 
   test('generators page keyboard focus and labels', async ({ page }) => {
     await page.goto('/generators');
-    await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
+    await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
 
     await page.keyboard.press('Tab');
     // Skip link or nav should be reachable
     const focused = page.locator(':focus');
     await expect(focused).toBeVisible();
 
-    const mesh = page.getByRole('button', { name: /Fixture/i }).first();
-    await mesh.click();
+    const fixture = page.locator('a[href^="/generators/fixture-"]').first();
+    await expect(fixture).toBeVisible();
+    await fixture.click();
+    await page.getByRole('button', { name: /Use /i }).click();
     const form = page.locator('.mm-schema-form');
     await expect(form).toBeVisible();
     // Every visible input/select in the form should have an accessible name

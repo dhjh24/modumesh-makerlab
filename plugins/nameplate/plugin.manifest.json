@@ -9,11 +9,7 @@
   "description": "Generate custom text nameplates with CadQuery. Supports text, hole mounting, corner rounding, and multiple output formats.",
   "license": "MIT",
   "author": "MakerLab Team",
-  "categories": [
-    "cad",
-    "parametric",
-    "text"
-  ],
+  "categories": ["cad", "parametric", "text"],
   "outputs": [
     {
       "name": "model.stl",

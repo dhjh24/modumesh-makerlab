@@ -12,11 +12,16 @@
   "categories": ["mesh", "slicing"],
   "tags": ["gcode", "slicer", "prusa"],
   "maturity": "experimental",
-  "capabilities": {"deterministic": true},
+  "capabilities": { "deterministic": true },
   "outputs": [
-    {"name": "slicing-report.json", "mediaType": "application/json", "required": true, "purpose": "metadata"},
-    {"name": "output.gcode", "mediaType": "text/plain", "required": true, "purpose": "printable"},
-    {"name": "output.3mf", "mediaType": "model/3mf", "required": false, "purpose": "metadata"}
+    {
+      "name": "slicing-report.json",
+      "mediaType": "application/json",
+      "required": true,
+      "purpose": "metadata"
+    },
+    { "name": "output.gcode", "mediaType": "text/plain", "required": true, "purpose": "printable" },
+    { "name": "output.3mf", "mediaType": "model/3mf", "required": false, "purpose": "metadata" }
   ],
   "timeoutSeconds": 180,
   "memoryMb": 1024,

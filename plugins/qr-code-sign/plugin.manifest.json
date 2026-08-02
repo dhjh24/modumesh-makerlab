@@ -19,8 +19,13 @@
     "text": true
   },
   "outputs": [
-    {"name": "model.stl", "mediaType": "model/stl", "required": true, "purpose": "printable"},
-    {"name": "meta.json", "mediaType": "application/json", "required": true, "purpose": "metadata"}
+    { "name": "model.stl", "mediaType": "model/stl", "required": true, "purpose": "printable" },
+    {
+      "name": "meta.json",
+      "mediaType": "application/json",
+      "required": true,
+      "purpose": "metadata"
+    }
   ],
   "timeoutSeconds": 120,
   "memoryMb": 2048,

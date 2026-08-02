@@ -22,9 +22,7 @@ const MATURITY_COLORS: Record<string, string> = {
 function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #1e293b' }}>
-      <dt style={{ width: 140, flexShrink: 0, color: '#64748b', fontSize: '0.875rem' }}>
-        {label}
-      </dt>
+      <dt style={{ width: 140, flexShrink: 0, color: '#64748b', fontSize: '0.875rem' }}>{label}</dt>
       <dd style={{ margin: 0, fontSize: '0.875rem' }}>{children}</dd>
     </div>
   );

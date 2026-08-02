@@ -25,29 +25,29 @@ plugins remain valid without changes.
 
 New fields:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `author` | string | no | Plugin author name or GitHub handle |
-| `license` | string | no | SPDX identifier (e.g. `MIT`, `Apache-2.0`). Omitted = unknown → quarantine |
-| `licenseUrl` | string | no | Source URL for the license text |
-| `sourceUrl` | string | no | Public source repository URL |
-| `maturity` | string | no | `experimental`, `stable`, `deprecated`. Default `experimental` |
-| `capabilities` | object | no | Declares supported features (see below) |
-| `tags` | array[string] | no | Freeform search tags |
-| `thumbnail` | string | no | Relative path to a PNG/WebP thumbnail inside the plugin directory |
-| `compatibility` | object | no | SDK version bounds, worker requirements |
+| Field           | Type          | Required | Description                                                                |
+| --------------- | ------------- | -------- | -------------------------------------------------------------------------- |
+| `author`        | string        | no       | Plugin author name or GitHub handle                                        |
+| `license`       | string        | no       | SPDX identifier (e.g. `MIT`, `Apache-2.0`). Omitted = unknown → quarantine |
+| `licenseUrl`    | string        | no       | Source URL for the license text                                            |
+| `sourceUrl`     | string        | no       | Public source repository URL                                               |
+| `maturity`      | string        | no       | `experimental`, `stable`, `deprecated`. Default `experimental`             |
+| `capabilities`  | object        | no       | Declares supported features (see below)                                    |
+| `tags`          | array[string] | no       | Freeform search tags                                                       |
+| `thumbnail`     | string        | no       | Relative path to a PNG/WebP thumbnail inside the plugin directory          |
+| `compatibility` | object        | no       | SDK version bounds, worker requirements                                    |
 
 `capabilities` object fields (all optional booleans, default `false`):
 
-| Field | Meaning |
-|-------|---------|
-| `preview` | Generator produces a preview GLB/PNG before full generation |
-| `deterministic` | Same inputs always produce identical geometry |
-| `multipart` | Output contains multiple printable artifacts |
-| `multicolor` | Color-separated parts for multi-material printing |
-| `text` | Accepts text/font input |
-| `imageUpload` | Accepts image/SVG upload |
-| `shopReady` | Output is suitable for manufacturing quotation |
+| Field           | Meaning                                                     |
+| --------------- | ----------------------------------------------------------- |
+| `preview`       | Generator produces a preview GLB/PNG before full generation |
+| `deterministic` | Same inputs always produce identical geometry               |
+| `multipart`     | Output contains multiple printable artifacts                |
+| `multicolor`    | Color-separated parts for multi-material printing           |
+| `text`          | Accepts text/font input                                     |
+| `imageUpload`   | Accepts image/SVG upload                                    |
+| `shopReady`     | Output is suitable for manufacturing quotation              |
 
 ### Upload handling
 
@@ -75,15 +75,15 @@ New fields:
 
 ### Logo Light Box v1 outputs
 
-| File | Required | Media type |
-|------|----------|------------|
-| `face.stl` | yes | `model/stl` |
-| `enclosure.stl` | yes | `model/stl` |
-| `back-panel.stl` | yes | `model/stl` |
-| `preview.glb` | yes | `model/gltf-binary` |
-| `thumbnail.png` | no | `image/png` |
-| `design.json` | yes | `application/json` |
-| `validation-report.json` | yes | `application/json` |
+| File                     | Required | Media type          |
+| ------------------------ | -------- | ------------------- |
+| `face.stl`               | yes      | `model/stl`         |
+| `enclosure.stl`          | yes      | `model/stl`         |
+| `back-panel.stl`         | yes      | `model/stl`         |
+| `preview.glb`            | yes      | `model/gltf-binary` |
+| `thumbnail.png`          | no       | `image/png`         |
+| `design.json`            | yes      | `application/json`  |
+| `validation-report.json` | yes      | `application/json`  |
 
 ### Reproducibility
 

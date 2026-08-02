@@ -1,0 +1,26 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.next/
+coverage/
+.turbo/
+playwright-report/
+test-results/
+blob-report/
+
+# Python / local env
+.venv/
+venv/
+__pycache__/
+*.egg-info/
+.pytest_cache/
+**/.pytest_cache/
+
+# Snapshot / forensic artifacts — not source of truth for formatting
+backups/
+
+# Lockfiles and generated noise
+package-lock.json
+*.min.js
+*.min.css
