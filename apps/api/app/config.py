@@ -61,6 +61,9 @@ class APISettings(BaseSettings):
     log_level: str = "info"
     version: str = "0.1.0"
     plugin_dir: str = "/plugins"
+    rate_limit_enabled: bool = True
+    rate_limit_rpm: int = 60
+    job_rate_limit_rpm: int = 10
 
     model_config = SettingsConfigDict(env_prefix="API_")
 

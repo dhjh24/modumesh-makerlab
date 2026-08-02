@@ -131,7 +131,12 @@ app.include_router(admin.router)
 app.include_router(catalog.router)
 app.include_router(files.router)
 app.include_router(plugins.router)
-app.add_middleware(RateLimitMiddleware)
+if settings.api.rate_limit_enabled:
+    app.add_middleware(
+        RateLimitMiddleware,
+        default_rpm=settings.api.rate_limit_rpm,
+        job_rpm=settings.api.job_rate_limit_rpm,
+    )
 
 
 @app.get("/")

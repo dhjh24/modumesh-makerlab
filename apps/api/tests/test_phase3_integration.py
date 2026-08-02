@@ -58,7 +58,7 @@ def test_fixture_echo_job_records_version_and_outputs(client: httpx.Client):
         f"{BASE}/api/v1/projects/{project_id}/jobs",
         json={
             "job_type": "fixture-echo",
-            "input_payload": {"message": "integration-ok", "tag": "phase3"},
+            "input_payload": {"message": "integration-ok", "tag": "smoke"},
             "timeout_seconds": 60,
         },
     )

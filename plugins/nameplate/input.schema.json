@@ -100,7 +100,15 @@
     "font_name": {
       "title": "Font",
       "type": "string",
-      "enum": ["Arial", "Arial Bold", "Arial Italic", "Courier New", "Times New Roman", "Times New Roman Bold", "Verdana"],
+      "enum": [
+        "Arial",
+        "Arial Bold",
+        "Arial Italic",
+        "Courier New",
+        "Times New Roman",
+        "Times New Roman Bold",
+        "Verdana"
+      ],
       "default": "Arial",
       "description": "Font family (maps to DejaVu Sans/Serif/Mono on the runtime)."
     }

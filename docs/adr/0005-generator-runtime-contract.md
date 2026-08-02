@@ -33,11 +33,11 @@ fields.
     "mode": "inprocess",
     "hardware": "cpu",
     "resources": {
-      "cpu_cores": {"min": 1, "max": 4},
-      "memory_mb": {"min": 128, "max": 2048},
-      "disk_mb": {"min": 1, "max": 512}
+      "cpu_cores": { "min": 1, "max": 4 },
+      "memory_mb": { "min": 128, "max": 2048 },
+      "disk_mb": { "min": 1, "max": 512 }
     },
-    "network": {"egress": false},
+    "network": { "egress": false },
     "privileged": false
   }
 }
@@ -46,6 +46,7 @@ fields.
 ## GPU tier names
 
 `hardware` values:
+
 - `"cpu"` — standard CPU worker (default)
 - `"gpu-low"` — ~4 GB VRAM (T4, GTX 1660)
 - `"gpu-medium"` — ~8 GB VRAM (RTX 3070, A10)

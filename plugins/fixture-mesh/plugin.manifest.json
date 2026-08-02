@@ -9,11 +9,7 @@
   "description": "Non-CAD fixture plugin that emits packaged STL/GLB assets for viewer testing.",
   "license": "MIT",
   "author": "MakerLab Team",
-  "categories": [
-    "fixture",
-    "testing",
-    "mesh"
-  ],
+  "categories": ["fixture", "testing", "mesh"],
   "outputs": [
     {
       "name": "model.stl",

@@ -9,12 +9,7 @@
   "description": "Generate parametric storage boxes and grid organizers using OpenSCAD. Parameters generate safe .scad definition files \u2014 never accepts raw user script input.",
   "license": "MIT",
   "author": "MakerLab Team",
-  "categories": [
-    "cad",
-    "parametric",
-    "openscad",
-    "container"
-  ],
+  "categories": ["cad", "parametric", "openscad", "container"],
   "outputs": [
     {
       "name": "model.stl",

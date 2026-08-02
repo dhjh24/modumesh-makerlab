@@ -147,9 +147,22 @@
     "license": { "type": "string", "maxLength": 64 },
     "licenseUrl": { "type": "string", "format": "uri", "maxLength": 2048 },
     "sourceUrl": { "type": "string", "format": "uri", "maxLength": 2048 },
-    "maturity": { "type": "string", "enum": ["experimental", "stable", "deprecated"], "default": "experimental" },
-    "tags": { "type": "array", "maxItems": 32, "uniqueItems": true, "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" } },
-    "thumbnail": { "type": "string", "pattern": "^[A-Za-z0-9._/-]+\\.(png|webp)$", "maxLength": 255 },
+    "maturity": {
+      "type": "string",
+      "enum": ["experimental", "stable", "deprecated"],
+      "default": "experimental"
+    },
+    "tags": {
+      "type": "array",
+      "maxItems": 32,
+      "uniqueItems": true,
+      "items": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,31}$" }
+    },
+    "thumbnail": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._/-]+\\.(png|webp)$",
+      "maxLength": 255
+    },
     "capabilities": {
       "type": "object",
       "additionalProperties": false,
@@ -179,8 +192,13 @@
         "hardware": {
           "type": "string",
           "enum": [
-            "cpu", "gpu-low", "gpu-medium", "gpu-high",
-            "gpu-low-fp16", "gpu-medium-fp16", "gpu-high-fp16"
+            "cpu",
+            "gpu-low",
+            "gpu-medium",
+            "gpu-high",
+            "gpu-low-fp16",
+            "gpu-medium-fp16",
+            "gpu-high-fp16"
           ],
           "default": "cpu"
         },

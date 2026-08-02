@@ -6,13 +6,13 @@ on:
   pull_request:
     branches: [main]
     paths-ignore:
-      - "**/*.md"
-      - "docs/**"
+      - '**/*.md'
+      - 'docs/**'
   push:
     branches: [main]
     paths-ignore:
-      - "**/*.md"
-      - "docs/**"
+      - '**/*.md'
+      - 'docs/**'
   workflow_dispatch:
 
 concurrency:
@@ -23,13 +23,15 @@ permissions:
   contents: read
 
 env:
-  CI: "true"
-  NODE_VERSION: "22"
+  CI: 'true'
+  NODE_VERSION: '22'
   CI_COMPOSE_PROJECT: modumesh-ci-${{ github.run_id }}-${{ github.run_attempt }}
   # Host ports from .env.example / compose defaults
-  MAKERLAB_API_HOST_PORT: "8002"
+  MAKERLAB_API_HOST_PORT: '8002'
   API_URL: http://localhost:8002
   WEB_URL: http://localhost:3002
+  # Integration smoke submits many jobs from one IP; keep limits for prod only.
+  API_RATE_LIMIT_ENABLED: 'false'
 
 jobs:
   lint-format:

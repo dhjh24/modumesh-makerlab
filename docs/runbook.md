@@ -7,14 +7,14 @@ incident response, and recovery.
 
 The MakerLab runs as a set of Docker containers on a single host:
 
-| Service | Port | Description |
-|---------|------|-------------|
-| API | 8002 (host) → 8000 | FastAPI backend |
-| Web | 3002 (host) → 3000 | Next.js frontend |
-| Worker | — | Celery-like job worker (Redis queue) |
-| Postgres | 5432 | Job/plugin/file metadata |
-| Redis | 6379 | Job queue and cache |
-| MinIO | 9000/9001 | Object storage (generated files) |
+| Service  | Port               | Description                          |
+| -------- | ------------------ | ------------------------------------ |
+| API      | 8002 (host) → 8000 | FastAPI backend                      |
+| Web      | 3002 (host) → 3000 | Next.js frontend                     |
+| Worker   | —                  | Celery-like job worker (Redis queue) |
+| Postgres | 5432               | Job/plugin/file metadata             |
+| Redis    | 6379               | Job queue and cache                  |
+| MinIO    | 9000/9001          | Object storage (generated files)     |
 
 ## Health checks
 
@@ -86,16 +86,19 @@ curl -s "http://localhost:8002/api/v1/files/<file-id>/download"
 The most critical data is Postgres (metadata) and MinIO (generated files).
 
 ### Postgres backup
+
 ```bash
 docker exec compose-db-1 pg_dump -U modumesh modumesh > makerlab-backup-$(date +%Y%m%d).sql
 ```
 
 ### Postgres restore
+
 ```bash
 cat makerlab-backup-20260730.sql | docker exec -i compose-db-1 psql -U modumesh modumesh
 ```
 
 ### MinIO data
+
 MinIO uses a local volume. The data directory should be snapshotted
 alongside the Postgres dump for a full recovery.
 
@@ -137,6 +140,7 @@ curl -X POST http://localhost:8002/api/v1/submissions/security-scan \
 ## Monitoring
 
 Relevant metrics to track:
+
 - Job completion rate (completed vs failed)
 - Job queue depth (Redis list length)
 - API response times (FastAPI's built-in metrics)
