@@ -82,7 +82,9 @@ npm run test:e2e --workspace=@modumesh/web
 
 ## CI
 
-Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
+Continuous integration runs on **GitHub Actions** (`.github/workflows/ci.yml`)
+on the dedicated self-hosted runner `ci` (`10.10.10.235`) with labels
+`self-hosted`, `linux`, `x64`, `ci`, `modumesh-makerlab`:
 
 - Prettier lint
 - TypeScript typecheck
@@ -91,7 +93,8 @@ Continuous integration runs on **CircleCI** (see `.circleci/config.yml`):
 - Docker Compose image build
 - Integration smoke against Postgres, Redis, MinIO (Phase 2 + Phase 3 plugin flows)
 
-GitHub Actions workflows are not used.
+Jobs must not use GitHub-hosted runners (`ubuntu-latest`) or a bare
+`self-hosted` label.
 
 ## Docker Compose Profiles
 
