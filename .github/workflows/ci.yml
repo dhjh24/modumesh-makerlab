@@ -263,6 +263,9 @@ jobs:
         run: |
           curl -sf -X POST "${API_URL}/api/v1/plugins/resync" | head -c 500
           echo
+          echo "Catalog sample:"
+          curl -sf "${API_URL}/api/v1/catalog?limit=5" | head -c 800
+          echo
       - name: Integration smoke tests
         run: |
           docker compose \

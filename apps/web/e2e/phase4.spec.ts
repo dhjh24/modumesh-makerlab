@@ -36,18 +36,19 @@ test.describe('Phase 4 core flows', () => {
   test('generator marketplace opens schema-driven editor from catalog', async ({ page }) => {
     await page.goto('/generators');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
+    // Wait for catalog payload (not the loading placeholder).
+    await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
 
     // Prefer fixture-mesh if listed; otherwise fixture-echo.
-    const mesh = page.getByRole('link', { name: /Fixture Mesh/i });
-    if (await mesh.count()) {
+    const mesh = page.locator('a[href="/generators/fixture-mesh"]');
+    const echo = page.locator('a[href="/generators/fixture-echo"]');
+    if ((await mesh.count()) > 0) {
       await mesh.first().click();
       await expect(page).toHaveURL(/\/generators\/fixture-mesh/);
       await page.getByRole('button', { name: /Use Fixture Mesh/i }).click();
     } else {
-      await page
-        .getByRole('link', { name: /Fixture Echo/i })
-        .first()
-        .click();
+      await expect(echo.first()).toBeVisible();
+      await echo.first().click();
       await expect(page).toHaveURL(/\/generators\/fixture-echo/);
       await page.getByRole('button', { name: /Use Fixture Echo/i }).click();
     }
