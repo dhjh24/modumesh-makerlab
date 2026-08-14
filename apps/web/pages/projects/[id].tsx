@@ -88,8 +88,7 @@ export default function ProjectEditorPage() {
         previewUrlRef.current = url;
         setPreviewSrc(url);
       } catch (err) {
-        const apiErr =
-          err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+        const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
         if (apiErr.unauthorized) {
           // Token expired mid-session — fetchFileBlob already cleared it.
           void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
@@ -117,8 +116,7 @@ export default function ProjectEditorPage() {
       URL.revokeObjectURL(url);
       setStatusMessage(`Downloaded ${filename}`);
     } catch (err) {
-      const apiErr =
-        err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+      const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
       if (apiErr.unauthorized) {
         void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
         return;
