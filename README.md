@@ -50,13 +50,13 @@ open http://localhost:3000
 
 ## Services
 
-| Service  | Port | Description                        |
-| -------- | ---- | ---------------------------------- |
-| Web      | 3000 | Next.js frontend                   |
-| API      | 8000 | FastAPI backend                    |
-| Worker   | —    | Queued CAD generation (background) |
-| Postgres | 5432 (internal) | Primary database — no host port |
-| Redis    | 6379 (internal) | Job queue and caching — no host port |
+| Service  | Port            | Description                                   |
+| -------- | --------------- | --------------------------------------------- |
+| Web      | 3000            | Next.js frontend                              |
+| API      | 8000            | FastAPI backend                               |
+| Worker   | —               | Queued CAD generation (background)            |
+| Postgres | 5432 (internal) | Primary database — no host port               |
+| Redis    | 6379 (internal) | Job queue and caching — no host port          |
 | MinIO    | 9000 (internal) | Object storage for model files — no host port |
 
 ## Project Structure

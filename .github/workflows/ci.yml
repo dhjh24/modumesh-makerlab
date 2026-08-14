@@ -234,13 +234,13 @@ jobs:
       - name: Start stack
         run: |
           cp .env.example .env
-          # Export .env values so Compose interpolates them: Compose only
-          # auto-reads .env from the project directory (infra/compose/),
-          # not the repo root. The API container fail-closed boot requires
-          # ADMIN_API_KEY/ADMIN_PLUGIN_SIGNING_SECRET to be non-empty.
-          set -a
-          . ./.env
-          set +a
+          # Compose auto-reads .env from the project directory
+          # (infra/compose/), not the repo root — and shell-exported vars
+          # may be dropped by sudo/rootless docker env handling on the
+          # runner. Write the env into the project directory so
+          # ADMIN_API_KEY/ADMIN_PLUGIN_SIGNING_SECRET reach the container
+          # deterministically (fail-closed boot requires them non-empty).
+          cp .env.example infra/compose/.env
           docker compose \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \

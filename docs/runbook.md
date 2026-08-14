@@ -7,13 +7,13 @@ incident response, and recovery.
 
 The MakerLab runs as a set of Docker containers on a single host:
 
-| Service  | Port               | Description                          |
-| -------- | ------------------ | ------------------------------------ |
-| API      | 8002 (host) → 8000 | FastAPI backend                      |
-| Web      | 3002 (host) → 3000 | Next.js frontend                     |
-| Worker   | —                  | Celery-like job worker (Redis queue) |
-| Postgres | 5432 (internal)    | Job/plugin/file metadata — no host port |
-| Redis    | 6379 (internal)    | Job queue and cache — no host port   |
+| Service  | Port                 | Description                                     |
+| -------- | -------------------- | ----------------------------------------------- |
+| API      | 8002 (host) → 8000   | FastAPI backend                                 |
+| Web      | 3002 (host) → 3000   | Next.js frontend                                |
+| Worker   | —                    | Celery-like job worker (Redis queue)            |
+| Postgres | 5432 (internal)      | Job/plugin/file metadata — no host port         |
+| Redis    | 6379 (internal)      | Job queue and cache — no host port              |
 | MinIO    | 9000/9001 (internal) | Object storage (generated files) — no host port |
 
 ## Health checks
