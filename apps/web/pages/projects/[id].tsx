@@ -23,7 +23,15 @@ import {
 } from '@modumesh/ui';
 import { AppShell } from '../../components/AppShell';
 import { LazyModelViewer } from '../../components/LazyModelViewer';
-import { api, ApiError, fetchFileBlob, type DesignManifest, type JobPricing, type ShopHandoffResponse, type SlicingReport } from '../../lib/api';
+import {
+  api,
+  ApiError,
+  fetchFileBlob,
+  type DesignManifest,
+  type JobPricing,
+  type ShopHandoffResponse,
+  type SlicingReport,
+} from '../../lib/api';
 import {
   formatDuration,
   formatRelativeTime,
@@ -804,7 +812,9 @@ function JobResultPanel({ job }: { job: Job }) {
   return (
     <>
       <h2 style={{ marginTop: '1.25rem' }}>Job results</h2>
-      <p className="mm-meta">Outputs and analysis for {job.job_type} #{job.attempt_number}.</p>
+      <p className="mm-meta">
+        Outputs and analysis for {job.job_type} #{job.attempt_number}.
+      </p>
 
       {filesLoading ? (
         <LoadingState title="Loading job outputs…" />
@@ -912,7 +922,11 @@ function JobResultPanel({ job }: { job: Job }) {
 
           {pricingError ? (
             <div style={{ marginTop: '0.5rem' }}>
-              <ErrorPanel message={pricingError.message} technicalDetail={pricingError.body} onRetry={() => void getPrice()} />
+              <ErrorPanel
+                message={pricingError.message}
+                technicalDetail={pricingError.body}
+                onRetry={() => void getPrice()}
+              />
             </div>
           ) : null}
 
@@ -959,7 +973,11 @@ function JobResultPanel({ job }: { job: Job }) {
 
           {handoffError ? (
             <div style={{ marginTop: '0.5rem' }}>
-              <ErrorPanel message={handoffError.message} technicalDetail={handoffError.body} onRetry={() => void sendToShop()} />
+              <ErrorPanel
+                message={handoffError.message}
+                technicalDetail={handoffError.body}
+                onRetry={() => void sendToShop()}
+              />
             </div>
           ) : null}
 

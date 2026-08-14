@@ -452,10 +452,9 @@ export const api = {
   getJobPricing: (projectId: string, jobId: string) =>
     apiFetch<JobPricing>(`/api/v1/projects/${projectId}/jobs/${jobId}/pricing`),
   createShopHandoff: (projectId: string, jobId: string) =>
-    apiFetch<ShopHandoffResponse>(
-      `/api/v1/projects/${projectId}/jobs/${jobId}/shop-handoff`,
-      { method: 'POST' },
-    ),
+    apiFetch<ShopHandoffResponse>(`/api/v1/projects/${projectId}/jobs/${jobId}/shop-handoff`, {
+      method: 'POST',
+    }),
   createComparison: (body: CompareCreateRequest) =>
     apiFetch<CompareCreateResponse>('/api/v1/compare', {
       method: 'POST',

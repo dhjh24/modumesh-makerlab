@@ -49,7 +49,7 @@ The present deployment has a likely remote-browser failure: `apps/web/Dockerfile
 ## Phase sequence
 
 | Phase | Scope | State                                   | Depends on                                | Exit gate  |
-| ----- | ----- | --------------------------------------- | ----------------------------------------- | ---------- |
+| ----- | ----- | --------------------------------------- | ----------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 |       | 0     | Deployment connectivity and health      | **Done**                                  | Phases 1–4 | Remote desktop and phone reach the same API through the web origin                                       |
 |       | 5     | CadQuery Nameplate                      | **Done**                                  | Phase 0    | Real STL and STEP files pass contract, API, worker, viewer, and download tests                           |
 |       | 6     | OpenSCAD template engine                | **Done**                                  | Phase 5    | A second real parametric engine works without frontend-specific forms                                    |

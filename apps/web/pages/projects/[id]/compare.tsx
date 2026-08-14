@@ -336,8 +336,7 @@ export default function CompareGeneratorsPage() {
     }
   };
 
-  const generatorName = (pluginId: string) =>
-    plugins.find((p) => p.plugin_id === pluginId)?.name;
+  const generatorName = (pluginId: string) => plugins.find((p) => p.plugin_id === pluginId)?.name;
 
   if (status !== 'authenticated') {
     return (
@@ -406,7 +405,11 @@ export default function CompareGeneratorsPage() {
 
       {pageError ? (
         <div style={{ marginBottom: '0.75rem' }}>
-          <ErrorPanel message={pageError.message} technicalDetail={pageError.body} onRetry={() => void load()} />
+          <ErrorPanel
+            message={pageError.message}
+            technicalDetail={pageError.body}
+            onRetry={() => void load()}
+          />
         </div>
       ) : null}
 
@@ -456,7 +459,9 @@ export default function CompareGeneratorsPage() {
             <ul className="mm-list">
               {plugins.map((p) => (
                 <li key={p.plugin_id}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <label
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}
+                  >
                     <input
                       type="checkbox"
                       checked={selected.includes(p.plugin_id)}
