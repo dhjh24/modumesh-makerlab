@@ -37,9 +37,12 @@ npm install
 
 # 3. Copy environment config
 cp .env.example .env
+# Set real values for ADMIN_API_KEY and ADMIN_PLUGIN_SIGNING_SECRET
+# (the API REFUSES to start without them — fail-closed admin auth).
 
-# 4. Start everything
-docker compose -f infra/compose/docker-compose.yml up -d
+# 4. Start everything (--env-file is required: Compose does not auto-read
+#    a repo-root .env when the compose file lives in infra/compose/)
+docker compose --env-file .env -f infra/compose/docker-compose.yml up -d
 
 # 5. Open the web UI
 open http://localhost:3000
@@ -52,10 +55,9 @@ open http://localhost:3000
 | Web      | 3000 | Next.js frontend                   |
 | API      | 8000 | FastAPI backend                    |
 | Worker   | —    | Queued CAD generation (background) |
-| Postgres | 5432 | Primary database                   |
-| Redis    | 6379 | Job queue and caching              |
-| MinIO    | 9000 | Object storage for model files     |
-| MinIO    | 9001 | MinIO web console                  |
+| Postgres | 5432 (internal) | Primary database — no host port |
+| Redis    | 6379 (internal) | Job queue and caching — no host port |
+| MinIO    | 9000 (internal) | Object storage for model files — no host port |
 
 ## Project Structure
 

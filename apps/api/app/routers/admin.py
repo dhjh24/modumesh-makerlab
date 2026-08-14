@@ -8,13 +8,14 @@ import json
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
 from app.logging import get_logger
+from app.security.admin import require_admin
 
 router = APIRouter(tags=["admin"])
 log = get_logger("plugin-admin")
@@ -30,7 +31,7 @@ def _compute_plugin_checksum(manifest: dict[str, Any]) -> str:
 
 def _verify_signature(checksum: str, signature: str) -> bool:
     """Verify HMAC-SHA256 signature using the configured admin secret."""
-    secret = settings.plugin_signing_secret or "dev-secret"
+    secret = settings.admin.plugin_signing_secret or "dev-secret"
     expected = hmac.new(
         secret.encode(), checksum.encode(), hashlib.sha256,
     ).hexdigest()
@@ -44,15 +45,12 @@ async def sign_plugin(
     plugin_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    authorization: str = Header(None),
+    _: None = Depends(require_admin),
 ) -> dict:
     """Sign a plugin manifest with HMAC-SHA256.
 
     Admin-only. Requires admin API key in Authorization header.
     """
-    if not authorization or not _verify_admin(authorization):
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     manifest = body.get("manifest", {})
     checksum = _compute_plugin_checksum(manifest)
     secret = settings.admin.plugin_signing_secret or "dev-secret"
@@ -86,12 +84,9 @@ async def sign_plugin(
 @router.get("/api/v1/admin/plugins")
 async def list_all_plugins(
     db: AsyncSession = Depends(get_db),
-    authorization: str = Header(None),
+    _: None = Depends(require_admin),
 ) -> dict:
     """List all plugins with admin metadata (signatures, review status)."""
-    if not authorization or not _verify_admin(authorization):
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     rows = (await db.execute(
         text("""
             SELECT plugin_id, version, name, author, status, enabled,
@@ -125,12 +120,9 @@ async def set_plugin_quota(
     plugin_id: str,
     body: dict,
     db: AsyncSession = Depends(get_db),
-    authorization: str = Header(None),
+    _: None = Depends(require_admin),
 ) -> dict:
     """Set per-plugin quota (max jobs per hour, per user)."""
-    if not authorization or not _verify_admin(authorization):
-        raise HTTPException(status_code=403, detail="Admin access required")
-
     max_jobs_per_hour = body.get("max_jobs_per_hour", 10)
 
     await db.execute(
@@ -152,9 +144,3 @@ async def set_plugin_quota(
         "max_jobs_per_hour": max_jobs_per_hour,
     }
 
-
-def _verify_admin(authorization: str) -> bool:
-    """Check the Authorization header against the configured admin API key."""
-    if not settings.admin.admin_api_key:
-        return True  # No key configured = open
-    return authorization == f"Bearer {settings.admin.admin_api_key}"

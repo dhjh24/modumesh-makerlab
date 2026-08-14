@@ -5,8 +5,9 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-modumesh}
       POSTGRES_USER: ${POSTGRES_USER:-modumesh}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_in_production}
-    ports:
-      - '5434:5432'
+    # No host port published: reachable only on the internal compose network
+    # by service name (api/worker). To debug from the host, uncomment:
+    # ports: ['5434:5432']
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -17,8 +18,8 @@ services:
 
   redis:
     image: redis:7-alpine
-    ports:
-      - '6382:6379'
+    # No host port published (internal network only). Redis has no password;
+    # exposing it to the host would allow unauthenticated access.
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
@@ -31,9 +32,10 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:-modumesh}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:-change_me_in_production}
-    ports:
-      - '9000:9000'
-      - '9001:9001'
+    # No host ports published: api/worker reach it as minio:9000 on the
+    # internal network. Caddy does NOT proxy the MinIO console, so nothing
+    # needs these ports. For local debugging, uncomment:
+    # ports: ['9000:9000', '9001:9001']
     volumes:
       - miniodata:/data
     healthcheck:
@@ -67,6 +69,15 @@ services:
       API_RATE_LIMIT_ENABLED: ${API_RATE_LIMIT_ENABLED:-true}
       API_RATE_LIMIT_RPM: ${API_RATE_LIMIT_RPM:-60}
       API_JOB_RATE_LIMIT_RPM: ${API_JOB_RATE_LIMIT_RPM:-10}
+      # Admin auth — fail-closed. The API refuses to boot when ADMIN_API_KEY
+      # is empty or ADMIN_PLUGIN_SIGNING_SECRET is the default "dev-secret".
+      # Compose defaults to empty so `docker compose config` stays valid; the
+      # container itself fails fast at startup if they are unset.
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      ADMIN_PLUGIN_SIGNING_SECRET: ${ADMIN_PLUGIN_SIGNING_SECRET:-}
+      # Comma-separated CIDRs of reverse proxies trusted to supply
+      # X-Forwarded-For. Empty (default) = never trust the header.
+      API_TRUSTED_PROXIES: ${API_TRUSTED_PROXIES:-}
     # Plugin source is baked read-only into the image. Optional bind mount for
     # local plugin development (still mounted read-only; no docker.sock).
     volumes:

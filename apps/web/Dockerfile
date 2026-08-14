@@ -11,7 +11,9 @@ COPY packages/ui/package.json packages/ui/tsconfig.json ./packages/ui/
 RUN npm ci
 COPY apps/web/ ./apps/web/
 COPY packages/ ./packages/
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+# Empty default: browser uses same-origin /api/v1/… rewrites (see lib/api.ts).
+# Only set a non-empty value when the API is served from a different origin.
+ARG NEXT_PUBLIC_API_URL=
 ARG API_INTERNAL_URL=http://api:8000
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV API_INTERNAL_URL=$API_INTERNAL_URL

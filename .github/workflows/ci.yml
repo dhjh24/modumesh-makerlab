@@ -160,7 +160,9 @@ jobs:
           coverage run -m pytest \
             tests/test_health.py \
             tests/test_state_machine.py \
-            tests/test_plugins_unit.py -v
+            tests/test_plugins_unit.py \
+            tests/test_svg_security.py \
+            tests/test_admin_auth.py -v
           coverage report
 
   worker-tests:
@@ -232,6 +234,13 @@ jobs:
       - name: Start stack
         run: |
           cp .env.example .env
+          # Export .env values so Compose interpolates them: Compose only
+          # auto-reads .env from the project directory (infra/compose/),
+          # not the repo root. The API container fail-closed boot requires
+          # ADMIN_API_KEY/ADMIN_PLUGIN_SIGNING_SECRET to be non-empty.
+          set -a
+          . ./.env
+          set +a
           docker compose \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
@@ -261,7 +270,8 @@ jobs:
             alembic -c /app/alembic.ini upgrade head
       - name: Resync plugins
         run: |
-          curl -sf -X POST "${API_URL}/api/v1/plugins/resync" | head -c 500
+          ADMIN_KEY="$(grep -E '^ADMIN_API_KEY=' .env | tail -1 | cut -d= -f2-)"
+          curl -sf -X POST -H "Authorization: Bearer ${ADMIN_KEY}" "${API_URL}/api/v1/plugins/resync" | head -c 500
           echo
           echo "Catalog sample:"
           curl -sf "${API_URL}/api/v1/catalog?limit=5" | head -c 800

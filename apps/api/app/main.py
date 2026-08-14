@@ -24,6 +24,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger = get_logger("app")
     logger.info("starting up", service="modumesh-api", version=settings.api.version)
 
+    # ── Fail-closed security configuration validation ────────────────
+    # Refuse to boot when admin auth is unconfigured or the default
+    # signing secret is in use — otherwise admin endpoints would be
+    # reachable without a key (or signed with a publicly known secret).
+    if not settings.admin.admin_api_key:
+        raise RuntimeError(
+            "Refusing to start: ADMIN_API_KEY is not set. Admin endpoints "
+            "(plugin signing, quota, plugin control) are fail-closed and "
+            "unusable without it. Set ADMIN_API_KEY (and a unique "
+            "ADMIN_PLUGIN_SIGNING_SECRET) in the environment."
+        )
+    if settings.admin.plugin_signing_secret == "dev-secret":
+        raise RuntimeError(
+            "Refusing to start: ADMIN_PLUGIN_SIGNING_SECRET is still the "
+            "default 'dev-secret'. Set a unique, non-default secret."
+        )
+
     # ── Auto-run Alembic migrations ───────────────────────────────────
     try:
         import subprocess
