@@ -128,6 +128,15 @@ export function formatRelativeTime(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
+/** Humanize a duration in seconds (e.g. generator `generation_duration_s`). */
+export function formatDuration(seconds?: number): string {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return 'n/a';
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round(seconds % 60);
+  return `${minutes}m ${rest}s`;
+}
+
 export function newIdempotencyKey(): string {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
   return `idem-${Date.now()}-${Math.random().toString(16).slice(2)}`;
