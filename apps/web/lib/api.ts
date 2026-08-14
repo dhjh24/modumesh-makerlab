@@ -3,17 +3,39 @@
  * heavyweight 3D stack is never required for API traffic and CORS is optional.
  */
 
+import { clearToken, getToken } from './auth';
+import type { AuthUser } from './auth';
+
+export type { AuthUser };
+
+/** Login/register success payload (matches backend `TokenResponse`). */
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  user: AuthUser;
+}
+
 export class ApiError extends Error {
   status: number;
   body: string;
   correlationId?: string;
+  /** True when a protected endpoint rejected an invalid/expired token (401). */
+  unauthorized: boolean;
 
-  constructor(message: string, status: number, body: string, correlationId?: string) {
+  constructor(
+    message: string,
+    status: number,
+    body: string,
+    correlationId?: string,
+    unauthorized = false,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
     this.correlationId = correlationId;
+    this.unauthorized = unauthorized;
   }
 }
 
@@ -35,6 +57,10 @@ export function fileDownloadUrl(fileId: string): string {
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = apiBase();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const token = getToken();
+  // Auth endpoints validate credentials themselves — their 401s must not
+  // wipe a token or be treated as "session expired".
+  const isAuthRequest = path.startsWith('/api/v1/auth/');
   let response: Response;
   try {
     response = await fetch(url, {
@@ -42,6 +68,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       headers: {
         Accept: 'application/json',
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init.headers || {}),
       },
     });
@@ -64,7 +91,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     } catch {
       if (text) friendly = text.slice(0, 240);
     }
-    throw new ApiError(friendly, response.status, text, correlationId);
+    // A 401 on a protected (non-auth) endpoint means the stored token is
+    // invalid or expired: drop it so the next navigation lands on /login.
+    // Callers decide whether/how to redirect (apiFetch stays a pure client).
+    const unauthorized = response.status === 401 && !isAuthRequest;
+    if (unauthorized) clearToken();
+    throw new ApiError(friendly, response.status, text, correlationId, unauthorized);
   }
 
   if (!text) return undefined as T;
@@ -72,6 +104,22 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 export const api = {
+  register: (email: string, password: string, displayName?: string) =>
+    apiFetch<TokenResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        ...(displayName ? { display_name: displayName } : {}),
+      }),
+    }),
+  login: (email: string, password: string) =>
+    apiFetch<TokenResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  logout: () => apiFetch<void>('/api/v1/auth/logout', { method: 'POST' }),
+  me: () => apiFetch<AuthUser>('/api/v1/auth/me'),
   listProjects: (limit = 20) =>
     apiFetch<{ items: import('@modumesh/shared-types').Project[]; total: number }>(
       `/api/v1/projects?limit=${limit}`,

@@ -24,7 +24,13 @@ import {
 import { AppShell } from '../../components/AppShell';
 import { LazyModelViewer } from '../../components/LazyModelViewer';
 import { api, ApiError, fileDownloadUrl } from '../../lib/api';
-import { formatRelativeTime, newIdempotencyKey, useJobPolling, useOnline } from '../../lib/hooks';
+import {
+  formatRelativeTime,
+  newIdempotencyKey,
+  useJobPolling,
+  useOnline,
+  useRequireAuth,
+} from '../../lib/hooks';
 
 type MobileTab = 'parameters' | 'preview' | 'project';
 
@@ -34,6 +40,7 @@ export default function ProjectEditorPage() {
   const queryPlugin = typeof router.query.plugin === 'string' ? router.query.plugin : null;
   const queryJob = typeof router.query.job === 'string' ? router.query.job : null;
   const online = useOnline();
+  const { status } = useRequireAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [plugins, setPlugins] = useState<PluginRecord[]>([]);
@@ -89,14 +96,29 @@ export default function ProjectEditorPage() {
       setActiveJobId(initialJob);
       setStatusMessage('Project loaded');
     } catch (err) {
-      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
+      const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+      if (apiErr.unauthorized) {
+        // Token expired mid-session — apiFetch already cleared it.
+        void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
+      setError(apiErr);
     }
-  }, [projectId, queryPlugin, queryJob]);
+  }, [projectId, queryPlugin, queryJob, router]);
 
   useEffect(() => {
-    if (!router.isReady) return;
+    if (!router.isReady || status !== 'authenticated') return;
     void load();
-  }, [router.isReady, load]);
+  }, [router.isReady, status, load]);
+
+  // Any 401 surfaced by the polling hook (token expired mid-session) should
+  // bounce to the login page rather than spin in the error panel.
+  useEffect(() => {
+    const err = error || pollError;
+    if (err instanceof ApiError && err.unauthorized) {
+      void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+    }
+  }, [error, pollError, router]);
 
   useEffect(() => {
     if (!selectedPlugin) return;
@@ -227,6 +249,14 @@ export default function ProjectEditorPage() {
       window.open(fileDownloadUrl(file.id), '_blank', 'noopener,noreferrer');
     }
   };
+
+  if (status !== 'authenticated') {
+    return (
+      <AppShell title="Editor">
+        <LoadingState title="Checking session…" />
+      </AppShell>
+    );
+  }
 
   if (!online) {
     return (

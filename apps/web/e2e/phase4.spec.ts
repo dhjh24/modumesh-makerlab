@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { authHeaders, registerTestUser, seedToken } from './helpers';
 
 const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8000';
 
@@ -16,12 +17,16 @@ async function waitForApi(request: import('@playwright/test').APIRequestContext)
 }
 
 test.describe('Phase 4 core flows', () => {
+  let token = '';
+
   test.beforeAll(async ({ request }) => {
     await waitForApi(request);
     await request.post(`${API}/api/v1/plugins/resync`);
+    ({ token } = await registerTestUser(request));
   });
 
   test('home dashboard shows catalog and can create a project', async ({ page }) => {
+    await seedToken(page, token);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
@@ -34,6 +39,7 @@ test.describe('Phase 4 core flows', () => {
   });
 
   test('generator marketplace opens schema-driven editor from catalog', async ({ page }) => {
+    await seedToken(page, token);
     await page.goto('/generators');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
     // Wait for catalog payload (not the loading placeholder).
@@ -64,10 +70,12 @@ test.describe('Phase 4 core flows', () => {
   }) => {
     const create = await request.post(`${API}/api/v1/projects`, {
       data: { name: `Job lifecycle ${Date.now()}`, description: 'phase4 e2e' },
+      headers: authHeaders(token),
     });
     expect(create.ok()).toBeTruthy();
     const project = await create.json();
 
+    await seedToken(page, token);
     await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
 
@@ -101,8 +109,10 @@ test.describe('Phase 4 core flows', () => {
   test('STL and GLB fixtures render in the viewer', async ({ page, request }) => {
     const create = await request.post(`${API}/api/v1/projects`, {
       data: { name: `Viewer ${Date.now()}` },
+      headers: authHeaders(token),
     });
     const project = await create.json();
+    await seedToken(page, token);
     await page.goto(`/projects/${project.id}`);
 
     await page.getByRole('button', { name: 'Fixture STL', exact: true }).click();
