@@ -1,7 +1,7 @@
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   inferModelFormat,
   isTerminalJobStatus,
@@ -23,7 +23,7 @@ import {
 } from '@modumesh/ui';
 import { AppShell } from '../../components/AppShell';
 import { LazyModelViewer } from '../../components/LazyModelViewer';
-import { api, ApiError, fileDownloadUrl } from '../../lib/api';
+import { api, ApiError, fetchFileBlob } from '../../lib/api';
 import {
   formatRelativeTime,
   newIdempotencyKey,
@@ -59,6 +59,73 @@ export default function ProjectEditorPage() {
   const [previewFormat, setPreviewFormat] = useState<'stl' | 'glb' | null>(null);
   const [fixtureChoice, setFixtureChoice] = useState<'stl' | 'glb'>('stl');
   const [statusMessage, setStatusMessage] = useState('Ready');
+
+  // Blob object URL backing the current preview. Revoked before replacement
+  // and on unmount so we never leak browser memory.
+  const previewUrlRef = useRef<string | null>(null);
+  const previewLoadingRef = useRef(false);
+
+  const revokePreviewUrl = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = null;
+    }
+  }, []);
+
+  // Revoke any live blob URL when the component unmounts.
+  useEffect(() => revokePreviewUrl, [revokePreviewUrl]);
+
+  /** Fetch a protected file with the bearer token and show it via a blob: URL. */
+  const loadPreview = useCallback(
+    async (fileId: string, filename: string) => {
+      if (previewLoadingRef.current) return; // guard against stacked double-clicks
+      previewLoadingRef.current = true;
+      try {
+        const { blob } = await fetchFileBlob(fileId, filename);
+        const url = URL.createObjectURL(blob);
+        // Replace: revoke the previous blob URL before handing out a new one.
+        revokePreviewUrl();
+        previewUrlRef.current = url;
+        setPreviewSrc(url);
+      } catch (err) {
+        const apiErr =
+          err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+        if (apiErr.unauthorized) {
+          // Token expired mid-session — fetchFileBlob already cleared it.
+          void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
+        setError(apiErr);
+      } finally {
+        previewLoadingRef.current = false;
+      }
+    },
+    [revokePreviewUrl, router],
+  );
+
+  /** Fetch a protected file and trigger a browser download with its real name. */
+  const downloadFile = async (file: FileObject) => {
+    try {
+      const { blob, filename } = await fetchFileBlob(file.id, file.filename);
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+      setStatusMessage(`Downloaded ${filename}`);
+    } catch (err) {
+      const apiErr =
+        err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+      if (apiErr.unauthorized) {
+        void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
+      setError(apiErr);
+    }
+  };
 
   const selectedPlugin = useMemo(
     () => plugins.find((p) => p.plugin_id === pluginId) ?? null,
@@ -159,14 +226,14 @@ export default function ProjectEditorPage() {
         if (viewable) {
           const fmt = inferModelFormat(viewable.filename, viewable.content_type);
           if (fmt) {
-            setPreviewSrc(fileDownloadUrl(viewable.id));
             setPreviewFormat(fmt);
             setMobileTab('preview');
+            void loadPreview(viewable.id, viewable.filename);
           }
         }
       })();
     }
-  }, [progress, projectId]);
+  }, [progress, projectId, loadPreview]);
 
   const saveProject = async () => {
     if (!projectId) return;
@@ -232,6 +299,7 @@ export default function ProjectEditorPage() {
 
   const loadFixture = (kind: 'stl' | 'glb') => {
     setFixtureChoice(kind);
+    revokePreviewUrl(); // drop any blob-backed preview before swapping in the fixture
     setPreviewSrc(`/fixtures/sample-cube.${kind}`);
     setPreviewFormat(kind);
     setMobileTab('preview');
@@ -241,12 +309,12 @@ export default function ProjectEditorPage() {
   const openFile = (file: FileObject) => {
     const fmt = inferModelFormat(file.filename, file.content_type);
     if (fmt) {
-      setPreviewSrc(fileDownloadUrl(file.id));
       setPreviewFormat(fmt);
       setMobileTab('preview');
       setStatusMessage(`Previewing ${file.filename}`);
+      void loadPreview(file.id, file.filename);
     } else {
-      window.open(fileDownloadUrl(file.id), '_blank', 'noopener,noreferrer');
+      void downloadFile(file);
     }
   };
 
