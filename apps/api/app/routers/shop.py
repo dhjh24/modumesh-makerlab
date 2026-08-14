@@ -9,6 +9,9 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models import User
+from app.security.auth import require_user
+from app.services import projects as project_service
 from app.services.pricing import build_shop_handoff, calculate_price
 
 router = APIRouter(tags=["shop"])
@@ -18,9 +21,16 @@ router = APIRouter(tags=["shop"])
 async def get_job_pricing(
     project_id: UUID,
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Calculate price for a completed generation job."""
+    project = await project_service.get_owned_project(
+        db, project_id, current_user.id
+    )
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     job = await _get_job(db, project_id, job_id)
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -41,10 +51,13 @@ async def get_job_pricing(
 async def create_shop_handoff(
     project_id: UUID,
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Create a Vendure-compatible shop handoff payload."""
-    project = await _get_project(db, project_id)
+    project = await project_service.get_owned_project(
+        db, project_id, current_user.id
+    )
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -57,21 +70,17 @@ async def create_shop_handoff(
 
     material_estimate = (job.get("design_json") or {}).get("material_estimate")
     pricing = calculate_price(material_estimate) if material_estimate else {"currency": "USD", "total": 0}
-    handoff = build_shop_handoff(project, job, pricing)
+    handoff = build_shop_handoff(
+        {"id": project.id, "name": project.name},
+        job,
+        pricing,
+    )
 
     return {
         "handoff": handoff,
         "pricing": pricing,
         "note": "This payload is Vendure-compatible. No private storage URLs are exposed.",
     }
-
-
-async def _get_project(db: AsyncSession, project_id: UUID) -> dict | None:
-    row = (await db.execute(
-        text("SELECT id, name FROM projects WHERE id = :pid"),
-        {"pid": project_id},
-    )).mappings().first()
-    return dict(row) if row else None
 
 
 async def _get_job(db: AsyncSession, project_id: UUID, job_id: UUID) -> dict | None:

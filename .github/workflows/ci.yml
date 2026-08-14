@@ -162,7 +162,10 @@ jobs:
             tests/test_state_machine.py \
             tests/test_plugins_unit.py \
             tests/test_svg_security.py \
-            tests/test_admin_auth.py -v
+            tests/test_admin_auth.py \
+            tests/test_auth.py \
+            tests/test_ownership.py \
+            tests/test_rate_limiting.py -v
           coverage report
 
   worker-tests:
@@ -282,7 +285,7 @@ jobs:
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
             exec -T api \
-            pip install pytest httpx pytest-asyncio
+            pip install pytest httpx pytest-asyncio aiosqlite
           docker compose \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \

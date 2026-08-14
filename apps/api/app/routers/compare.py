@@ -1,21 +1,26 @@
-"""Compare mode API — run one input across multiple generators."""
+"""Compare mode API — run one input across multiple generators (owner-scoped)."""
 
 from __future__ import annotations
 
-from uuid import UUID
+import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
+from app.models import User
+from app.security.auth import require_user
+from app.services import projects as project_service
 
 router = APIRouter(tags=["compare"])
 
 
 @router.post("/api/v1/compare", status_code=201)
 async def create_comparison(
-    body: dict,
+    body: dict[str, Any],
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Submit the same input to multiple generators for comparison.
@@ -38,12 +43,14 @@ async def create_comparison(
     if len(generators) > 6:
         raise HTTPException(status_code=400, detail="Maximum 6 generators per comparison")
 
-    # Verify project exists
-    row = (await db.execute(
-        text("SELECT id FROM projects WHERE id = :pid"),
-        {"pid": project_id},
-    )).mappings().first()
-    if not row:
+    # Ownership is checked before any data is read: an unowned project is
+    # indistinguishable from a missing one (404).
+    try:
+        project_uuid = uuid.UUID(str(project_id))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Project not found")
+    owned = await project_service.get_owned_project(db, project_uuid, current_user.id)
+    if owned is None:
         raise HTTPException(status_code=404, detail="Project not found")
 
     jobs = []
@@ -71,14 +78,19 @@ async def create_comparison(
 
 @router.get("/api/v1/compare/{project_id}")
 async def get_comparison_results(
-    project_id: UUID,
+    project_id: uuid.UUID,
     generators: str = "",
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Get comparison results for a project, optionally filtered by generators.
 
     Returns job status and output files for each generator in the comparison.
     """
+    owned = await project_service.get_owned_project(db, project_id, current_user.id)
+    if owned is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+
     gen_list = [g.strip() for g in generators.split(",") if g.strip()] if generators else []
 
     if gen_list:

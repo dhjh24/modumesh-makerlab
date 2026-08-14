@@ -2,15 +2,24 @@
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import time
 from collections import OrderedDict
+from datetime import datetime, timezone
 
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
 from app.config import settings
+
+# Auth endpoints are the credential brute-force surface: they get a much
+# stricter per-IP cap than the default per-endpoint limit.
+AUTH_ENDPOINT_RPM = {
+    "/api/v1/auth/register": 5,
+    "/api/v1/auth/login": 5,
+}
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -23,14 +32,26 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     default empty setting the header is never trusted, so clients cannot
     rotate it to bypass the caps. The tracked-key map is bounded (LRU-style
     eviction) so unique-IP flooding cannot grow memory without limit.
+
+    Authenticated requests (valid ``Authorization: Bearer`` token) are keyed
+    on the token's user id instead of the client IP, so the job-submission
+    cap applies per owner even when many users sit behind one NAT/IP.
     """
 
     MAX_TRACKED_KEYS = 10_000
 
-    def __init__(self, app, *, default_rpm: int = 60, job_rpm: int = 10):
+    def __init__(
+        self,
+        app,
+        *,
+        default_rpm: int = 60,
+        job_rpm: int = 10,
+        auth_endpoint_rpm: dict[str, int] | None = None,
+    ):
         super().__init__(app)
         self.default_rpm = default_rpm
         self.job_rpm = job_rpm
+        self.auth_endpoint_rpm = dict(AUTH_ENDPOINT_RPM if auth_endpoint_rpm is None else auth_endpoint_rpm)
         self._windows: OrderedDict[str, list[float]] = OrderedDict()
 
     @staticmethod
@@ -65,6 +86,44 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             if ip:
                 return ip
         return request.client.host if request.client else "unknown"
+
+    async def _resolve_rate_limit_key(self, request: Request) -> str:
+        """IP key, or the authenticated user's id when a valid token is shown.
+
+        The DB lookup is a cheap single-row indexed hit and only happens when
+        an ``Authorization: Bearer`` header is present. Any failure (DB down,
+        malformed token) falls back to the IP key — rate limiting must never
+        break request handling.
+        """
+        key = self._rate_limit_key(request)
+        authorization = request.headers.get("authorization", "")
+        if not authorization.lower().startswith("bearer "):
+            return key
+        raw = authorization[7:].strip()
+        if not raw:
+            return key
+        token_hash = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+        try:
+            from sqlalchemy import select
+
+            from app.database import async_session_factory
+            from app.models import AuthToken
+
+            async with async_session_factory() as session:
+                user_id = (
+                    await session.execute(
+                        select(AuthToken.user_id).where(
+                            AuthToken.token_hash == token_hash,
+                            AuthToken.revoked_at.is_(None),
+                            AuthToken.expires_at > datetime.now(timezone.utc),
+                        )
+                    )
+                ).scalar_one_or_none()
+            if user_id is not None:
+                return f"user:{user_id}"
+        except Exception:  # noqa: BLE001 — quota must never break requests
+            pass
+        return key
 
     def _check(self, key: str, rpm: int) -> None:
         now = time.time()
@@ -103,7 +162,20 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             self._windows.popitem(last=False)
 
     async def dispatch(self, request: Request, call_next):
-        key = self._rate_limit_key(request)
+        key = await self._resolve_rate_limit_key(request)
+
+        # Stricter cap for credential endpoints (register/login)
+        if request.method == "POST":
+            for prefix, rpm in self.auth_endpoint_rpm.items():
+                if request.url.path.startswith(prefix):
+                    try:
+                        self._check(f"auth:{prefix}:{key}", rpm)
+                    except HTTPException as exc:
+                        return JSONResponse(
+                            status_code=exc.status_code,
+                            content={"detail": exc.detail},
+                        )
+                    break
 
         # Stricter limit for job submission
         if request.method == "POST" and request.url.path.endswith("/jobs"):

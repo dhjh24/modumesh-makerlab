@@ -27,6 +27,38 @@ curl http://localhost:8002/api/v1/health/full
 docker compose -f infra/compose/docker-compose.yml ps
 ```
 
+## Authentication
+
+Per-user routes (projects, jobs, files, shop, compare) require a bearer token;
+anonymous calls get 401.
+
+```bash
+# Register (returns access_token + user)
+curl -X POST http://localhost:8002/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars","display_name":"You"}'
+
+# Login
+curl -X POST http://localhost:8002/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars"}'
+
+# Use the token on per-user routes
+export TOKEN=<access_token>
+curl http://localhost:8002/api/v1/projects -H "Authorization: Bearer $TOKEN"
+
+# Logout revokes the presented token
+curl -X POST http://localhost:8002/api/v1/auth/logout -H "Authorization: Bearer $TOKEN"
+```
+
+- Tokens expire after `API_TOKEN_TTL_HOURS` (default 24) and are stored
+  hashed (SHA-256) — a DB leak does not expose usable tokens.
+- Register/login are rate-limited to 5/min per IP; authenticated requests are
+  rate-limited per user (job submission cap is per owner, not per IP).
+- Cross-user access returns 404 (not 403) so resource existence is not leaked.
+- Admin endpoints use `ADMIN_API_KEY` (see Plugin management) — user auth does
+  not grant admin rights; health/catalog/plugin-list stay public.
+
 ## Restarting services
 
 ```bash
