@@ -90,10 +90,7 @@ function extensionForContentType(contentType: string): string {
  * URL instead. Mirrors apiFetch's error handling: a 401 clears the stored
  * token and sets `ApiError.unauthorized` so callers can redirect to /login.
  */
-export async function fetchFileBlob(
-  fileId: string,
-  fallbackName = 'model',
-): Promise<FileBlob> {
+export async function fetchFileBlob(fileId: string, fallbackName = 'model'): Promise<FileBlob> {
   const base = apiBase();
   const url = `${base}/api/v1/files/${fileId}/download`;
   const token = getToken();
@@ -139,8 +136,7 @@ export async function fetchFileBlob(
   );
   const ext = extensionForContentType(contentType);
   const filename =
-    dispositionName ||
-    (ext ? `model-${fileId}.${ext}` : `${fallbackName}-${fileId}`);
+    dispositionName || (ext ? `model-${fileId}.${ext}` : `${fallbackName}-${fileId}`);
   return { blob, filename, contentType };
 }
 
