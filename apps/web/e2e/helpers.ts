@@ -22,11 +22,8 @@ export async function registerTestUser(
 }
 
 /** Injects the bearer token into localStorage before any page script runs. */
-export function seedToken(page: Page, token: string): Promise<void> {
-  return page.addInitScript(
-    (t) => window.localStorage.setItem('modumesh_access_token', t),
-    token,
-  );
+export async function seedToken(page: Page, token: string): Promise<void> {
+  await page.addInitScript((t) => window.localStorage.setItem('modumesh_access_token', t), token);
 }
 
 /** Headers for direct API calls from the test process (projects, jobs). */
