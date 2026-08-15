@@ -23,8 +23,17 @@ import {
 } from '@modumesh/ui';
 import { AppShell } from '../../components/AppShell';
 import { LazyModelViewer } from '../../components/LazyModelViewer';
-import { api, ApiError, fetchFileBlob } from '../../lib/api';
 import {
+  api,
+  ApiError,
+  fetchFileBlob,
+  type DesignManifest,
+  type JobPricing,
+  type ShopHandoffResponse,
+  type SlicingReport,
+} from '../../lib/api';
+import {
+  formatDuration,
   formatRelativeTime,
   newIdempotencyKey,
   useJobPolling,
@@ -604,6 +613,28 @@ export default function ProjectEditorPage() {
               ))}
             </ul>
           )}
+
+          {plugins.length >= 2 ? (
+            <div style={{ marginTop: '1.25rem' }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() =>
+                  void router.push(
+                    `/projects/${projectId}/compare${
+                      activeJobId ? `?job=${encodeURIComponent(activeJobId)}` : ''
+                    }`,
+                  )
+                }
+              >
+                Compare generators
+              </Button>
+            </div>
+          ) : null}
+
+          {activeJob && isTerminalJobStatus(activeJob.status) ? (
+            <JobResultPanel job={activeJob} />
+          ) : null}
         </section>
 
         <section className="mm-panel mm-editor__status" aria-label="Job status">
@@ -651,5 +682,321 @@ export default function ProjectEditorPage() {
         </section>
       </div>
     </AppShell>
+  );
+}
+
+// ── Job result workspace (GM-11) ───────────────────────────────────────
+// Renders the active job's outputs below the Files list: validation report
+// from design.json, slicer panel from slicing-report.json (when present),
+// and pricing + shop handoff with gate status. Only mounted for terminal
+// jobs; every protected fetch goes through apiFetch/fetchFileBlob.
+
+/** Fetch a protected JSON manifest and parse it; degrades to null. */
+async function fetchJsonManifest<T>(file: FileObject): Promise<T | null> {
+  try {
+    const { blob } = await fetchFileBlob(file.id, file.filename);
+    return JSON.parse(await blob.text()) as T;
+  } catch {
+    return null;
+  }
+}
+
+function JobResultPanel({ job }: { job: Job }) {
+  const router = useRouter();
+  // Guards against stale async writes when the active job changes mid-fetch.
+  const activeJobIdRef = useRef<string | null>(null);
+  const [filesLoading, setFilesLoading] = useState(true);
+  const [filesError, setFilesError] = useState<ApiError | null>(null);
+  const [design, setDesign] = useState<DesignManifest | null>(null);
+  const [slice, setSlice] = useState<SlicingReport | null>(null);
+  const [pricing, setPricing] = useState<JobPricing | null>(null);
+  const [pricingLoading, setPricingLoading] = useState(false);
+  const [pricingError, setPricingError] = useState<ApiError | null>(null);
+  const [handoff, setHandoff] = useState<ShopHandoffResponse | null>(null);
+  const [handoffLoading, setHandoffLoading] = useState(false);
+  const [handoffError, setHandoffError] = useState<ApiError | null>(null);
+
+  const toApiError = (err: unknown): ApiError =>
+    err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+
+  const handleError = (err: unknown, set: (e: ApiError) => void): boolean => {
+    const apiErr = toApiError(err);
+    if (apiErr.unauthorized) {
+      void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+      return true;
+    }
+    set(apiErr);
+    return false;
+  };
+
+  /** Fetch the job's output files and parse design.json / slicing-report.json. */
+  const loadOutputs = async (jobId: string) => {
+    activeJobIdRef.current = jobId;
+    setFilesLoading(true);
+    setFilesError(null);
+    try {
+      const list = await api.listJobFiles(jobId);
+      if (activeJobIdRef.current !== jobId) return; // stale — a newer job took over
+      const designFile = list.items.find((f) => f.filename === 'design.json');
+      const sliceFile = list.items.find((f) => f.filename === 'slicing-report.json');
+      // Both manifests are protected: parse them via fetchFileBlob (never a
+      // bare URL). A missing/unparseable manifest degrades to an empty
+      // sub-block rather than failing the whole panel.
+      const [parsedDesign, parsedSlice] = await Promise.all([
+        designFile ? fetchJsonManifest<DesignManifest>(designFile) : Promise.resolve(null),
+        sliceFile ? fetchJsonManifest<SlicingReport>(sliceFile) : Promise.resolve(null),
+      ]);
+      if (activeJobIdRef.current !== jobId) return;
+      setDesign(parsedDesign);
+      setSlice(parsedSlice);
+    } catch (err) {
+      if (activeJobIdRef.current !== jobId) return;
+      handleError(err, setFilesError);
+    } finally {
+      if (activeJobIdRef.current === jobId) setFilesLoading(false);
+    }
+  };
+
+  // Reload outputs when the active job changes to another terminal job.
+  useEffect(() => {
+    setFilesLoading(true);
+    setFilesError(null);
+    setDesign(null);
+    setSlice(null);
+    setPricing(null);
+    setPricingError(null);
+    setHandoff(null);
+    setHandoffError(null);
+    void loadOutputs(job.id);
+    return () => {
+      if (activeJobIdRef.current === job.id) activeJobIdRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job.id]);
+
+  const getPrice = async () => {
+    setPricingLoading(true);
+    setPricingError(null);
+    try {
+      setPricing(await api.getJobPricing(job.project_id, job.id));
+    } catch (err) {
+      handleError(err, setPricingError);
+    } finally {
+      setPricingLoading(false);
+    }
+  };
+
+  const sendToShop = async () => {
+    setHandoffLoading(true);
+    setHandoffError(null);
+    try {
+      setHandoff(await api.createShopHandoff(job.project_id, job.id));
+    } catch (err) {
+      handleError(err, setHandoffError);
+    } finally {
+      setHandoffLoading(false);
+    }
+  };
+
+  const metaColumn: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 3,
+    margin: '4px 0 0',
+  };
+
+  const meta = design?.material_estimate;
+  const gatePricing = meta ? 'passed' : 'blocked';
+  const gateHandoff = job.status === 'completed' ? 'passed' : 'blocked';
+
+  return (
+    <>
+      <h2 style={{ marginTop: '1.25rem' }}>Job results</h2>
+      <p className="mm-meta">
+        Outputs and analysis for {job.job_type} #{job.attempt_number}.
+      </p>
+
+      {filesLoading ? (
+        <LoadingState title="Loading job outputs…" />
+      ) : filesError ? (
+        <ErrorPanel
+          message={filesError.message}
+          technicalDetail={filesError.body}
+          onRetry={() => void loadOutputs(job.id)}
+        />
+      ) : (
+        <>
+          <h3 style={{ margin: '0.75rem 0 0.25rem', fontSize: '1rem' }}>Validation report</h3>
+          {design ? (
+            <>
+              <div className="mm-meta" style={metaColumn}>
+                <span>Generation time: {formatDuration(design.generation_duration_s)}</span>
+                {design.generated_at ? (
+                  <span>Generated: {new Date(design.generated_at).toLocaleString()}</span>
+                ) : null}
+                {meta ? (
+                  <span>
+                    Materials: ${(meta.filament_cost_usd ?? 0).toFixed(2)} filament + $
+                    {(meta.led_kit_cost_usd ?? 0).toFixed(2)} LED kit ≈ $
+                    {(meta.total_estimated_cost_usd ?? 0).toFixed(2)} total
+                  </span>
+                ) : null}
+              </div>
+              {(design.warnings ?? []).length > 0 ? (
+                <ul className="mm-list" style={{ marginTop: '0.4rem' }}>
+                  {design.warnings!.map((w, i) => (
+                    <li key={i} className="mm-meta">
+                      {w}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mm-meta" style={{ marginTop: '0.4rem' }}>
+                  No warnings.
+                </p>
+              )}
+            </>
+          ) : (
+            <EmptyState
+              title="No validation report"
+              description="design.json was not produced by this job."
+            />
+          )}
+
+          {slice ? (
+            <>
+              <h3 style={{ margin: '0.75rem 0 0.25rem', fontSize: '1rem' }}>Slicer</h3>
+              <div className="mm-meta" style={metaColumn}>
+                <span>Printer: {slice.slice?.printer_profile ?? 'n/a'}</span>
+                <span>
+                  Nozzle: {slice.slice?.nozzle_mm ?? 'n/a'} mm · Layer:{' '}
+                  {slice.slice?.layer_height_mm ?? 'n/a'} mm
+                </span>
+                <span>
+                  Infill: {slice.slice?.infill_pct ?? 'n/a'}% · Supports:{' '}
+                  {String(slice.slice?.supports ?? 'n/a')} · Material:{' '}
+                  {slice.slice?.material ?? 'n/a'}
+                </span>
+                <span>Print time: {slice.estimated?.print_time_estimate ?? 'n/a'}</span>
+                <span>
+                  Filament: {slice.estimated?.filament_length_mm ?? 'n/a'} mm ·{' '}
+                  {slice.estimated?.filament_weight_g ?? 'n/a'} g
+                </span>
+              </div>
+            </>
+          ) : null}
+
+          <h3 style={{ margin: '0.75rem 0 0.25rem', fontSize: '1rem' }}>Pricing &amp; shop</h3>
+          <div className="mm-meta" style={metaColumn}>
+            <span>
+              Pricing gate:{' '}
+              {gatePricing === 'passed'
+                ? 'material estimate available'
+                : 'no material estimate — pricing will return 400 with the reason'}
+            </span>
+            <span>
+              Shop handoff gate:{' '}
+              {gateHandoff === 'passed'
+                ? 'job completed'
+                : `job status is "${job.status}" — handoff requires "completed" (400: Job must be completed)`}
+            </span>
+          </div>
+          <div className="mm-row" style={{ gap: 8, marginTop: '0.5rem', flexWrap: 'wrap' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void getPrice()}
+              disabled={pricingLoading}
+            >
+              {pricingLoading ? 'Pricing…' : pricing ? 'Refresh price' : 'Get price'}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => void sendToShop()}
+              disabled={handoffLoading}
+            >
+              {handoffLoading ? 'Sending…' : 'Send to shop'}
+            </Button>
+          </div>
+
+          {pricingError ? (
+            <div style={{ marginTop: '0.5rem' }}>
+              <ErrorPanel
+                message={pricingError.message}
+                technicalDetail={pricingError.body}
+                onRetry={() => void getPrice()}
+              />
+            </div>
+          ) : null}
+
+          {pricing ? (
+            <div className="mm-meta" style={metaColumn}>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Materials</span>
+                <strong>${pricing.price_breakdown.materials.toFixed(2)}</strong>
+              </div>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Labor</span>
+                <strong>${pricing.price_breakdown.labor.toFixed(2)}</strong>
+              </div>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Machine time</span>
+                <strong>${pricing.price_breakdown.machine_time.toFixed(2)}</strong>
+              </div>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Shipping &amp; handling</span>
+                <strong>${pricing.price_breakdown.shipping_handling.toFixed(2)}</strong>
+              </div>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Markup ({pricing.markup_pct}%)</span>
+                <strong>${pricing.markup_amount.toFixed(2)}</strong>
+              </div>
+              <div className="mm-row" style={{ justifyContent: 'space-between' }}>
+                <span>Total</span>
+                <strong>
+                  {pricing.currency} {pricing.total.toFixed(2)}
+                </strong>
+              </div>
+              {pricing.includes.length > 0 ? (
+                <ul className="mm-list" style={{ marginTop: '0.4rem' }}>
+                  {pricing.includes.map((inc) => (
+                    <li key={inc} className="mm-meta">
+                      {inc}
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {pricing.disclaimer ? <span>{pricing.disclaimer}</span> : null}
+            </div>
+          ) : null}
+
+          {handoffError ? (
+            <div style={{ marginTop: '0.5rem' }}>
+              <ErrorPanel
+                message={handoffError.message}
+                technicalDetail={handoffError.body}
+                onRetry={() => void sendToShop()}
+              />
+            </div>
+          ) : null}
+
+          {handoff ? (
+            <details style={{ marginTop: '0.5rem' }}>
+              <summary className="mm-linkish">
+                Shop handoff payload · {handoff.pricing.currency}{' '}
+                {Number(handoff.pricing.total).toFixed(2)}
+              </summary>
+              <pre
+                className="mm-error-panel__pre"
+                style={{ marginTop: '0.4rem', fontSize: '0.75rem' }}
+              >
+                {JSON.stringify(handoff.handoff, null, 2)}
+              </pre>
+            </details>
+          ) : null}
+        </>
+      )}
+    </>
   );
 }

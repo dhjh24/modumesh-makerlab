@@ -189,6 +189,161 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   return JSON.parse(text) as T;
 }
 
+// ── Job result workspace (GM-11) ───────────────────────────────────────
+// Response shapes mirror apps/api routers (jobs/files, shop, compare) and
+// the plugin output manifests (design.json, slicing-report.json).
+
+export interface PriceBreakdown {
+  materials: number;
+  labor: number;
+  machine_time: number;
+  shipping_handling: number;
+}
+
+/** GET /api/v1/projects/{pid}/jobs/{jid}/pricing */
+export interface JobPricing {
+  job_id: string;
+  project_id: string;
+  currency: string;
+  price_breakdown: PriceBreakdown;
+  markup_pct: number;
+  markup_amount: number;
+  total: number;
+  includes: string[];
+  disclaimer: string;
+}
+
+/** pricing nested in the shop-handoff response (zeroed when no estimate). */
+export interface ShopHandoffPricing {
+  currency: string;
+  total: number;
+  price_breakdown?: PriceBreakdown;
+  markup_pct?: number;
+  markup_amount?: number;
+  includes?: string[];
+  disclaimer?: string;
+}
+
+/** Vendure-compatible payload built by apps/api/app/services/pricing.py. */
+export interface ShopHandoffPayload {
+  schema_version: string;
+  platform: string;
+  project_id: string;
+  project_name: string;
+  artifact_ids: string[];
+  preview_id: string | null;
+  design_id: string | null;
+  options: {
+    generator: string;
+    artwork_type: string;
+    dimensions: {
+      width_mm: unknown;
+      height_mm: unknown;
+      depth_mm: unknown;
+    };
+    material: string;
+  };
+  price: {
+    currency: string;
+    total: number;
+    breakdown: Record<string, unknown>;
+  };
+  manufacturing_notes: string[];
+  generated_at: string;
+}
+
+/** POST /api/v1/projects/{pid}/jobs/{jid}/shop-handoff */
+export interface ShopHandoffResponse {
+  handoff: ShopHandoffPayload;
+  pricing: ShopHandoffPricing;
+  note: string;
+}
+
+/** POST /api/v1/compare body. */
+export interface CompareCreateRequest {
+  project_id: string;
+  input_payload: Record<string, unknown>;
+  generators: string[];
+}
+
+export interface CompareJobRef {
+  generator: string;
+  job_id: string;
+}
+
+/** POST /api/v1/compare response (201). */
+export interface CompareCreateResponse {
+  project_id: string;
+  comparison: { generator_count: number };
+  jobs: CompareJobRef[];
+  note: string;
+}
+
+/** One row of GET /api/v1/compare/{project_id} results (`id` is a job id). */
+export interface CompareResultRow {
+  id: string;
+  job_type: string;
+  status: import('@modumesh/shared-types').JobStatus;
+  progress_pct: number;
+  error_message: string | null;
+}
+
+export interface CompareResultsResponse {
+  project_id: string;
+  results: CompareResultRow[];
+  total: number;
+}
+
+// ── Job output manifests (stored files, parsed client-side) ────────────
+
+/** design.json produced by generators (e.g. logo-lightbox). */
+export interface DesignManifest {
+  schema_version?: string;
+  generator?: string;
+  generator_version?: string;
+  parameters?: Record<string, unknown>;
+  outputs?: Record<string, { size_bytes?: number }>;
+  generation_duration_s?: number;
+  warnings?: string[];
+  material_estimate?: MaterialEstimate;
+  generated_at?: string;
+}
+
+export interface MaterialEstimate {
+  material?: string;
+  total_volume_cm3?: number;
+  estimated_mass_g?: number;
+  filament_cost_usd?: number;
+  led_kit_cost_usd?: number;
+  total_estimated_cost_usd?: number;
+  estimated_print_time_min?: number;
+  disclaimer?: string;
+}
+
+/** slicing-report.json produced by the slicer plugin. */
+export interface SlicingReport {
+  schema_version?: string;
+  plugin_id?: string;
+  plugin_version?: string;
+  source?: { filename?: string };
+  slice?: {
+    printer_profile?: string;
+    nozzle_mm?: number | string;
+    layer_height_mm?: number | string;
+    infill_pct?: number | string;
+    supports?: boolean | string;
+    material?: string;
+  };
+  estimated?: {
+    print_time_estimate?: string;
+    filament_length_mm?: string;
+    filament_weight_g?: string;
+    note?: string;
+  };
+  return_code?: number;
+  generated_at?: string;
+}
+
 export const api = {
   register: (email: string, password: string, displayName?: string) =>
     apiFetch<TokenResponse>('/api/v1/auth/register', {
@@ -294,6 +449,25 @@ export const api = {
     }),
   listJobFiles: (jobId: string) =>
     apiFetch<import('@modumesh/shared-types').FileList>(`/api/v1/jobs/${jobId}/files`),
+  getJobPricing: (projectId: string, jobId: string) =>
+    apiFetch<JobPricing>(`/api/v1/projects/${projectId}/jobs/${jobId}/pricing`),
+  createShopHandoff: (projectId: string, jobId: string) =>
+    apiFetch<ShopHandoffResponse>(`/api/v1/projects/${projectId}/jobs/${jobId}/shop-handoff`, {
+      method: 'POST',
+    }),
+  createComparison: (body: CompareCreateRequest) =>
+    apiFetch<CompareCreateResponse>('/api/v1/compare', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+  getComparison: (projectId: string, generators?: string[]) =>
+    apiFetch<CompareResultsResponse>(
+      `/api/v1/compare/${projectId}${
+        generators && generators.length > 0
+          ? `?generators=${encodeURIComponent(generators.join(','))}`
+          : ''
+      }`,
+    ),
   listProjectFiles: (projectId: string) =>
     apiFetch<import('@modumesh/shared-types').FileList>(`/api/v1/projects/${projectId}/files`),
   listRecentJobs: async (limitProjects = 8, perProject = 5) => {

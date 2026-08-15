@@ -48,28 +48,28 @@ The present deployment has a likely remote-browser failure: `apps/web/Dockerfile
 
 ## Phase sequence
 
-| Phase | Scope | State                                   | Depends on                                | Exit gate  |
-| ----- | ----- | --------------------------------------- | ----------------------------------------- | ---------- |
-|       | 0     | Deployment connectivity and health      | **Done**                                  | Phases 1–4 | Remote desktop and phone reach the same API through the web origin                                       |
-|       | 5     | CadQuery Nameplate                      | **Done**                                  | Phase 0    | Real STL and STEP files pass contract, API, worker, viewer, and download tests                           |
-|       | 6     | OpenSCAD template engine                | **Done**                                  | Phase 5    | A second real parametric engine works without frontend-specific forms                                    |
-|       | GM-0  | Marketplace audit and epic setup        | **Done**                                  | Phases 0–6 | ADR committed, CI status recorded, child issues created, roadmap linked                                  |
-|       | GM-1  | Marketplace contract and catalog API    | **Done**                                  | GM-0       | Catalog API tests pass, invalid manifests fail, unlicensed plugins quarantined                           |
-|       | GM-2  | Generator Marketplace UI                | **Done**                                  | GM-1       | A user can discover, configure, submit, and inspect a fixture generator without hard-coded page          |
-|       | GM-3  | Logo Light Box MVP                      | **Done**                                  | GM-2       | Golden fixtures reproduce accepted geometry, outputs survive restart, test prints pass fit checks        |
-|       | GM-4  | Artwork tools, multicolor, print checks | **Done**                                  | GM-3       | Representative SVG/PNG fixtures generate printable parts, warnings actionable                            |
-|       | GM-5  | Projects, pricing, shop handoff         | **Done**                                  | GM-4       | Saved configuration can reopen and send to draft shop order with no lost options                         |
-|       | GM-6  | Community plugin SDK and submission     | **Done**                                  | GM-5       | Example community generator can be packaged, submitted, reviewed, installed, upgraded, disabled, removed |
-|       | GM-7  | Starter generator pack                  | **Done**                                  | GM-6       | No generator requires custom catalog, editor, job, or order code                                         |
-|       | GM-8  | Release hardening                       | **Done**                                  | GM-7       | Security, accessibility, mobile, recovery, observability, and e2e test gates pass in CI                  |
-|       |       | 7                                       | Mesh repair and print inspector           | **Done**   | GM-8, Phase 6                                                                                            | Reports manifold state, dimensions, wall risk, overhang risk, and repair result |
-|       |       | 8                                       | Slicing and cost estimate                 | **Done**   | Phase 7                                                                                                  | Pinned printer profiles produce 3MF, time, filament, and cost estimates         |
-|       |       | 9                                       | Generator capability and runtime contract | **Done**   | Phase 8                                                                                                  | Local CPU, local GPU, and sidecar plugins share one stable job interface        |
-|       |       | 10                                      | TripoSR fast image-to-3D                  | **Done**   | Phase 9                                                                                                  | Image job yields previewable mesh on the documented GPU tier                    |
-|       |       | 11                                      | Hunyuan3D quality image-to-3D             | **Done**   | Phase 10                                                                                                 | Shape-only tier works first; texture tier is a separate hardware profile        |
-|       |       | 12                                      | Compare mode and runtime routing          | **Done**   | Phase 11                                                                                                 | One input can run on two generators, with clear cost and hardware controls      |
-|       |       | 13                                      | ModuMesh Shop connector                   | **Done**   | Phase 12                                                                                                 | Only approved, priced, printable versions can enter the cart                    |
-|       |       | 14                                      | Community plugin release controls         | **Done**   | Phase 13                                                                                                 | Signed packages, compatibility checks, quotas, and admin controls are active    |
+| Phase | Scope | State | Depends on | Exit gate |
+| ----- | ----- | --------------------------------------- | ----------------------------------------- | ---------- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| | 0 | Deployment connectivity and health | **Done** | Phases 1–4 | Remote desktop and phone reach the same API through the web origin |
+| | 5 | CadQuery Nameplate | **Done** | Phase 0 | Real STL and STEP files pass contract, API, worker, viewer, and download tests |
+| | 6 | OpenSCAD template engine | **Done** | Phase 5 | A second real parametric engine works without frontend-specific forms |
+| | GM-0 | Marketplace audit and epic setup | **Done** | Phases 0–6 | ADR committed, CI status recorded, child issues created, roadmap linked |
+| | GM-1 | Marketplace contract and catalog API | **Done** | GM-0 | Catalog API tests pass, invalid manifests fail, unlicensed plugins quarantined |
+| | GM-2 | Generator Marketplace UI | **Done** | GM-1 | A user can discover, configure, submit, and inspect a fixture generator without hard-coded page |
+| | GM-3 | Logo Light Box MVP | **Done** | GM-2 | Golden fixtures reproduce accepted geometry, outputs survive restart, test prints pass fit checks |
+| | GM-4 | Artwork tools, multicolor, print checks | **Done** | GM-3 | Representative SVG/PNG fixtures generate printable parts, warnings actionable |
+| | GM-5 | Projects, pricing, shop handoff | **Done** | GM-4 | Saved configuration can reopen and send to draft shop order with no lost options |
+| | GM-6 | Community plugin SDK and submission | **Done** | GM-5 | Example community generator can be packaged, submitted, reviewed, installed, upgraded, disabled, removed |
+| | GM-7 | Starter generator pack | **Done** | GM-6 | No generator requires custom catalog, editor, job, or order code |
+| | GM-8 | Release hardening | **Done** | GM-7 | Security, accessibility, mobile, recovery, observability, and e2e test gates pass in CI |
+| | | 7 | Mesh repair and print inspector | **Done** | GM-8, Phase 6 | Reports manifold state, dimensions, wall risk, overhang risk, and repair result |
+| | | 8 | Slicing and cost estimate | **Done** | Phase 7 | Pinned printer profiles produce 3MF, time, filament, and cost estimates |
+| | | 9 | Generator capability and runtime contract | **Done** | Phase 8 | Local CPU, local GPU, and sidecar plugins share one stable job interface |
+| | | 10 | TripoSR fast image-to-3D | **Done** | Phase 9 | Image job yields previewable mesh on the documented GPU tier |
+| | | 11 | Hunyuan3D quality image-to-3D | **Done** | Phase 10 | Shape-only tier works first; texture tier is a separate hardware profile |
+| | | 12 | Compare mode and runtime routing | **Done** | Phase 11 | One input can run on two generators, with clear cost and hardware controls |
+| | | 13 | ModuMesh Shop connector | **Done** | Phase 12 | Only approved, priced, printable versions can enter the cart |
+| | | 14 | Community plugin release controls | **Done** | Phase 13 | Signed packages, compatibility checks, quotas, and admin controls are active |
 
 ## Phase 0 — Deployment connectivity and health
 
