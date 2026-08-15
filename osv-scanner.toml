@@ -1,0 +1,27 @@
+# OSV-Scanner config: vulnerabilities ignored by ID.
+#
+# These are the SAME advisories documented in security/audit-allowlist.json:
+# transitive via next@15 (postcss <=8.5.22, sharp <0.35.0); they only clear
+# with the breaking next@16 upgrade, tracked as GM-13 (kanban
+# t_a49e2018). After the upgrade, delete these entries and the matching
+# security/audit-allowlist.json npm entries.
+
+[[IgnoredVulns]]
+id = "GHSA-qx2v-qp2m-jg93"
+reason = "postcss XSS in CSS stringify — transitive via next@15; fixed by next@16 (GM-13)"
+
+[[IgnoredVulns]]
+id = "GHSA-6g55-p6wh-862q"
+reason = "postcss arbitrary file read via sourceMappingURL — transitive via next@15; fixed by next@16 (GM-13)"
+
+[[IgnoredVulns]]
+id = "GHSA-fxqj-rqcc-2cmp"
+reason = "postcss incomplete fix of GHSA-6g55-p6wh-862q — transitive via next@15; fixed by next@16 (GM-13)"
+
+[[IgnoredVulns]]
+id = "GHSA-r28c-9q8g-f849"
+reason = "postcss path traversal in source-map auto-loading — transitive via next@15; fixed by next@16 (GM-13)"
+
+[[IgnoredVulns]]
+id = "GHSA-f88m-g3jw-g9cj"
+reason = "sharp <0.35.0 libvips CVEs — transitive via next@15 image optimization; fixed by next@16 (GM-13)"
