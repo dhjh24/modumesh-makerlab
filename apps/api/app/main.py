@@ -15,7 +15,7 @@ from app.logging import configure_logging, get_logger
 from app.middleware import RateLimitMiddleware
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
-from app.routers import admin, catalog, compare, files, health, jobs, plugins, projects, shop, shop_connector, submissions
+from app.routers import admin, auth, catalog, compare, files, health, jobs, plugins, projects, shop, shop_connector, submissions
 
 
 @asynccontextmanager
@@ -138,6 +138,7 @@ async def correlation_id_middleware(request: Request, call_next):
 
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
 app.include_router(shop.router)

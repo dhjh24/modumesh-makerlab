@@ -97,6 +97,35 @@ modumesh-makerlab/
 
 Start with Phase 0. It fixes deployed API reachability before real generator work begins. Run one phase per pull request and pass its exit gate before moving to the next prompt.
 
+## Authentication
+
+Per-user routes (projects, jobs, files, shop, compare) require a bearer token.
+
+```bash
+# Register an account (returns access_token + user)
+curl -X POST http://localhost:8002/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars","display_name":"You"}'
+
+# Login
+curl -X POST http://localhost:8002/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars"}'
+
+# Use the token on per-user routes
+curl http://localhost:8002/api/v1/projects \
+  -H 'Authorization: Bearer <access_token>'
+```
+
+- Tokens are opaque bearer tokens, hashed (SHA-256) at rest, expiring after
+  `API_TOKEN_TTL_HOURS` (default 24). `POST /api/v1/auth/logout` revokes the
+  presented token.
+- Register/login are rate-limited to 5/min per IP (credential brute-force
+  surface). Authenticated requests are rate-limited per user.
+- Admin endpoints use a separate `ADMIN_API_KEY` (see above) — user auth does
+  not grant admin rights.
+- Public routes (health, catalog browse, plugin list) stay anonymous.
+
 ## Development
 
 ```bash

@@ -172,3 +172,34 @@ class AuditEventOut(BaseModel):
 class ErrorOut(BaseModel):
     detail: str
     code: Optional[str] = None
+
+
+# ── Auth (GM-10) ───────────────────────────────────────────────────────
+
+
+class RegisterRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., min_length=8, max_length=128)
+    display_name: Optional[str] = Field(None, max_length=255)
+
+
+class LoginRequest(BaseModel):
+    email: str = Field(..., max_length=255)
+    password: str = Field(..., max_length=128)
+
+
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    email: Optional[str] = None
+    display_name: str
+    is_admin: bool
+    created_at: datetime
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_at: datetime
+    user: UserOut

@@ -71,6 +71,8 @@ class APISettings(BaseSettings):
     # X-Forwarded-For is only trusted from these peers; default empty means
     # the header is never trusted and request.client.host is used directly.
     trusted_proxies: str = ""
+    # Lifetime of opaque bearer tokens issued by /api/v1/auth/register|login.
+    token_ttl_hours: int = 24
 
     model_config = SettingsConfigDict(env_prefix="API_")
 

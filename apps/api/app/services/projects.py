@@ -62,14 +62,33 @@ async def get_project(session: AsyncSession, project_id: uuid.UUID) -> Optional[
     return await session.get(Project, project_id)
 
 
+async def get_owned_project(
+    session: AsyncSession, project_id: uuid.UUID, owner_id: uuid.UUID
+) -> Optional[Project]:
+    """Return the project only when it exists AND belongs to ``owner_id``.
+
+    Ownership is enforced in the query itself (never a post-filter), so an
+    unowned project is indistinguishable from a missing one — callers 404.
+    """
+    return (
+        await session.execute(
+            select(Project).where(
+                Project.id == project_id,
+                Project.owner_id == owner_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+
 async def list_projects(
     session: AsyncSession,
     *,
+    owner_id: uuid.UUID,
     include_archived: bool = False,
     limit: int = 50,
     offset: int = 0,
 ) -> tuple[list[Project], int]:
-    filters = []
+    filters = [Project.owner_id == owner_id]
     if not include_archived:
         filters.append(Project.status == "active")
 

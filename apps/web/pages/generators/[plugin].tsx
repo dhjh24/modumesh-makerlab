@@ -54,7 +54,13 @@ export default function GeneratorDetailPage() {
       });
       await router.push(`/projects/${project.id}?plugin=${encodeURIComponent(item.plugin_id)}`);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : String(err));
+      const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+      if (apiErr.unauthorized) {
+        // Catalog stays public, but creating a project requires a session.
+        await router.push(`/login?next=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
+      setError(apiErr.message);
       setCreating(false);
     }
   }, [item, router]);

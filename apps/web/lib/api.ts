@@ -3,17 +3,39 @@
  * heavyweight 3D stack is never required for API traffic and CORS is optional.
  */
 
+import { clearToken, getToken } from './auth';
+import type { AuthUser } from './auth';
+
+export type { AuthUser };
+
+/** Login/register success payload (matches backend `TokenResponse`). */
+export interface TokenResponse {
+  access_token: string;
+  token_type: string;
+  expires_at: string;
+  user: AuthUser;
+}
+
 export class ApiError extends Error {
   status: number;
   body: string;
   correlationId?: string;
+  /** True when a protected endpoint rejected an invalid/expired token (401). */
+  unauthorized: boolean;
 
-  constructor(message: string, status: number, body: string, correlationId?: string) {
+  constructor(
+    message: string,
+    status: number,
+    body: string,
+    correlationId?: string,
+    unauthorized = false,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.body = body;
     this.correlationId = correlationId;
+    this.unauthorized = unauthorized;
   }
 }
 
@@ -27,14 +49,104 @@ function apiBase(): string {
   return '';
 }
 
-export function fileDownloadUrl(fileId: string): string {
+/** Bytes + metadata for a protected file fetched with the bearer token. */
+export interface FileBlob {
+  blob: Blob;
+  filename: string;
+  contentType: string;
+}
+
+/** Parses `Content-Disposition` (plain `filename="…"` and RFC 5987 `filename*=UTF-8''…`). */
+function filenameFromContentDisposition(value: string | null): string | null {
+  if (!value) return null;
+  const encoded = /filename\*=(?:UTF-8'')?([^;]+)/i.exec(value);
+  if (encoded) {
+    try {
+      const decoded = decodeURIComponent(encoded[1].trim());
+      if (decoded) return decoded;
+    } catch {
+      // Malformed percent-encoding — fall through to the plain form.
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(value);
+  return plain && plain[1].trim() ? plain[1].trim() : null;
+}
+
+/** Maps a MIME type to a sensible file extension for fallback names. */
+function extensionForContentType(contentType: string): string {
+  const ct = contentType.toLowerCase();
+  if (ct.includes('stl')) return 'stl';
+  if (ct.includes('gltf-binary') || ct.includes('glb')) return 'glb';
+  if (ct.includes('gltf')) return 'gltf';
+  if (ct.includes('json')) return 'json';
+  if (ct.includes('text/plain')) return 'txt';
+  return '';
+}
+
+/**
+ * Fetch a file's bytes from the protected download endpoint. A bare URL
+ * (<img>/anchor/window.open) cannot carry the `Authorization` header, so
+ * downloads/previews must fetch with the bearer token and use a blob: object
+ * URL instead. Mirrors apiFetch's error handling: a 401 clears the stored
+ * token and sets `ApiError.unauthorized` so callers can redirect to /login.
+ */
+export async function fetchFileBlob(fileId: string, fallbackName = 'model'): Promise<FileBlob> {
   const base = apiBase();
-  return `${base}/api/v1/files/${fileId}/download`;
+  const url = `${base}/api/v1/files/${fileId}/download`;
+  const token = getToken();
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      headers: {
+        Accept: '*/*',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch (err) {
+    const offline = err instanceof TypeError;
+    const reason = offline
+      ? `Unable to reach the MakerLab API. Tried: ${url}`
+      : `Request failed: ${url}`;
+    throw new ApiError(reason, 0, err instanceof Error ? err.message : String(err));
+  }
+
+  const correlationId = response.headers.get('X-Correlation-ID') || undefined;
+  if (!response.ok) {
+    const text = await response.text();
+    let friendly = `Request failed (${response.status}).`;
+    try {
+      const parsed = JSON.parse(text) as { detail?: unknown };
+      if (typeof parsed.detail === 'string') friendly = parsed.detail;
+      else if (parsed.detail) friendly = JSON.stringify(parsed.detail);
+    } catch {
+      if (text) friendly = text.slice(0, 240);
+    }
+    // The download endpoint is always protected: a 401 means the stored
+    // token is invalid/expired — drop it so the next navigation lands on
+    // /login (same semantics as apiFetch on non-auth routes).
+    const unauthorized = response.status === 401;
+    if (unauthorized) clearToken();
+    throw new ApiError(friendly, response.status, text, correlationId, unauthorized);
+  }
+
+  const blob = await response.blob();
+  const contentType = response.headers.get('content-type') || blob.type || '';
+  const dispositionName = filenameFromContentDisposition(
+    response.headers.get('content-disposition'),
+  );
+  const ext = extensionForContentType(contentType);
+  const filename =
+    dispositionName || (ext ? `model-${fileId}.${ext}` : `${fallbackName}-${fileId}`);
+  return { blob, filename, contentType };
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const base = apiBase();
   const url = `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  const token = getToken();
+  // Auth endpoints validate credentials themselves — their 401s must not
+  // wipe a token or be treated as "session expired".
+  const isAuthRequest = path.startsWith('/api/v1/auth/');
   let response: Response;
   try {
     response = await fetch(url, {
@@ -42,6 +154,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
       headers: {
         Accept: 'application/json',
         ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...(init.headers || {}),
       },
     });
@@ -64,7 +177,12 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
     } catch {
       if (text) friendly = text.slice(0, 240);
     }
-    throw new ApiError(friendly, response.status, text, correlationId);
+    // A 401 on a protected (non-auth) endpoint means the stored token is
+    // invalid or expired: drop it so the next navigation lands on /login.
+    // Callers decide whether/how to redirect (apiFetch stays a pure client).
+    const unauthorized = response.status === 401 && !isAuthRequest;
+    if (unauthorized) clearToken();
+    throw new ApiError(friendly, response.status, text, correlationId, unauthorized);
   }
 
   if (!text) return undefined as T;
@@ -72,6 +190,22 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
 }
 
 export const api = {
+  register: (email: string, password: string, displayName?: string) =>
+    apiFetch<TokenResponse>('/api/v1/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email,
+        password,
+        ...(displayName ? { display_name: displayName } : {}),
+      }),
+    }),
+  login: (email: string, password: string) =>
+    apiFetch<TokenResponse>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  logout: () => apiFetch<void>('/api/v1/auth/logout', { method: 'POST' }),
+  me: () => apiFetch<AuthUser>('/api/v1/auth/me'),
   listProjects: (limit = 20) =>
     apiFetch<{ items: import('@modumesh/shared-types').Project[]; total: number }>(
       `/api/v1/projects?limit=${limit}`,

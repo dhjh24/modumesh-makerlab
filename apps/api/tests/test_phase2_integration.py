@@ -10,6 +10,7 @@ Run against a live Docker Compose stack after migrations:
 from __future__ import annotations
 
 import time
+import uuid
 from typing import Any
 
 import httpx
@@ -21,6 +22,25 @@ TIMEOUT = 10.0
 
 def _client() -> httpx.Client:
     return httpx.Client(base_url=API_BASE, timeout=TIMEOUT)
+
+
+def _register_user(client: httpx.Client) -> str:
+    """Create an account via the public auth API and return a bearer token.
+
+    All project/job/file routes require auth since GM-10; the module-scoped
+    fixtures attach the token to the shared client.
+    """
+    email = f"phase2-{uuid.uuid4().hex[:12]}@example.test"
+    resp = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "phase2-test-pw-123",
+            "display_name": "Phase2 Tester",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["access_token"]
 
 
 def _wait_job(
@@ -49,6 +69,8 @@ def api() -> httpx.Client:
         # Fail fast if stack is down
         live = client.get("/health/live")
         assert live.status_code == 200
+        # Every project/job/file route requires a bearer token since GM-10.
+        client.headers["Authorization"] = f"Bearer {_register_user(client)}"
         yield client
 
 
