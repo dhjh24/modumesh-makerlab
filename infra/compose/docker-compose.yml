@@ -71,7 +71,10 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          # 512M was too tight: alembic migrations run inside this container
+          # (explicit deploy step, GM-12 D1.6) and the API + alembic together
+          # OOM'd (exit 137) under the 512M cap in CI.
+          memory: 1G
     ports:
       - '${MAKERLAB_API_HOST_PORT:-8002}:8000'
     environment:

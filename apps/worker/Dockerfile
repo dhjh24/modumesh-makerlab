@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir "cadquery>=2.7.0,<2.8.0" trimesh>=4.0.0 pillow>=1
 COPY apps/worker/app/ app/
 COPY plugins/ /plugins/
 # Read-only plugin source for the non-root worker user.
-RUN find /plugins -type f -exec chmod 644 {} + && chmod -R a-w /plugins && chown -R modumesh:modumesh /app
+RUN find /plugins -type f -exec chmod 644 {} + && chmod -R a-w /plugins && chown -R modumesh:modumesh /app && mkdir -p /tmp/prometheus-metrics && chown -R modumesh:modumesh /tmp/prometheus-metrics
 USER modumesh
 ENV WORKER_PLUGIN_DIR=/plugins
 # Do not mount or expose the Docker socket to this image.
