@@ -5,6 +5,9 @@ All environment variables are validated via pydantic-settings on startup.
 
 from __future__ import annotations
 
+import os
+
+from pydantic import BaseModel, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -81,11 +84,9 @@ class WorkerSettings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="WORKER_")
 
 
-class AdminSettings(BaseSettings):
+class AdminSettings(BaseModel):
     plugin_signing_secret: str = "dev-secret"
     admin_api_key: str = ""
-
-    model_config = SettingsConfigDict(env_prefix="ADMIN_")
 
 
 class Settings(BaseSettings):
@@ -100,6 +101,19 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _load_admin_from_env(self) -> "Settings":
+        # Nested BaseSettings models do not read environment variables in
+        # pydantic-settings v2, so the fail-closed admin config could never be
+        # populated from env: settings.admin.admin_api_key was always empty at
+        # boot and the API refused to start even with ADMIN_API_KEY set.
+        # Load the documented env names explicitly (same names as .env.example).
+        self.admin = AdminSettings(
+            admin_api_key=os.getenv("ADMIN_API_KEY", ""),
+            plugin_signing_secret=os.getenv("ADMIN_PLUGIN_SIGNING_SECRET", "dev-secret"),
+        )
+        return self
 
 
 settings = Settings()
