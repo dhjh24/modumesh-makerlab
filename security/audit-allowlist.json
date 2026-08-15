@@ -1,1 +1,9 @@
-{}
+{
+  "npm": {
+    "GHSA-qx2v-qp2m-jg93": "postcss <=8.5.22 XSS in CSS stringify — transitive via next@15; cleared only by next@16 upgrade (tracked: next-16-upgrade card). Pinned range ^15.0.0.",
+    "GHSA-6g55-p6wh-862q": "postcss arbitrary file read via sourceMappingURL — transitive via next@15; cleared only by next@16 upgrade (tracked).",
+    "GHSA-fxqj-rqcc-2cmp": "postcss incomplete fix of GHSA-6g55-p6wh-862q — transitive via next@15; cleared only by next@16 upgrade (tracked).",
+    "GHSA-r28c-9q8g-f849": "postcss path traversal in source-map auto-loading — transitive via next@15; cleared only by next@16 upgrade (tracked).",
+    "GHSA-f88m-g3jw-g9cj": "sharp <0.35.0 libvips CVEs (CVE-2026-33327/8, CVE-2026-35590/1) — transitive via next@15 image optimization; cleared only by next@16 upgrade (tracked)."
+  }
+}
