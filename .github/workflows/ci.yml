@@ -220,6 +220,13 @@ jobs:
 
   osv-scan:
     name: OSV Scanner (lockfiles + requirements)
+    # The reusable workflow uploads a SARIF artifact to Code Scanning, which
+    # requires security-events: write; the top-level workflow permissions only
+    # grant contents: read, so grant the needed scopes at job level.
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     # GM-12 D3.2: google/osv-scanner-action is a reusable workflow; refs must
     # be an existing branch/tag/commit (plain "v2" does NOT exist — tags are
     # v2.x.y semver only, latest v2.5.0), so pin to the semver tag. The repo
