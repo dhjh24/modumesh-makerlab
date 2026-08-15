@@ -32,6 +32,11 @@ env:
   WEB_URL: http://localhost:3002
   # Integration smoke submits many jobs from one IP; keep limits for prod only.
   API_RATE_LIMIT_ENABLED: 'false'
+  # Fail-closed API boot (GM-9) requires these non-empty; workflow env is
+  # injected into every step's process env, so compose interpolates them into
+  # the api service regardless of .env-file lookup quirks on the runner.
+  ADMIN_API_KEY: change_me_to_a_long_random_string
+  ADMIN_PLUGIN_SIGNING_SECRET: change_me_to_another_long_random_string
 
 jobs:
   lint-format:

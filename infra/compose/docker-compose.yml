@@ -67,6 +67,12 @@ services:
       API_RATE_LIMIT_ENABLED: ${API_RATE_LIMIT_ENABLED:-true}
       API_RATE_LIMIT_RPM: ${API_RATE_LIMIT_RPM:-60}
       API_JOB_RATE_LIMIT_RPM: ${API_JOB_RATE_LIMIT_RPM:-10}
+      # Admin auth — fail-closed. The API refuses to boot when ADMIN_API_KEY
+      # is empty or ADMIN_PLUGIN_SIGNING_SECRET is the default "dev-secret".
+      # Compose defaults to empty so `docker compose config` stays valid; the
+      # container itself fails fast at startup if they are unset.
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      ADMIN_PLUGIN_SIGNING_SECRET: ${ADMIN_PLUGIN_SIGNING_SECRET:-}
     # Plugin source is baked read-only into the image. Optional bind mount for
     # local plugin development (still mounted read-only; no docker.sock).
     volumes:
