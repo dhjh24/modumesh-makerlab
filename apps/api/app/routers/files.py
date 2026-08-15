@@ -49,6 +49,11 @@ def _not_found(detail: str) -> HTTPException:
     return HTTPException(status_code=404, detail=detail)
 
 
+def _not_found(detail: str) -> HTTPException:
+    # 404 (not 403) for unowned resources: never leak existence.
+    return HTTPException(status_code=404, detail=detail)
+
+
 @router.get("/api/v1/projects/{project_id}/files", response_model=FileList)
 async def list_project_files(
     project_id: UUID,
