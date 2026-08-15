@@ -1,8 +1,0 @@
-{
-  "generated_at": "2026-07-29T01:54:16.207186+00:00",
-  "job_id": "0770a6b4-dd0e-4f12-88a4-1807e049ed99",
-  "message": "integration-ok",
-  "plugin_id": "fixture-echo",
-  "plugin_version": "1.0.0",
-  "tag": "smoke"
-}

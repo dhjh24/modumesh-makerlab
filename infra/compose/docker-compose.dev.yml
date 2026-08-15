@@ -4,6 +4,10 @@ services:
       watch:
         - path: ../../apps/api/app
           action: sync+restart
+    environment:
+      # Fail-closed admin auth (same vars as the base compose file).
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      ADMIN_PLUGIN_SIGNING_SECRET: ${ADMIN_PLUGIN_SIGNING_SECRET:-}
     ports:
       - '8000:8000'
 

@@ -1,8 +1,0 @@
-{
-  "generated_at": "2026-07-28T23:55:29.619088+00:00",
-  "job_id": "33964cb1-9a3e-4e65-9652-1203d2de88e3",
-  "message": "integration-ok",
-  "plugin_id": "fixture-echo",
-  "plugin_version": "1.0.0",
-  "tag": "phase3"
-}
