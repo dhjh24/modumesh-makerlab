@@ -32,7 +32,11 @@ services:
       # redis-cli needs AUTH when requirepass is set — plain `ping` would
       # fail. --no-auth-warning silences redis-cli's auth warning on stderr
       # (supported by redis:7-alpine).
-      test: ['CMD-SHELL', 'if [ -n "${REDIS_PASSWORD:-}" ]; then redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" ping; else redis-cli ping; fi']
+      test:
+        [
+          'CMD-SHELL',
+          'if [ -n "${REDIS_PASSWORD:-}" ]; then redis-cli --no-auth-warning -a "${REDIS_PASSWORD}" ping; else redis-cli ping; fi',
+        ]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -116,7 +120,13 @@ services:
       - ../../plugins:/plugins:ro
       - metricsdata:/tmp/prometheus-metrics
     healthcheck:
-      test: ['CMD', 'python', '-c', "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=3).getcode() == 200 else 1)"]
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/api/v1/health/ready', timeout=3).getcode() == 200 else 1)",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -165,7 +175,13 @@ services:
       - metricsdata:/tmp/prometheus-metrics
     # Worker liveness = Redis reachable (job queue is its lifeline).
     healthcheck:
-      test: ['CMD', 'python', '-c', "import os, redis; redis.Redis(host='redis', port=6379, db=0, password=os.environ.get('REDIS_PASSWORD') or None, socket_connect_timeout=3).ping()"]
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import os, redis; redis.Redis(host='redis', port=6379, db=0, password=os.environ.get('REDIS_PASSWORD') or None, socket_connect_timeout=3).ping()",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

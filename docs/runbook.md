@@ -334,14 +334,14 @@ curl -fsS http://localhost:8002/api/v1/metrics | grep modumesh_
 
 Metric families:
 
-| Metric | Type | Meaning |
-| ------ | ---- | ------- |
-| `modumesh_http_requests_total` | Counter | requests by method/route/status |
-| `modumesh_job_submissions_total` | Counter | job submissions by job type |
-| `modumesh_plugin_execution_duration_seconds` | Histogram | plugin wall-clock time by job type/outcome (worker observes) |
-| `modumesh_queue_depth` | Gauge | jobs waiting on the Redis queue |
-| `modumesh_active_leases` | Gauge | jobs with a live worker lease |
-| `modumesh_job_terminal` | Gauge | terminal jobs (completed/failed/cancelled) by status/job type |
+| Metric                                       | Type      | Meaning                                                       |
+| -------------------------------------------- | --------- | ------------------------------------------------------------- |
+| `modumesh_http_requests_total`               | Counter   | requests by method/route/status                               |
+| `modumesh_job_submissions_total`             | Counter   | job submissions by job type                                   |
+| `modumesh_plugin_execution_duration_seconds` | Histogram | plugin wall-clock time by job type/outcome (worker observes)  |
+| `modumesh_queue_depth`                       | Gauge     | jobs waiting on the Redis queue                               |
+| `modumesh_active_leases`                     | Gauge     | jobs with a live worker lease                                 |
+| `modumesh_job_terminal`                      | Gauge     | terminal jobs (completed/failed/cancelled) by status/job type |
 
 In multiprocess mode (`PROMETHEUS_MULTIPROC_DIR` — set by compose for api +
 worker) the endpoint aggregates both processes; `mark_process_dead` on exit
