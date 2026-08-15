@@ -1,6 +1,63 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/router';
 import { isTerminalJobStatus, type JobProgress } from '@modumesh/shared-types';
 import { api, ApiError } from './api';
+import { clearToken, getToken, setAuthUser, type AuthUser } from './auth';
+
+/**
+ * Client-side auth guard for per-user pages (dashboard, project editor).
+ *
+ * - No stored token   -> redirects to /login?next=<current path>.
+ * - Token present     -> validates it via GET /auth/me; a 401 clears the
+ *                        token and redirects to /login. Network failures are
+ *                        tolerated so offline pages can render their own UI.
+ */
+export function useRequireAuth(): {
+  status: 'checking' | 'authenticated' | 'unauthenticated';
+  user: AuthUser | null;
+} {
+  const router = useRouter();
+  const [status, setStatus] = useState<'checking' | 'authenticated' | 'unauthenticated'>(
+    'checking',
+  );
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    if (!router.isReady) return;
+    const token = getToken();
+    if (!token) {
+      setStatus('unauthenticated');
+      void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+      return;
+    }
+    let cancelled = false;
+    api
+      .me()
+      .then((me) => {
+        if (cancelled) return;
+        setAuthUser(me);
+        setUser(me);
+        setStatus('authenticated');
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        if (err instanceof ApiError && err.status === 401) {
+          clearToken();
+          setStatus('unauthenticated');
+          void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+          return;
+        }
+        // API unreachable or 5xx: stay on the page and let the data load
+        // surface the offline/error UI.
+        setStatus('authenticated');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [router.isReady, router.asPath, router]);
+
+  return { status, user };
+}
 
 export function useOnline(): boolean {
   const [online, setOnline] = useState(true);
@@ -69,6 +126,15 @@ export function formatRelativeTime(iso: string): string {
   if (sec < 3600) return `${Math.floor(sec / 60)}m ago`;
   if (sec < 86400) return `${Math.floor(sec / 3600)}h ago`;
   return new Date(iso).toLocaleString();
+}
+
+/** Humanize a duration in seconds (e.g. generator `generation_duration_s`). */
+export function formatDuration(seconds?: number): string {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return 'n/a';
+  if (seconds < 60) return `${seconds.toFixed(1)}s`;
+  const minutes = Math.floor(seconds / 60);
+  const rest = Math.round(seconds % 60);
+  return `${minutes}m ${rest}s`;
 }
 
 export function newIdempotencyKey(): string {

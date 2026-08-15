@@ -9,13 +9,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.domain.states import InvalidTransitionError
+from app.models import User
 from app.schemas import JobCreate, JobList, JobOut, JobProgress
+from app.security.auth import require_user
 from app.services import jobs as job_service
 from app.services import plugins as plugin_service
 from app.services import projects as project_service
 from app.services.queue import enqueue_job
 
 router = APIRouter(tags=["jobs"])
+
+
+def _project_not_found() -> HTTPException:
+    # 404 (not 403) for unowned projects: never leak existence.
+    return HTTPException(status_code=404, detail="Project not found")
+
+
+def _job_not_found() -> HTTPException:
+    return HTTPException(status_code=404, detail="Job not found")
 
 
 @router.post(
@@ -26,12 +37,15 @@ async def create_job(
     project_id: UUID,
     body: JobCreate,
     response: Response,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ) -> JobOut:
-    project = await project_service.get_project(db, project_id)
+    project = await project_service.get_owned_project(
+        db, project_id, current_user.id
+    )
     if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise _project_not_found()
 
     plugin_version = body.plugin_version
     timeout_seconds = body.timeout_seconds
@@ -101,11 +115,14 @@ async def list_project_jobs(
     project_id: UUID,
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobList:
-    project = await project_service.get_project(db, project_id)
+    project = await project_service.get_owned_project(
+        db, project_id, current_user.id
+    )
     if project is None:
-        raise HTTPException(status_code=404, detail="Project not found")
+        raise _project_not_found()
     items, total = await job_service.list_jobs(
         db, project_id=project_id, limit=limit, offset=offset
     )
@@ -115,22 +132,24 @@ async def list_project_jobs(
 @router.get("/api/v1/jobs/{job_id}", response_model=JobOut)
 async def get_job(
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobOut:
-    job = await job_service.get_job(db, job_id)
+    job = await job_service.get_owned_job(db, job_id, current_user.id)
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise _job_not_found()
     return JobOut.model_validate(job)
 
 
 @router.get("/api/v1/jobs/{job_id}/progress", response_model=JobProgress)
 async def get_job_progress(
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobProgress:
-    job = await job_service.get_job(db, job_id)
+    job = await job_service.get_owned_job(db, job_id, current_user.id)
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise _job_not_found()
     return JobProgress(
         id=job.id,
         status=job.status,
@@ -145,13 +164,14 @@ async def get_job_progress(
 @router.post("/api/v1/jobs/{job_id}/cancel", response_model=JobOut)
 async def cancel_job(
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobOut:
-    job = await job_service.get_job(db, job_id)
+    job = await job_service.get_owned_job(db, job_id, current_user.id)
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise _job_not_found()
     try:
-        job = await job_service.cancel_job(db, job)
+        job = await job_service.cancel_job(db, job, actor=str(current_user.id))
     except InvalidTransitionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return JobOut.model_validate(job)
@@ -160,13 +180,14 @@ async def cancel_job(
 @router.post("/api/v1/jobs/{job_id}/retry", response_model=JobOut, status_code=201)
 async def retry_job(
     job_id: UUID,
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> JobOut:
-    job = await job_service.get_job(db, job_id)
+    job = await job_service.get_owned_job(db, job_id, current_user.id)
     if job is None:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise _job_not_found()
     try:
-        new_job = await job_service.retry_job(db, job)
+        new_job = await job_service.retry_job(db, job, actor=str(current_user.id))
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     await db.commit()

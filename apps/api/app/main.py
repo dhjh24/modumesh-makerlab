@@ -15,7 +15,7 @@ from app.logging import configure_logging, get_logger
 from app.middleware import RateLimitMiddleware
 from app.minio import check_minio_connectivity, init_minio
 from app.redis import check_redis_connectivity, close_redis, init_redis
-from app.routers import admin, catalog, compare, files, health, jobs, plugins, projects, shop, shop_connector, submissions
+from app.routers import admin, auth, catalog, compare, files, health, jobs, plugins, projects, shop, shop_connector, submissions
 
 
 @asynccontextmanager
@@ -23,6 +23,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan — startup and shutdown."""
     logger = get_logger("app")
     logger.info("starting up", service="modumesh-api", version=settings.api.version)
+
+    # ── Fail-closed security configuration validation ────────────────
+    # Refuse to boot when admin auth is unconfigured or the default
+    # signing secret is in use — otherwise admin endpoints would be
+    # reachable without a key (or signed with a publicly known secret).
+    if not settings.admin.admin_api_key:
+        raise RuntimeError(
+            "Refusing to start: ADMIN_API_KEY is not set. Admin endpoints "
+            "(plugin signing, quota, plugin control) are fail-closed and "
+            "unusable without it. Set ADMIN_API_KEY (and a unique "
+            "ADMIN_PLUGIN_SIGNING_SECRET) in the environment."
+        )
+    if settings.admin.plugin_signing_secret == "dev-secret":
+        raise RuntimeError(
+            "Refusing to start: ADMIN_PLUGIN_SIGNING_SECRET is still the "
+            "default 'dev-secret'. Set a unique, non-default secret."
+        )
 
     # ── Auto-run Alembic migrations ───────────────────────────────────
     try:
@@ -121,6 +138,7 @@ async def correlation_id_middleware(request: Request, call_next):
 
 
 app.include_router(health.router)
+app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(jobs.router)
 app.include_router(shop.router)

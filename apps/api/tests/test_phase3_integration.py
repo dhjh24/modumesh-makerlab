@@ -2,13 +2,35 @@
 
 from __future__ import annotations
 
+import os
 import time
+import uuid
 from typing import Any
 
 import httpx
 import pytest
 
 BASE = "http://localhost:8000"
+
+
+def _admin_headers() -> dict[str, str]:
+    """Bearer header for admin-only endpoints (key comes from the stack env)."""
+    key = os.environ.get("ADMIN_API_KEY", "")
+    return {"Authorization": f"Bearer {key}"}
+
+
+def _register_user(client: httpx.Client) -> str:
+    """Create an account via the public auth API and return a bearer token.
+
+    All project/job/file routes require auth since GM-10.
+    """
+    email = f"phase3-{uuid.uuid4().hex[:12]}@example.test"
+    resp = client.post(
+        f"{BASE}/api/v1/auth/register",
+        json={"email": email, "password": "phase3-test-pw-123"},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["access_token"]
 
 
 def _wait_job(client: httpx.Client, job_id: str, timeout: float = 60.0) -> dict[str, Any]:
@@ -30,11 +52,13 @@ def client() -> httpx.Client:
         live = c.get(f"{BASE}/health/live")
         if live.status_code != 200:
             pytest.skip("API not reachable — start the docker stack")
+        # Every project/job/file route requires a bearer token since GM-10.
+        c.headers["Authorization"] = f"Bearer {_register_user(c)}"
         yield c
 
 
 def test_plugin_appears_after_resync(client: httpx.Client):
-    r = client.post(f"{BASE}/api/v1/plugins/resync")
+    r = client.post(f"{BASE}/api/v1/plugins/resync", headers=_admin_headers())
     r.raise_for_status()
     body = r.json()
     assert body["discovered"] >= 1
@@ -133,7 +157,8 @@ def test_disable_plugin_blocks_jobs(client: httpx.Client):
     version = plugin.json()["version"]
 
     disabled = client.post(
-        f"{BASE}/api/v1/plugins/fixture-echo/versions/{version}/disable"
+        f"{BASE}/api/v1/plugins/fixture-echo/versions/{version}/disable",
+        headers=_admin_headers(),
     )
     disabled.raise_for_status()
     assert disabled.json()["enabled"] is False

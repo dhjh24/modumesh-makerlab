@@ -1,8 +1,16 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
+import { authHeaders, registerTestUser, seedToken } from './helpers';
 
 test.describe('Phase 4 accessibility @a11y', () => {
+  let token = '';
+
+  test.beforeAll(async ({ request }) => {
+    ({ token } = await registerTestUser(request));
+  });
+
   test('home has no serious axe violations', async ({ page }) => {
+    await seedToken(page, token);
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
@@ -13,6 +21,7 @@ test.describe('Phase 4 accessibility @a11y', () => {
   });
 
   test('generators page keyboard focus and labels', async ({ page }) => {
+    await seedToken(page, token);
     await page.goto('/generators');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
     await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
@@ -53,8 +62,10 @@ test.describe('Phase 4 accessibility @a11y', () => {
     const API = process.env.PLAYWRIGHT_API_URL || 'http://localhost:8000';
     const create = await request.post(`${API}/api/v1/projects`, {
       data: { name: `A11y ${Date.now()}` },
+      headers: authHeaders(token),
     });
     const project = await create.json();
+    await seedToken(page, token);
     await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
     await expect(page.getByLabel('Job progress')).toBeVisible();

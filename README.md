@@ -37,9 +37,12 @@ npm install
 
 # 3. Copy environment config
 cp .env.example .env
+# Set real values for ADMIN_API_KEY and ADMIN_PLUGIN_SIGNING_SECRET
+# (the API REFUSES to start without them — fail-closed admin auth).
 
-# 4. Start everything
-docker compose -f infra/compose/docker-compose.yml up -d
+# 4. Start everything (--env-file is required: Compose does not auto-read
+#    a repo-root .env when the compose file lives in infra/compose/)
+docker compose --env-file .env -f infra/compose/docker-compose.yml up -d
 
 # 5. Open the web UI
 open http://localhost:3000
@@ -47,15 +50,14 @@ open http://localhost:3000
 
 ## Services
 
-| Service  | Port | Description                        |
-| -------- | ---- | ---------------------------------- |
-| Web      | 3000 | Next.js frontend                   |
-| API      | 8000 | FastAPI backend                    |
-| Worker   | —    | Queued CAD generation (background) |
-| Postgres | 5432 | Primary database                   |
-| Redis    | 6379 | Job queue and caching              |
-| MinIO    | 9000 | Object storage for model files     |
-| MinIO    | 9001 | MinIO web console                  |
+| Service  | Port            | Description                                   |
+| -------- | --------------- | --------------------------------------------- |
+| Web      | 3000            | Next.js frontend                              |
+| API      | 8000            | FastAPI backend                               |
+| Worker   | —               | Queued CAD generation (background)            |
+| Postgres | 5432 (internal) | Primary database — no host port               |
+| Redis    | 6379 (internal) | Job queue and caching — no host port          |
+| MinIO    | 9000 (internal) | Object storage for model files — no host port |
 
 ## Project Structure
 
@@ -94,6 +96,35 @@ modumesh-makerlab/
 - [Copy-ready implementation prompts](docs/AGENT_PROMPTS.md)
 
 Start with Phase 0. It fixes deployed API reachability before real generator work begins. Run one phase per pull request and pass its exit gate before moving to the next prompt.
+
+## Authentication
+
+Per-user routes (projects, jobs, files, shop, compare) require a bearer token.
+
+```bash
+# Register an account (returns access_token + user)
+curl -X POST http://localhost:8002/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars","display_name":"You"}'
+
+# Login
+curl -X POST http://localhost:8002/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars"}'
+
+# Use the token on per-user routes
+curl http://localhost:8002/api/v1/projects \
+  -H 'Authorization: Bearer <access_token>'
+```
+
+- Tokens are opaque bearer tokens, hashed (SHA-256) at rest, expiring after
+  `API_TOKEN_TTL_HOURS` (default 24). `POST /api/v1/auth/logout` revokes the
+  presented token.
+- Register/login are rate-limited to 5/min per IP (credential brute-force
+  surface). Authenticated requests are rate-limited per user.
+- Admin endpoints use a separate `ADMIN_API_KEY` (see above) — user auth does
+  not grant admin rights.
+- Public routes (health, catalog browse, plugin list) stay anonymous.
 
 ## Development
 

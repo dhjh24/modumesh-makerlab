@@ -64,6 +64,12 @@ class APISettings(BaseSettings):
     rate_limit_enabled: bool = True
     rate_limit_rpm: int = 60
     job_rate_limit_rpm: int = 10
+    # Comma-separated CIDR list of trusted reverse proxies. When non-empty,
+    # X-Forwarded-For is only trusted from these peers; default empty means
+    # the header is never trusted and request.client.host is used directly.
+    trusted_proxies: str = ""
+    # Lifetime of opaque bearer tokens issued by /api/v1/auth/register|login.
+    token_ttl_hours: int = 24
 
     model_config = SettingsConfigDict(env_prefix="API_")
 

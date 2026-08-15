@@ -203,6 +203,26 @@ async def get_job(session: AsyncSession, job_id: uuid.UUID) -> Optional[Generati
     return await session.get(GenerationJob, job_id)
 
 
+async def get_owned_job(
+    session: AsyncSession, job_id: uuid.UUID, owner_id: uuid.UUID
+) -> Optional[GenerationJob]:
+    """Return the job only when its owning project belongs to ``owner_id``.
+
+    Ownership is enforced in the query (join through projects.owner_id), so an
+    unowned job is indistinguishable from a missing one — callers 404.
+    """
+    return (
+        await session.execute(
+            select(GenerationJob)
+            .join(Project, Project.id == GenerationJob.project_id)
+            .where(
+                GenerationJob.id == job_id,
+                Project.owner_id == owner_id,
+            )
+        )
+    ).scalar_one_or_none()
+
+
 async def list_jobs(
     session: AsyncSession,
     *,
@@ -382,6 +402,26 @@ async def list_files_for_project(
 
 async def get_file(session: AsyncSession, file_id: uuid.UUID) -> Optional[FileObject]:
     return await session.get(FileObject, file_id)
+
+
+async def get_owned_file(
+    session: AsyncSession, file_id: uuid.UUID, owner_id: uuid.UUID
+) -> Optional[FileObject]:
+    """Return the file only when its owning project belongs to ``owner_id``.
+
+    Ownership is enforced in the query (join through projects.owner_id), so an
+    unowned file is indistinguishable from a missing one — callers 404.
+    """
+    return (
+        await session.execute(
+            select(FileObject)
+            .join(Project, Project.id == FileObject.project_id)
+            .where(
+                FileObject.id == file_id,
+                Project.owner_id == owner_id,
+            )
+        )
+    ).scalar_one_or_none()
 
 
 async def files_for_job(

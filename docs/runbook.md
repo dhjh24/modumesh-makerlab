@@ -7,14 +7,14 @@ incident response, and recovery.
 
 The MakerLab runs as a set of Docker containers on a single host:
 
-| Service  | Port               | Description                          |
-| -------- | ------------------ | ------------------------------------ |
-| API      | 8002 (host) → 8000 | FastAPI backend                      |
-| Web      | 3002 (host) → 3000 | Next.js frontend                     |
-| Worker   | —                  | Celery-like job worker (Redis queue) |
-| Postgres | 5432               | Job/plugin/file metadata             |
-| Redis    | 6379               | Job queue and cache                  |
-| MinIO    | 9000/9001          | Object storage (generated files)     |
+| Service  | Port                 | Description                                     |
+| -------- | -------------------- | ----------------------------------------------- |
+| API      | 8002 (host) → 8000   | FastAPI backend                                 |
+| Web      | 3002 (host) → 3000   | Next.js frontend                                |
+| Worker   | —                    | Celery-like job worker (Redis queue)            |
+| Postgres | 5432 (internal)      | Job/plugin/file metadata — no host port         |
+| Redis    | 6379 (internal)      | Job queue and cache — no host port              |
+| MinIO    | 9000/9001 (internal) | Object storage (generated files) — no host port |
 
 ## Health checks
 
@@ -26,6 +26,38 @@ curl http://localhost:8002/api/v1/health/full
 # Check container status
 docker compose -f infra/compose/docker-compose.yml ps
 ```
+
+## Authentication
+
+Per-user routes (projects, jobs, files, shop, compare) require a bearer token;
+anonymous calls get 401.
+
+```bash
+# Register (returns access_token + user)
+curl -X POST http://localhost:8002/api/v1/auth/register \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars","display_name":"You"}'
+
+# Login
+curl -X POST http://localhost:8002/api/v1/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"you@example.com","password":"change-me-8chars"}'
+
+# Use the token on per-user routes
+export TOKEN=<access_token>
+curl http://localhost:8002/api/v1/projects -H "Authorization: Bearer $TOKEN"
+
+# Logout revokes the presented token
+curl -X POST http://localhost:8002/api/v1/auth/logout -H "Authorization: Bearer $TOKEN"
+```
+
+- Tokens expire after `API_TOKEN_TTL_HOURS` (default 24) and are stored
+  hashed (SHA-256) — a DB leak does not expose usable tokens.
+- Register/login are rate-limited to 5/min per IP; authenticated requests are
+  rate-limited per user (job submission cap is per owner, not per IP).
+- Cross-user access returns 404 (not 403) so resource existence is not leaked.
+- Admin endpoints use `ADMIN_API_KEY` (see Plugin management) — user auth does
+  not grant admin rights; health/catalog/plugin-list stay public.
 
 ## Restarting services
 
@@ -50,12 +82,15 @@ docker logs compose-api-1 -f
 ## Plugin management
 
 ```bash
+# Admin-only: set ADMIN_API_KEY in your shell first (see .env.example)
+export ADMIN_API_KEY=your_admin_key
+
 # Re-scan plugin directories
-curl -s -X POST http://localhost:8002/api/v1/plugins/resync
+curl -s -X POST -H "Authorization: Bearer $ADMIN_API_KEY" http://localhost:8002/api/v1/plugins/resync
 
 # Enable/disable a plugin
-curl -s -X POST http://localhost:8002/api/v1/plugins/nameplate/enable
-curl -s -X POST http://localhost:8002/api/v1/plugins/nameplate/disable
+curl -s -X POST -H "Authorization: Bearer $ADMIN_API_KEY" http://localhost:8002/api/v1/plugins/nameplate/enable
+curl -s -X POST -H "Authorization: Bearer $ADMIN_API_KEY" http://localhost:8002/api/v1/plugins/nameplate/disable
 ```
 
 ## Job management
@@ -102,6 +137,15 @@ cat makerlab-backup-20260730.sql | docker exec -i compose-db-1 psql -U modumesh 
 MinIO uses a local volume. The data directory should be snapshotted
 alongside the Postgres dump for a full recovery.
 
+### Where backups must live
+
+**Never commit backup artifacts to git.** The `backups/` directory is
+git-ignored and untracked — dumps and MinIO objects are frequently large,
+contain secrets (DB credentials, tokens, user data), and bloating the
+repository history is unrecoverable. Store backups **outside the repo**
+(e.g. `/var/backups/modumesh/` on the host, or an off-site/object-storage
+target), and keep only scripts/config in the repo.
+
 ## Incident response
 
 ### Worker crash / memory exhaustion
@@ -112,7 +156,8 @@ alongside the Postgres dump for a full recovery.
 
 ### Plugin runs malicious code
 
-1. Disable the plugin immediately: `curl -X POST http://localhost:8002/api/v1/plugins/<plugin-id>/disable`
+1. Disable the plugin immediately (admin-only since the security sprint — requires the admin key):
+   `curl -X POST -H "Authorization: Bearer $ADMIN_API_KEY" http://localhost:8002/api/v1/plugins/<plugin-id>/disable`
 2. Review job logs for the plugin's output files.
 3. If network egress was detected, investigate the storage bucket for exfiltrated files.
 4. Revoke the author's submission privileges.

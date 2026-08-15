@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from uuid import UUID
+import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
@@ -10,6 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.logging import get_logger
+from app.models import User
+from app.security.auth import require_user
+from app.services import projects as project_service
 
 router = APIRouter(tags=["shop"])
 log = get_logger("shop-connector")
@@ -17,7 +21,8 @@ log = get_logger("shop-connector")
 
 @router.post("/api/v1/shop/submit-order", status_code=202)
 async def submit_shop_order(
-    body: dict,
+    body: dict[str, Any],
+    current_user: User = Depends(require_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     """Submit a configured project to ModuMesh Shop.
@@ -30,6 +35,16 @@ async def submit_shop_order(
 
     if not project_id or not job_id:
         raise HTTPException(status_code=400, detail="project_id and job_id are required")
+
+    # Ownership is checked before any data is read: an unowned project is
+    # indistinguishable from a missing one (404).
+    try:
+        project_uuid = uuid.UUID(str(project_id))
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=404, detail="Project not found")
+    owned = await project_service.get_owned_project(db, project_uuid, current_user.id)
+    if owned is None:
+        raise HTTPException(status_code=404, detail="Project not found")
 
     # Verify the job belongs to this project and is completed
     row = (await db.execute(

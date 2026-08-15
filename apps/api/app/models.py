@@ -54,7 +54,7 @@ class SchemaMigration(Base):
 
 
 class User(Base):
-    """Owner placeholder — full auth lands in a later phase."""
+    """Application user with password-based bearer-token auth (GM-10)."""
 
     __tablename__ = "users"
 
@@ -62,7 +62,14 @@ class User(Base):
         UUID(as_uuid=True), primary_key=True, default=_uuid
     )
     external_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
+    # Email is nullable so the legacy local-owner row (created by
+    # ``ensure_default_owner``) can stay email-less.
+    email: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
+    password_hash: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     display_name: Mapped[str] = mapped_column(String(255), nullable=False, default="local-owner")
+    is_admin: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default=text("false")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=text("NOW()")
     )
@@ -74,6 +81,47 @@ class User(Base):
     )
 
     projects: Mapped[list[Project]] = relationship(back_populates="owner")
+    tokens: Mapped[list[AuthToken]] = relationship(back_populates="user")
+
+
+class AuthToken(Base):
+    """Opaque bearer token for a user.
+
+    Only the SHA-256 hex digest of the raw token is stored; the raw token is
+    handed to the client exactly once at issue time and can never be recovered
+    from the database.
+    """
+
+    __tablename__ = "auth_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=_uuid
+    )
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=text("NOW()")
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    last_used_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+    user: Mapped[User] = relationship(back_populates="tokens")
+
+    __table_args__ = (
+        Index("ix_auth_tokens_user_id", "user_id"),
+        Index("ix_auth_tokens_token_hash", "token_hash"),
+    )
 
 
 class Project(Base):

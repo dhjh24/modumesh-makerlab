@@ -14,11 +14,12 @@ import {
 } from '@modumesh/ui';
 import { AppShell } from '../components/AppShell';
 import { api, ApiError } from '../lib/api';
-import { formatRelativeTime, useOnline } from '../lib/hooks';
+import { formatRelativeTime, useOnline, useRequireAuth } from '../lib/hooks';
 
 export default function HomePage() {
   const router = useRouter();
   const online = useOnline();
+  const { status } = useRequireAuth();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [plugins, setPlugins] = useState<PluginRecord[] | null>(null);
   const [jobs, setJobs] = useState<Job[] | null>(null);
@@ -39,13 +40,20 @@ export default function HomePage() {
       setPlugins(g.items);
       setJobs(j);
     } catch (err) {
-      setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
+      const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
+      if (apiErr.unauthorized) {
+        // Token expired mid-session — apiFetch already cleared it.
+        void router.replace(`/login?next=${encodeURIComponent(router.asPath)}`);
+        return;
+      }
+      setError(apiErr);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
+    if (status !== 'authenticated') return;
     void load();
-  }, [load]);
+  }, [load, status]);
 
   const onCreate = async (e: FormEvent) => {
     e.preventDefault();
@@ -63,6 +71,14 @@ export default function HomePage() {
       setCreating(false);
     }
   };
+
+  if (status !== 'authenticated') {
+    return (
+      <AppShell title="Home">
+        <LoadingState title="Checking session…" />
+      </AppShell>
+    );
+  }
 
   if (!online) {
     return (

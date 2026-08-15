@@ -32,6 +32,11 @@ env:
   WEB_URL: http://localhost:3002
   # Integration smoke submits many jobs from one IP; keep limits for prod only.
   API_RATE_LIMIT_ENABLED: 'false'
+  # Fail-closed API boot requires these non-empty; workflow env is injected
+  # into every step's process env, so compose interpolates them regardless of
+  # .env-file lookup quirks on the runner (shell exports were dropped there).
+  ADMIN_API_KEY: change_me_to_a_long_random_string
+  ADMIN_PLUGIN_SIGNING_SECRET: change_me_to_another_long_random_string
 
 jobs:
   lint-format:
@@ -160,7 +165,12 @@ jobs:
           coverage run -m pytest \
             tests/test_health.py \
             tests/test_state_machine.py \
-            tests/test_plugins_unit.py -v
+            tests/test_plugins_unit.py \
+            tests/test_svg_security.py \
+            tests/test_admin_auth.py \
+            tests/test_auth.py \
+            tests/test_ownership.py \
+            tests/test_rate_limiting.py -v
           coverage report
 
   worker-tests:
@@ -232,7 +242,21 @@ jobs:
       - name: Start stack
         run: |
           cp .env.example .env
+          # Compose auto-reads .env from the project directory
+          # (infra/compose/), not the repo root — and shell-exported vars
+          # may be dropped by sudo/rootless docker env handling on the
+          # runner. Pass the env file explicitly with --env-file so
+          # ADMIN_API_KEY/ADMIN_PLUGIN_SIGNING_SECRET reach the container
+          # deterministically (fail-closed boot requires them non-empty).
+          cp .env.example infra/compose/.env
+          echo "--- resolved admin vars ---"
           docker compose \
+            --env-file infra/compose/.env \
+            --project-name "${CI_COMPOSE_PROJECT}" \
+            -f infra/compose/docker-compose.yml \
+            config 2>/dev/null | grep -E "ADMIN_API_KEY:|ADMIN_PLUGIN_SIGNING_SECRET:" || true
+          docker compose \
+            --env-file infra/compose/.env \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
             up -d --build
@@ -261,7 +285,8 @@ jobs:
             alembic -c /app/alembic.ini upgrade head
       - name: Resync plugins
         run: |
-          curl -sf -X POST "${API_URL}/api/v1/plugins/resync" | head -c 500
+          ADMIN_KEY="$(grep -E '^ADMIN_API_KEY=' .env | tail -1 | cut -d= -f2-)"
+          curl -sf -X POST -H "Authorization: Bearer ${ADMIN_KEY}" "${API_URL}/api/v1/plugins/resync" | head -c 500
           echo
           echo "Catalog sample:"
           curl -sf "${API_URL}/api/v1/catalog?limit=5" | head -c 800
@@ -272,7 +297,7 @@ jobs:
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
             exec -T api \
-            pip install pytest httpx pytest-asyncio
+            pip install pytest httpx pytest-asyncio aiosqlite
           docker compose \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
