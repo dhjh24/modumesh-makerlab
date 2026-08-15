@@ -6,16 +6,19 @@ import logging
 import sys
 
 import structlog
+import structlog.contextvars
 
 
 def configure_logging(log_level: str = "info", service: str = "modumesh") -> None:
     """Configure structlog-based structured logging.
 
     Produces JSON-formatted log lines with ISO timestamps, service name,
-    log level, and any extra context (e.g. correlation_id).
+    log level, and any extra context (e.g. correlation_id / request_id bound
+    via ``structlog.contextvars`` by the request middleware).
     """
     structlog.configure(
         processors=[
+            structlog.contextvars.merge_contextvars,
             structlog.stdlib.filter_by_level,
             structlog.stdlib.add_log_level,
             structlog.processors.TimeStamper(fmt="iso"),

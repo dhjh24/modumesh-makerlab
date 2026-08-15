@@ -119,23 +119,162 @@ curl -s "http://localhost:8002/api/v1/files/<file-id>/download"
 ## Backup and recovery
 
 The most critical data is Postgres (metadata) and MinIO (generated files).
+Automated backups are provided by `scripts/backup.sh` (GM-12 D2).
 
-### Postgres backup
+### How automated backups work
+
+`scripts/backup.sh` runs on a schedule (daily recommended) and:
+
+1. `pg_dump -Fc` of Postgres → a timestamped `.dump` file in `BACKUP_DIR`
+   (default `/var/backups/modumesh`).
+2. Uploads the dump to the MinIO `modumesh-backups/postgres/` prefix.
+3. `mc mirror --overwrite` of the `modumesh-models` bucket →
+   `modumesh-backups/models` (incremental — only changed objects).
+4. Writes a manifest + `SHA256SUMS` alongside (local and remote `manifests/`).
+5. Prunes artifacts older than `BACKUP_RETENTION_DAYS` (default 14), local and
+   remote.
+
+The script **fails loudly**: any failed step exits non-zero with a `FATAL`
+message, and it refuses to run without credentials (`PGPASSWORD`,
+`MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`). It is idempotent and safe to run
+from cron; `PRUNE_ONLY=1` runs just the retention prune.
+
+Environment (also mirrored in `infra/compose/docker-compose.yml` `backup`
+service and `.env.example`):
+
+```bash
+export PGHOST=localhost PGPORT=5432 PGUSER=modumesh PGDATABASE=modumesh
+export PGPASSWORD=<pg password>
+export MINIO_ENDPOINT=localhost:9000
+export MINIO_ACCESS_KEY=<minio access key> MINIO_SECRET_KEY=<minio secret key>
+export BACKUP_DIR=/var/backups/modumesh
+export BACKUP_RETENTION_DAYS=14
+```
+
+Where backups live:
+
+- Local staging: `BACKUP_DIR` (default `/var/backups/modumesh`) on the host.
+- Remote copy: MinIO bucket `modumesh-backups` (`postgres/`, `models/`,
+  `manifests/`).
+- **Never commit backup artifacts to git.** The `backups/` directory is
+  git-ignored and untracked — dumps and MinIO objects are frequently large,
+  contain secrets (DB credentials, tokens, user data), and bloating the
+  repository history is unrecoverable. Store backups **outside the repo** and
+  keep only scripts/config in the repo.
+
+Scheduling (host cron, recommended — the compose `backup` service image lacks
+`pg_dump`/`mc` unless extended):
+
+```cron
+# daily at 02:30 host time; a wrapper can alert on non-zero exit
+30 2 * * * cd /home/dirk/modumesh-makerlab && BACKUP_TARGET=modumesh bash scripts/backup.sh >> /var/log/modumesh-backup.log 2>&1
+```
+
+### Restore procedure
+
+> A CI `restore-drill` job (weekly schedule + `workflow_dispatch`) asserts the
+> backup scripts exist, are executable, syntax-clean and fail-loud, dry-runs
+> the retention prune, and prints this exact procedure. Upgrade it to a full
+> containerized drill once the backup image carries `postgresql-client` + `mc`.
+
+1. Identify the latest backup:
+
+```bash
+mc alias set modumesh http://localhost:9000 <access-key> <secret-key>
+mc ls --recursive modumesh/modumesh-backups/postgres/
+```
+
+2. Restore Postgres onto a fresh stack with an EMPTY `pgdata` volume:
+
+```bash
+docker compose -f infra/compose/docker-compose.yml down -v   # WIPES volumes — only on a fresh/empty target
+docker compose -f infra/compose/docker-compose.yml up -d postgres
+LATEST=$(mc ls --recursive modumesh/modumesh-backups/postgres/ | tail -1 | awk '{print $NF}')
+mc cat "modumesh/modumesh-backups/postgres/${LATEST}" \
+  | docker compose -f infra/compose/docker-compose.yml exec -T postgres \
+      pg_restore -U modumesh -d modumesh --clean --if-exists
+```
+
+3. Restore MinIO models (overwrite mirror):
+
+```bash
+docker compose -f infra/compose/docker-compose.yml up -d minio
+mc mirror --overwrite modumesh/modumesh-backups/models modumesh/modumesh-models
+```
+
+4. Start the rest of the stack and verify:
+
+```bash
+docker compose -f infra/compose/docker-compose.yml up -d
+curl -fsS http://localhost:8002/api/v1/health/ready
+curl -fsS http://localhost:8002/api/v1/health/full
+# Spot-check a known project's file download:
+curl -fsS -H "Authorization: Bearer <token>" \
+  http://localhost:8002/api/v1/files/<file-id>/download -o model.stl
+```
+
+### Manual Postgres dump (fallback)
 
 ```bash
 docker exec compose-db-1 pg_dump -U modumesh modumesh > makerlab-backup-$(date +%Y%m%d).sql
 ```
 
-### Postgres restore
+## Deployment
+
+### Migrations are an explicit deploy step (GM-12 D1.6)
+
+The API no longer auto-runs `alembic upgrade head` at boot (opt in with
+`API_RUN_MIGRATIONS=1` for single-instance deployments). Run migrations
+explicitly BEFORE starting the new API version:
 
 ```bash
-cat makerlab-backup-20260730.sql | docker exec -i compose-db-1 psql -U modumesh modumesh
+docker compose -f infra/compose/docker-compose.yml build api
+docker compose -f infra/compose/docker-compose.yml up -d postgres redis minio
+docker compose -f infra/compose/docker-compose.yml \
+  exec -T api alembic -c /app/alembic.ini upgrade head
+docker compose -f infra/compose/docker-compose.yml up -d api worker web
 ```
 
-### MinIO data
+On migration failure the API will start but report degraded readiness — check
+`docker logs compose-api-1 | grep -i migration` first.
 
-MinIO uses a local volume. The data directory should be snapshotted
-alongside the Postgres dump for a full recovery.
+### Non-development environments are fail-closed (GM-12 D1.2/D1.4)
+
+With `API_ENV` anything other than `development` (compose default
+`API_ENV=development`):
+
+- The API refuses to boot while `POSTGRES_PASSWORD`/`MINIO_SECRET_KEY` are the
+  documented defaults or `REDIS_PASSWORD` is empty (names the offenders in the
+  error).
+- `/docs`, `/redoc` and `/openapi.json` return 404 (interactive docs disabled).
+
+Production must set `API_ENV=production`, `REDIS_PASSWORD` (compose `redis`
+runs `redis-server --requirepass ${REDIS_PASSWORD:-}` — GM-12 D1.1), and
+strong datastore secrets.
+
+### CI runner (GM-12 D3.5)
+
+All workflows in `.github/workflows/ci.yml` run on a dedicated self-hosted
+runner, never GitHub-hosted. The runner must be registered on **ci-1
+(100.109.168.32)** — the old ci host (10.10.10.235) is offline — with labels
+`self-hosted, linux, x64, ci, modumesh-makerlab` (the exact `runs-on` label
+set every job uses). One-time ops step, no code:
+
+```bash
+# On ci-1, as the runner service account:
+# 1. Get a registration token (owner/admin of the repo):
+TOKEN="$(gh api -X POST repos/dhjh24/modumesh-makerlab/actions/runners/registration-token --jq .token)"
+# 2. Register (use the actions-runner tarball from GitHub releases):
+./config.sh --url https://github.com/dhjh24/modumesh-makerlab \
+  --token "$TOKEN" --labels self-hosted,linux,x64,ci,modumesh-makerlab
+# 3. Run (install as a systemd service — see actions/runner/docs):
+./run.sh
+```
+
+Runner prerequisites: Docker + compose v2, Python 3.11+ (with the `venv`
+module), Node.js 22, and passwordless sudo for Playwright browser deps
+(fallback: browsers pre-installed). Re-register after host rebuilds;
+`gh` must be authenticated with owner/admin scope on `dhjh24/modumesh-makerlab`.
 
 ### Where backups must live
 
@@ -184,11 +323,47 @@ curl -X POST http://localhost:8002/api/v1/submissions/security-scan \
 
 ## Monitoring
 
+### Metrics endpoint (GM-12 D4.1)
+
+`GET /api/v1/metrics` serves Prometheus text format (internal-only: no host
+port published; optionally gated by `API_METRICS_TOKEN`):
+
+```bash
+curl -fsS http://localhost:8002/api/v1/metrics | grep modumesh_
+```
+
+Metric families:
+
+| Metric                                       | Type      | Meaning                                                       |
+| -------------------------------------------- | --------- | ------------------------------------------------------------- |
+| `modumesh_http_requests_total`               | Counter   | requests by method/route/status                               |
+| `modumesh_job_submissions_total`             | Counter   | job submissions by job type                                   |
+| `modumesh_plugin_execution_duration_seconds` | Histogram | plugin wall-clock time by job type/outcome (worker observes)  |
+| `modumesh_queue_depth`                       | Gauge     | jobs waiting on the Redis queue                               |
+| `modumesh_active_leases`                     | Gauge     | jobs with a live worker lease                                 |
+| `modumesh_job_terminal`                      | Gauge     | terminal jobs (completed/failed/cancelled) by status/job type |
+
+In multiprocess mode (`PROMETHEUS_MULTIPROC_DIR` — set by compose for api +
+worker) the endpoint aggregates both processes; `mark_process_dead` on exit
+prevents stale files.
+
+### Host health & alert checks (GM-12 D4.3)
+
+`scripts/healthcheck.sh` is designed for a host cron every 5 minutes: exits
+non-zero when any check is RED (queue depth > `QUEUE_DEPTH_ALERT` (default
+50), failed-jobs gauge > `FAILED_JOBS_ALERT` (default off), API/web
+unreachable), so the cron wrapper can alert (mail/ntfy/webhook):
+
+```cron
+*/5 * * * * cd /home/dirk/modumesh-makerlab && bash scripts/healthcheck.sh || /usr/local/bin/notify-alert "MakerLab healthcheck RED"
+```
+
 Relevant metrics to track:
 
-- Job completion rate (completed vs failed)
-- Job queue depth (Redis list length)
-- API response times (FastAPI's built-in metrics)
+- Job completion rate (completed vs failed — `modumesh_job_terminal`)
+- Job queue depth (Redis list length — `modumesh_queue_depth`)
+- Plugin execution duration (`modumesh_plugin_execution_duration_seconds`)
+- API response times and error rates (`modumesh_http_requests_total` by status)
 - Worker CPU/memory
 - MinIO disk usage
 - Postgres connection count

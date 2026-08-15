@@ -17,6 +17,7 @@ from app.domain.states import (
     is_terminal,
     validate_transition,
 )
+from app.metrics import JOB_SUBMISSIONS
 from app.models import FileObject, GenerationJob, Project
 from app.services.audit import record_audit
 from app.services.queue import signal_cancel
@@ -194,6 +195,8 @@ async def create_job(
         progress_pct=5,
         progress_message="queued",
     )
+    # Observability (GM-12 D4.1): count accepted submissions by job type.
+    JOB_SUBMISSIONS.labels(job_type=job_type).inc()
     # Caller must enqueue after the DB transaction commits to avoid
     # workers claiming a job that is not yet durable.
     return job, True
