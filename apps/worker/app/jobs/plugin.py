@@ -13,6 +13,7 @@ from app.config import settings
 from app.job_ops import renew_lease, transition
 from app.jobs.sample import JobCancelled, JobTimedOut, _check_cancel_or_timeout
 from app.logging import get_logger
+from app.metrics import PLUGIN_DURATION
 from app.models import FileObject, GenerationJob
 from app.states import InvalidTransitionError, JobStatus
 from app.storage import put_bytes
@@ -72,6 +73,7 @@ async def run_plugin_job(
     from modumesh_plugin_sdk.runner import enforce_declared_outputs, run_plugin_subprocess
 
     started = time.monotonic()
+    outcome = "failed"
 
     async def gate() -> None:
         await _check_cancel_or_timeout(
@@ -191,8 +193,10 @@ async def run_plugin_job(
                 progress_pct=100,
                 progress_message="completed",
             )
+            outcome = "completed"
 
     except JobCancelled:
+        outcome = "cancelled"
         await session.refresh(job)
         if job.status not in (
             JobStatus.COMPLETED.value,
@@ -211,6 +215,7 @@ async def run_plugin_job(
                 pass
 
     except (JobTimedOut, PluginTimeoutError) as exc:
+        outcome = "timed_out"
         await session.refresh(job)
         if job.status not in (
             JobStatus.COMPLETED.value,
@@ -230,6 +235,7 @@ async def run_plugin_job(
                 pass
 
     except (PluginSecurityError, ContractError) as exc:
+        outcome = "contract_failed"
         await session.refresh(job)
         if job.status not in (
             JobStatus.COMPLETED.value,
@@ -268,3 +274,9 @@ async def run_plugin_job(
                 pass
         else:
             raise
+
+    # Observability only (GM-12 D4.1): record plugin wall-clock duration. The
+    # default outcome label is "failed" for paths that re-raise above.
+    PLUGIN_DURATION.labels(job_type=job.job_type, outcome=outcome).observe(
+        time.monotonic() - started
+    )

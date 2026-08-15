@@ -25,11 +25,21 @@ class RedisSettings(BaseSettings):
     host: str = "localhost"
     port: int = 6379
     db: int = 0
+    # Optional requirepass (GM-12 D1.1) — mirrors apps/api RedisSettings so
+    # the worker authenticates with the same password as the API.
+    password: str = ""
 
     model_config = SettingsConfigDict(env_prefix="REDIS_")
 
     @property
     def url(self) -> str:
+        if self.password:
+            from urllib.parse import quote
+
+            return (
+                f"redis://:{quote(self.password, safe='')}"
+                f"@{self.host}:{self.port}/{self.db}"
+            )
         return f"redis://{self.host}:{self.port}/{self.db}"
 
 

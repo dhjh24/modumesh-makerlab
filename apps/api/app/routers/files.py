@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -17,6 +18,30 @@ from app.services import projects as project_service
 from app.services import storage
 
 router = APIRouter(tags=["files"])
+
+# C0 control chars + DEL — includes CR/LF (header injection, audit L2) and
+# the double quote that would break out of the quoted filename parameter.
+_CONTROL_OR_QUOTE_RE = re.compile(r"[\x00-\x1f\x7f\"]")
+
+
+def _safe_download_filename(filename: str, file_id: UUID) -> str:
+    """Sanitize a user-controlled filename for a Content-Disposition header.
+
+    Strips CR/LF and all other control characters (plus double quotes, which
+    would terminate the quoted ``filename=`` parameter early). When nothing
+    usable remains, falls back to a generated ``model-<id>.<ext>`` name —
+    never an empty or header-breaking value.
+    """
+    cleaned = _CONTROL_OR_QUOTE_RE.sub("", filename or "").strip()
+    # A bare extension (e.g. ".stl") or pure punctuation is not a usable
+    # filename — fall back the same way as an empty result.
+    if not cleaned or re.fullmatch(r"\.[A-Za-z0-9]{1,12}", cleaned):
+        ext = ""
+        match = re.search(r"\.([A-Za-z0-9]{1,12})$", filename or "")
+        if match:
+            ext = match.group(1)
+        cleaned = f"model-{file_id}.{ext}" if ext else f"model-{file_id}"
+    return cleaned
 
 
 def _not_found(detail: str) -> HTTPException:
@@ -80,7 +105,11 @@ async def download_file(
         content=data,
         media_type=file_obj.content_type,
         headers={
-            "Content-Disposition": f'attachment; filename="{file_obj.filename}"',
+            "Content-Disposition": (
+                'attachment; filename="'
+                + _safe_download_filename(file_obj.filename, file_obj.id)
+                + '"'
+            ),
             "X-Checksum-SHA256": file_obj.sha256,
             "X-Object-Key": file_obj.object_key,
         },

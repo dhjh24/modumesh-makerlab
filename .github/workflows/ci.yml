@@ -14,6 +14,10 @@ on:
       - '**/*.md'
       - 'docs/**'
   workflow_dispatch:
+  # Weekly restore drill (GM-12 D2.3) — also runnable manually via
+  # workflow_dispatch.
+  schedule:
+    - cron: '0 3 * * 1'
 
 concurrency:
   group: ${{ github.repository }}-${{ github.workflow }}-${{ github.ref }}
@@ -170,7 +174,10 @@ jobs:
             tests/test_admin_auth.py \
             tests/test_auth.py \
             tests/test_ownership.py \
-            tests/test_rate_limiting.py -v
+            tests/test_rate_limiting.py \
+            tests/test_boot_config.py \
+            tests/test_content_disposition.py \
+            tests/test_metrics.py -v
           coverage report
 
   worker-tests:
@@ -260,6 +267,16 @@ jobs:
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
             up -d --build
+      # GM-12 D1.6: migrations are an explicit deploy step, run BEFORE the
+      # API is considered ready (in-app auto-migration is gated behind
+      # API_RUN_MIGRATIONS=1 and off by default).
+      - name: Run migrations
+        run: |
+          docker compose \
+            --project-name "${CI_COMPOSE_PROJECT}" \
+            -f infra/compose/docker-compose.yml \
+            exec -T api \
+            alembic -c /app/alembic.ini upgrade head
       - name: Wait for API
         run: |
           for i in $(seq 1 40); do
@@ -276,13 +293,6 @@ jobs:
             -f infra/compose/docker-compose.yml \
             logs api --tail=40
           exit 1
-      - name: Run migrations
-        run: |
-          docker compose \
-            --project-name "${CI_COMPOSE_PROJECT}" \
-            -f infra/compose/docker-compose.yml \
-            exec -T api \
-            alembic -c /app/alembic.ini upgrade head
       - name: Resync plugins
         run: |
           ADMIN_KEY="$(grep -E '^ADMIN_API_KEY=' .env | tail -1 | cut -d= -f2-)"
@@ -353,3 +363,99 @@ jobs:
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
             down -v --remove-orphans
+
+  # Weekly restore drill (GM-12 D2.3). The full containerized drill
+  # (empty volume → backup → destroy → pg_restore + mc mirror --overwrite →
+  # verify health) needs pg_dump + mc inside the backup container; the stock
+  # api image ships neither, so the job asserts the backup/restore scripts are
+  # present, executable, syntax-clean and fail-loud, dry-runs the retention
+  # prune, and prints the exact manual restore procedure for an operator to
+  # run against a real backup target. Upgrade this job to the full drill once
+  # the backup image carries postgresql-client + mc (see docs/runbook.md).
+  restore-drill:
+    name: Restore Drill
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - ci
+      - modumesh-makerlab
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Backup/healthcheck scripts exist, executable, syntax-clean
+        run: |
+          set -euo pipefail
+          test -x scripts/backup.sh
+          test -x scripts/healthcheck.sh
+          bash -n scripts/backup.sh scripts/healthcheck.sh
+          if command -v shellcheck >/dev/null 2>&1; then
+            shellcheck scripts/backup.sh scripts/healthcheck.sh
+          else
+            echo "::warning::shellcheck not installed on runner — bash -n passed"
+          fi
+          echo "scripts: ok"
+      - name: Fail-loud assertion (no credentials -> non-zero + FATAL)
+        run: |
+          set +e
+          out="$(MINIO_ACCESS_KEY='' MINIO_SECRET_KEY='' PGPASSWORD='' bash scripts/backup.sh 2>&1)"
+          rc=$?
+          set -e
+          echo "$out"
+          if [ "$rc" -eq 0 ]; then
+            echo "::error::backup.sh exited 0 without credentials — fail-loud contract violated"
+            exit 1
+          fi
+          if ! echo "$out" | grep -qi "FATAL"; then
+            echo "::error::backup.sh failed without a FATAL message"
+            exit 1
+          fi
+          echo "fail-loud: ok"
+      - name: Retention prune dry-run (local, with mc stub)
+        run: |
+          set -euo pipefail
+          STUB_DIR="$(mktemp -d)"
+          printf '#!/bin/sh\nexit 0\n' > "$STUB_DIR/mc"
+          chmod +x "$STUB_DIR/mc"
+          TMP="$(mktemp -d)"
+          touch -d "30 days ago" "$TMP/postgres-20260601T000000Z.dump"
+          touch -d "30 days ago" "$TMP/manifest-20260601T000000Z.txt"
+          touch -d "2 days ago" "$TMP/postgres-20260812T000000Z.dump"
+          PATH="$STUB_DIR:$PATH" MINIO_ACCESS_KEY=x MINIO_SECRET_KEY=y \
+            PRUNE_ONLY=1 BACKUP_DIR="$TMP" BACKUP_RETENTION_DAYS=14 \
+            bash scripts/backup.sh >/dev/null 2>&1 || true
+          if [ -e "$TMP/postgres-20260601T000000Z.dump" ] || [ -e "$TMP/manifest-20260601T000000Z.txt" ]; then
+            echo "::error::artifact older than retention window was not pruned"
+            exit 1
+          fi
+          if [ ! -e "$TMP/postgres-20260812T000000Z.dump" ]; then
+            echo "::error::artifact inside retention window was pruned"
+            exit 1
+          fi
+          rm -rf "$STUB_DIR" "$TMP"
+          echo "retention prune: ok"
+      - name: Document exact manual restore procedure (see docs/runbook.md)
+        run: |
+          set -euo pipefail
+          cat <<'EOF'
+          ── Restore procedure (operator-run; full containerized drill pending a
+          backup image with pg_dump + mc) ──────────────────────────────────────
+          1. Identify the latest backup:
+             mc ls --recursive modumesh/modumesh-backups/postgres/
+          2. Restore Postgres (fresh stack, EMPTY pgdata volume):
+             docker compose -f infra/compose/docker-compose.yml up -d postgres
+             LATEST=$(mc ls --recursive modumesh/modumesh-backups/postgres/ | tail -1 | awk '{print $NF}')
+             mc cat "modumesh/modumesh-backups/postgres/${LATEST}" \
+               | docker compose -f infra/compose/docker-compose.yml \
+                   exec -T postgres pg_restore -U modumesh -d modumesh --clean --if-exists
+          3. Restore MinIO models (overwrite mirror):
+             docker compose -f infra/compose/docker-compose.yml up -d minio
+             mc mirror --overwrite modumesh/modumesh-backups/models modumesh/modumesh-models
+          4. Start the rest of the stack and verify:
+             docker compose -f infra/compose/docker-compose.yml up -d
+             curl -fsS http://localhost:8002/api/v1/health/ready
+             curl -fsS http://localhost:8002/api/v1/health/full
+             # Spot-check a known project's file download:
+             curl -fsS -H "Authorization: Bearer ${TOKEN}" \
+               http://localhost:8002/api/v1/files/<file-id>/download -o model.stl
+          EOF
