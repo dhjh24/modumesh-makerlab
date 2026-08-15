@@ -74,7 +74,11 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {user ? (
             <>
-              <span className="mm-meta" style={{ whiteSpace: 'nowrap' }} title={user.email || undefined}>
+              <span
+                className="mm-meta"
+                style={{ whiteSpace: 'nowrap' }}
+                title={user.email || undefined}
+              >
                 {user.display_name || user.email}
               </span>
               <button
