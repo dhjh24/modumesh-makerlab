@@ -248,8 +248,33 @@ With `API_ENV` anything other than `development` (compose default
   error).
 - `/docs`, `/redoc` and `/openapi.json` return 404 (interactive docs disabled).
 
-Production must set `API_ENV=production`, `REDIS_PASSWORD` (see devops slice:
-compose `redis` gains `--requirepass`), and strong datastore secrets.
+Production must set `API_ENV=production`, `REDIS_PASSWORD` (compose `redis`
+runs `redis-server --requirepass ${REDIS_PASSWORD:-}` — GM-12 D1.1), and
+strong datastore secrets.
+
+### CI runner (GM-12 D3.5)
+
+All workflows in `.github/workflows/ci.yml` run on a dedicated self-hosted
+runner, never GitHub-hosted. The runner must be registered on **ci-1
+(100.109.168.32)** — the old ci host (10.10.10.235) is offline — with labels
+`self-hosted, linux, x64, ci, modumesh-makerlab` (the exact `runs-on` label
+set every job uses). One-time ops step, no code:
+
+```bash
+# On ci-1, as the runner service account:
+# 1. Get a registration token (owner/admin of the repo):
+TOKEN="$(gh api -X POST repos/dhjh24/modumesh-makerlab/actions/runners/registration-token --jq .token)"
+# 2. Register (use the actions-runner tarball from GitHub releases):
+./config.sh --url https://github.com/dhjh24/modumesh-makerlab \
+  --token "$TOKEN" --labels self-hosted,linux,x64,ci,modumesh-makerlab
+# 3. Run (install as a systemd service — see actions/runner/docs):
+./run.sh
+```
+
+Runner prerequisites: Docker + compose v2, Python 3.11+ (with the `venv`
+module), Node.js 22, and passwordless sudo for Playwright browser deps
+(fallback: browsers pre-installed). Re-register after host rebuilds;
+`gh` must be authenticated with owner/admin scope on `dhjh24/modumesh-makerlab`.
 
 ## Incident response
 

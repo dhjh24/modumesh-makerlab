@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "schedule": ["every weekend"],
+  "enabledManagers": [
+    "dockerfile",
+    "github-actions",
+    "npm",
+    "pip_requirements",
+    "pep621",
+    "compose"
+  ],
+  "packageRules": [
+    {
+      "groupName": "base images",
+      "groupSlug": "base-images",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["python", "node", "minio/minio", "postgres", "redis"]
+    }
+  ]
+}

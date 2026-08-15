@@ -1,7 +1,9 @@
 name: CI
 
-# All jobs run exclusively on the dedicated ci self-hosted runner
-# (10.10.10.235). Never use GitHub-hosted runners or a bare `self-hosted` label.
+# All jobs run exclusively on the dedicated self-hosted runner registered on
+# ci-1 (100.109.168.32; old ci host 10.10.10.235 offline) with labels
+# self-hosted, linux, x64, ci, modumesh-makerlab (see docs/runbook.md
+# "CI runner"). Never use GitHub-hosted runners or a bare `self-hosted` label.
 on:
   pull_request:
     branches: [main]
@@ -99,7 +101,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Use system Python 3.11+
+      - name: Set up per-job Python venv (GM-12 M19)
         run: |
           set -euo pipefail
           for c in python3.12 python3.11 python3; do
@@ -109,17 +111,17 @@ jobs:
             fi
           done
           "$PY" --version
-          SHIM="${RUNNER_TEMP}/py-shim"
-          mkdir -p "$SHIM"
-          ln -sf "$PY" "$SHIM/python"
-          ln -sf "$PY" "$SHIM/python3"
-          echo "$SHIM" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$PY" -m pip install --user -U pip --break-system-packages
+          # Isolated per-job venv under $RUNNER_TEMP: no --break-system-packages
+          # into the host interpreter and no $HOME/.local bleed between jobs
+          # (audit M19). venv bin is on PATH so console scripts (pytest,
+          # modumesh-plugin-check, coverage) resolve from the venv.
+          "$PY" -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -U pip
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Install plugin SDK
-        run: python -m pip install --user -e "packages/plugin-sdk-py[dev]" --break-system-packages
+        run: '"$RUNNER_TEMP/venv/bin/pip" install -e "packages/plugin-sdk-py[dev]"'
       - name: SDK unit tests
-        run: python -m pytest packages/plugin-sdk-py/tests -v
+        run: '"$RUNNER_TEMP/venv/bin/python" -m pytest packages/plugin-sdk-py/tests -v'
       - name: Contract CLI — fixture-echo
         run: |
           modumesh-plugin-check check plugins/fixture-echo \
@@ -142,7 +144,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Use system Python 3.11+
+      - name: Set up per-job Python venv (GM-12 M19)
         run: |
           set -euo pipefail
           for c in python3.12 python3.11 python3; do
@@ -152,21 +154,21 @@ jobs:
             fi
           done
           "$PY" --version
-          SHIM="${RUNNER_TEMP}/py-shim"
-          mkdir -p "$SHIM"
-          ln -sf "$PY" "$SHIM/python"
-          ln -sf "$PY" "$SHIM/python3"
-          echo "$SHIM" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$PY" -m pip install --user -U pip --break-system-packages
+          # Isolated per-job venv under $RUNNER_TEMP: no --break-system-packages
+          # into the host interpreter and no $HOME/.local bleed between jobs
+          # (audit M19). venv bin is on PATH so console scripts (pytest,
+          # modumesh-plugin-check, coverage) resolve from the venv.
+          "$PY" -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -U pip
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Install API package
         run: |
-          python -m pip install --user -e packages/plugin-sdk-py --break-system-packages
-          python -m pip install --user -e "apps/api[dev]" --break-system-packages
+          "$RUNNER_TEMP/venv/bin/pip" install -e packages/plugin-sdk-py
+          "$RUNNER_TEMP/venv/bin/pip" install -e "apps/api[dev]"
       - name: API unit tests with coverage
         working-directory: apps/api
         run: |
-          coverage run -m pytest \
+          "$RUNNER_TEMP/venv/bin/python" -m coverage run -m pytest \
             tests/test_health.py \
             tests/test_state_machine.py \
             tests/test_plugins_unit.py \
@@ -178,7 +180,7 @@ jobs:
             tests/test_boot_config.py \
             tests/test_content_disposition.py \
             tests/test_metrics.py -v
-          coverage report
+          "$RUNNER_TEMP/venv/bin/python" -m coverage report
 
   worker-tests:
     name: Worker Tests
@@ -191,7 +193,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Use system Python 3.11+
+      - name: Set up per-job Python venv (GM-12 M19)
         run: |
           set -euo pipefail
           for c in python3.12 python3.11 python3; do
@@ -201,20 +203,92 @@ jobs:
             fi
           done
           "$PY" --version
-          SHIM="${RUNNER_TEMP}/py-shim"
-          mkdir -p "$SHIM"
-          ln -sf "$PY" "$SHIM/python"
-          ln -sf "$PY" "$SHIM/python3"
-          echo "$SHIM" >> "$GITHUB_PATH"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-          "$PY" -m pip install --user -U pip --break-system-packages
+          # Isolated per-job venv under $RUNNER_TEMP: no --break-system-packages
+          # into the host interpreter and no $HOME/.local bleed between jobs
+          # (audit M19). venv bin is on PATH so console scripts (pytest,
+          # modumesh-plugin-check, coverage) resolve from the venv.
+          "$PY" -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -U pip
+          echo "$RUNNER_TEMP/venv/bin" >> "$GITHUB_PATH"
       - name: Install worker package
         run: |
-          python -m pip install --user -e packages/plugin-sdk-py --break-system-packages
-          python -m pip install --user -e "apps/worker[dev]" --break-system-packages
+          "$RUNNER_TEMP/venv/bin/pip" install -e packages/plugin-sdk-py
+          "$RUNNER_TEMP/venv/bin/pip" install -e "apps/worker[dev]"
       - name: Worker unit tests
         working-directory: apps/worker
-        run: python -m pytest -v
+        run: '"$RUNNER_TEMP/venv/bin/python" -m pytest -v'
+
+  osv-scan:
+    name: OSV Scanner (lockfiles + requirements)
+    # GM-12 D3.2: google/osv-scanner-action is a reusable workflow; v1 tag
+    # does not exist (tags are v2.x). The repo guardrail forbids GitHub-
+    # hosted runners, so runs-on is overridden to the self-hosted label set.
+    # fail-on-vuln: true (default) fails the job on any vulnerability.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2
+    with:
+      runs-on: '["self-hosted", "linux", "x64", "ci", "modumesh-makerlab"]'
+      scan-args: |-
+        -r
+        ./
+      fail-on-vuln: true
+
+  supply-chain:
+    name: Supply Chain (pip-audit, npm audit)
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - ci
+      - modumesh-makerlab
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      # GM-12 D3.2: dependency-vulnerability gate (Python + npm; OSV lockfile
+      # scan runs in the `osv-scan` job above). Fail on any finding >=
+      # moderate. Known false positives are documented in
+      # security/audit-allowlist.json (currently an empty object = no known
+      # FPs; add entries there instead of weakening this gate).
+      - name: Set up per-job Python venv (GM-12 M19)
+        run: |
+          set -euo pipefail
+          for c in python3.12 python3.11 python3; do
+            if command -v "$c" >/dev/null 2>&1; then
+              PY="$(command -v "$c")"
+              break
+            fi
+          done
+          "$PY" --version
+          "$PY" -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install -U pip
+      - name: Install api + worker packages + pip-audit
+        run: |
+          "$RUNNER_TEMP/venv/bin/pip" install -e packages/plugin-sdk-py
+          "$RUNNER_TEMP/venv/bin/pip" install -e "apps/api[dev]"
+          "$RUNNER_TEMP/venv/bin/pip" install -e "apps/worker[dev]"
+          "$RUNNER_TEMP/venv/bin/pip" install pip-audit
+      - name: pip-audit (venv, fails on any finding)
+        run: |
+          set -euo pipefail
+          if [ ! -s security/audit-allowlist.json ]; then
+            echo "::error::security/audit-allowlist.json missing — documented allowlist location (GM-12 D3.2)"
+            exit 1
+          fi
+          # Audits the active venv; editable local packages are skipped
+          # (not on PyPI) but all their dependencies are audited. pip-audit
+          # 2.x has no severity flag — it exits non-zero on ANY finding,
+          # which is stricter than the >= moderate floor. Document false
+          # positives in security/audit-allowlist.json and suppress with
+          # --ignore-vuln <ID> if/when one appears.
+          "$RUNNER_TEMP/venv/bin/pip-audit"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      # Single root package-lock.json covers all npm workspaces
+      # (apps/web, packages/*). No npm install — audit the lockfile only.
+      # --audit-level=moderate: exit 1 on any finding >= moderate.
+      - name: npm audit --omit=dev (workspace root, fail >= moderate)
+        run: npm audit --omit=dev --audit-level=moderate
 
   container-build:
     name: Container Build
@@ -232,7 +306,7 @@ jobs:
           docker compose \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
-            build
+            build --pull
 
   integration-smoke:
     name: Integration Smoke
@@ -246,27 +320,50 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+      - name: Generate infra/compose/.env with fresh secrets (GM-12 M20)
+        run: |
+          set -euo pipefail
+          # GM-12 D1.3: the smoke stack must NEVER run on default/placeholder
+          # creds. Generate the compose env file from the compose-level
+          # example and overwrite the datastore secrets with fresh random
+          # values. (The repo-root .env.example is the app-level reference
+          # only; the stack interpolates infra/compose/.env via --env-file.)
+          cp infra/compose/.env.example infra/compose/.env
+          sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$(openssl rand -hex 32)/" infra/compose/.env
+          sed -i "s/^MINIO_SECRET_KEY=.*/MINIO_SECRET_KEY=$(openssl rand -hex 32)/" infra/compose/.env
+          sed -i "s/^REDIS_PASSWORD=.*/REDIS_PASSWORD=$(openssl rand -hex 32)/" infra/compose/.env
+          # API_ENV=ci exercises the fail-closed boot validation (GM-12 D1.2)
+          # end-to-end: non-development env + fresh creds must boot, and
+          # /docs + /openapi.json are disabled (no CI step depends on them).
+          sed -i "s/^API_ENV=.*/API_ENV=ci/" infra/compose/.env
+          echo "--- generated infra/compose/.env (secrets redacted) ---"
+          sed -E 's/^(POSTGRES_PASSWORD|MINIO_SECRET_KEY|REDIS_PASSWORD|ADMIN_API_KEY|ADMIN_PLUGIN_SIGNING_SECRET)=.*/\1=<redacted>/' infra/compose/.env
+      - name: Assert no default secrets in resolved compose config (M20)
+        run: |
+          set -euo pipefail
+          docker compose \
+            --env-file infra/compose/.env \
+            --project-name "${CI_COMPOSE_PROJECT}" \
+            -f infra/compose/docker-compose.yml \
+            config > "$RUNNER_TEMP/compose-resolved.yml" 2>/dev/null
+          if grep -q 'change_me_in_production' "$RUNNER_TEMP/compose-resolved.yml"; then
+            echo "::error::M20: resolved compose config still contains default secret 'change_me_in_production'"
+            exit 1
+          fi
+          if grep -qE 'REDIS_PASSWORD: ("|$)' "$RUNNER_TEMP/compose-resolved.yml" \
+             || grep -qE -- '--requirepass, ("|$)' "$RUNNER_TEMP/compose-resolved.yml"; then
+            echo "::error::M20: REDIS_PASSWORD resolves empty in the compose config (redis requirepass must be non-empty)"
+            exit 1
+          fi
+          echo "M20 assertion passed: no default secrets, REDIS_PASSWORD non-empty"
       - name: Start stack
         run: |
-          cp .env.example .env
-          # Compose auto-reads .env from the project directory
-          # (infra/compose/), not the repo root — and shell-exported vars
-          # may be dropped by sudo/rootless docker env handling on the
-          # runner. Pass the env file explicitly with --env-file so
-          # ADMIN_API_KEY/ADMIN_PLUGIN_SIGNING_SECRET reach the container
-          # deterministically (fail-closed boot requires them non-empty).
-          cp .env.example infra/compose/.env
-          echo "--- resolved admin vars ---"
+          # --pull on up/build: always fetch fresh base images (audit M18).
           docker compose \
             --env-file infra/compose/.env \
             --project-name "${CI_COMPOSE_PROJECT}" \
             -f infra/compose/docker-compose.yml \
-            config 2>/dev/null | grep -E "ADMIN_API_KEY:|ADMIN_PLUGIN_SIGNING_SECRET:" || true
-          docker compose \
-            --env-file infra/compose/.env \
-            --project-name "${CI_COMPOSE_PROJECT}" \
-            -f infra/compose/docker-compose.yml \
-            up -d --build
+            up -d --build --pull
       # GM-12 D1.6: migrations are an explicit deploy step, run BEFORE the
       # API is considered ready (in-app auto-migration is gated behind
       # API_RUN_MIGRATIONS=1 and off by default).
@@ -295,7 +392,7 @@ jobs:
           exit 1
       - name: Resync plugins
         run: |
-          ADMIN_KEY="$(grep -E '^ADMIN_API_KEY=' .env | tail -1 | cut -d= -f2-)"
+          ADMIN_KEY="$(grep -E '^ADMIN_API_KEY=' infra/compose/.env | tail -1 | cut -d= -f2-)"
           curl -sf -X POST -H "Authorization: Bearer ${ADMIN_KEY}" "${API_URL}/api/v1/plugins/resync" | head -c 500
           echo
           echo "Catalog sample:"
