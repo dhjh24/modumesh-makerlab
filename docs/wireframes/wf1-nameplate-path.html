@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maker Studio — Wireframe: "I want to make a nameplate"</title>
+<style>
+  :root {
+    --ink: #1a2b2e; --ink-muted: #5b6e72; --ink-faint: #8aa0a5;
+    --paper: #f7f9f9; --paper-2: #eef2f2; --line: #d8e0e0;
+    --accent: #0f766e; --accent-strong: #0b5d57; --accent-soft: #e0f2f0;
+    --teal: #1f8a7a; --amber: #d97706; --red: #b91c1c; --green: #15803d;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --shadow: 0 1px 3px rgba(20,40,44,.08), 0 4px 16px rgba(20,40,44,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif; background: var(--paper); color: var(--ink); }
+  .wf-note { background: #fff7ed; border-bottom: 2px solid #fdba74; color: #7c2d12; font-size: 12.5px; padding: 6px 16px; text-align: center; }
+  .wf-note b { font-weight: 700; }
+
+  /* Shell */
+  header { background: white; border-bottom: 1px solid var(--line); padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 28px; position: sticky; top: 0; z-index: 20; }
+  .brand { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; color: var(--ink); white-space: nowrap; }
+  .brand span { color: var(--accent); }
+  nav.main { display: flex; gap: 6px; flex: 1; }
+  nav.main a { text-decoration: none; color: var(--ink-muted); font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
+  nav.main a.active { background: var(--accent-soft); color: var(--accent-strong); }
+  nav.main a.primary { background: var(--accent); color: white; }
+  .user { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-muted); }
+  .avatar { width: 30px; height: 30px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  main { max-width: 1200px; margin: 0 auto; padding: 24px 20px 80px; }
+
+  /* Screens */
+  .screen { display: none; animation: fade .18s ease; }
+  .screen.active { display: block; }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+  /* Create */
+  .hero { text-align: center; padding: 44px 16px 20px; }
+  .hero h1 { font-size: clamp(26px, 4vw, 38px); letter-spacing: -0.03em; font-weight: 800; }
+  .hero p { color: var(--ink-muted); margin-top: 8px; font-size: 16px; }
+  .prompt-wrap { max-width: 640px; margin: 26px auto 0; position: relative; }
+  .prompt { width: 100%; border: 2px solid var(--line); border-radius: 14px; padding: 16px 18px; font-size: 16px; background: white; box-shadow: var(--shadow); outline: none; }
+  .prompt:focus { border-color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 14px; }
+  .chip { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 7px 14px; font-size: 13.5px; color: var(--ink-muted); cursor: pointer; font-weight: 600; }
+  .chip:hover { border-color: var(--accent); color: var(--accent-strong); }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 40px; }
+  .mode { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 18px; cursor: pointer; text-align: left; box-shadow: var(--shadow); transition: transform .1s; }
+  .mode:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .mode .icon { font-size: 26px; }
+  .mode h3 { font-size: 15px; margin-top: 8px; }
+  .mode p { font-size: 12.5px; color: var(--ink-muted); margin-top: 4px; line-height: 1.4; }
+  .mode .soon { display: inline-block; margin-top: 8px; font-size: 11px; font-weight: 700; color: var(--ink-faint); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 8px; }
+
+  /* Intent resolution */
+  .intent-pick { max-width: 640px; margin: 30px auto 0; text-align: left; }
+  .intent-pick h2 { font-size: 18px; }
+  .intent-pick .sub { color: var(--ink-muted); font-size: 13.5px; margin: 4px 0 16px; }
+  .tool-options { display: grid; gap: 10px; }
+  .tool-opt { display: flex; gap: 14px; align-items: center; background: white; border: 2px solid var(--line); border-radius: 12px; padding: 14px 16px; cursor: pointer; }
+  .tool-opt:hover, .tool-opt.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .tool-opt .t-icon { width: 42px; height: 42px; border-radius: 10px; background: var(--accent-soft); color: var(--accent-strong); display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
+  .tool-opt h3 { font-size: 15px; }
+  .tool-opt p { font-size: 12.5px; color: var(--ink-muted); }
+  .tool-opt .match { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--accent-strong); background: white; border: 1px solid var(--accent); border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+  .btn-row { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+
+  /* Buttons */
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-ghost { background: white; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .btn-danger { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+  .btn-lg { padding: 13px 24px; font-size: 15px; border-radius: 12px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* Studio */
+  .studio-top { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .studio-top h1 { font-size: 19px; }
+  .crumb { font-size: 12.5px; color: var(--ink-faint); }
+  .studio { display: grid; grid-template-columns: 200px minmax(0,1fr) 280px; grid-template-rows: minmax(430px, 1fr) auto; gap: 12px; min-height: 70vh; }
+  .pane { background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .pane h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-faint); padding: 12px 14px 8px; border-bottom: 1px solid var(--line); }
+  .pane-body { padding: 10px 12px; overflow-y: auto; flex: 1; }
+  .pane-body ul { list-style: none; }
+  .pane-body li { font-size: 13px; padding: 7px 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; }
+  .pane-body li:hover { background: var(--paper-2); }
+  .pane-body li.sel { background: var(--accent-soft); color: var(--accent-strong); font-weight: 600; }
+  .tree-icon { width: 22px; height: 22px; border-radius: 6px; background: var(--paper-2); display: grid; place-items: center; font-size: 12px; }
+  .add-part { margin-top: 8px; width: 100%; }
+  .hist-item { display: block; width: 100%; text-align: left; font-size: 12.5px; padding: 8px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-family: inherit; color: var(--ink); }
+  .hist-item:hover { background: var(--paper-2); }
+  .hist-item .meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--ink-faint); margin-top: 2px; }
+
+  .viewport { background: linear-gradient(180deg, #e9eff0, #dfe8e8); position: relative; display: flex; align-items: center; justify-content: center; }
+  .view-toolbar { position: absolute; top: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; z-index: 5; }
+  .view-toolbar .vt { background: white; border: 1px solid var(--line); border-radius: 999px; padding: 5px 11px; font-size: 12px; font-weight: 600; color: var(--ink-muted); cursor: pointer; }
+  .view-toolbar .vt.on { background: var(--accent-soft); color: var(--accent-strong); border-color: var(--accent); }
+  .gizmo { position: absolute; bottom: 46px; right: 14px; width: 64px; height: 64px; border-radius: 10px; background: white; box-shadow: var(--shadow); display: grid; place-items: center; font-size: 11px; color: var(--ink-faint); }
+  .model3d { width: 300px; height: 190px; }
+  .model3d svg { width: 100%; height: 100%; }
+  .plate { position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%); width: 70%; height: 2px; background: #b8cdca; border-radius: 2px; box-shadow: 0 0 0 1px #c9dad7; }
+  .dims-overlay { position: absolute; bottom: 48px; left: 14px; background: rgba(255,255,255,.92); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 600; box-shadow: var(--shadow); }
+  .dims-overlay .mm { color: var(--ink-faint); font-weight: 400; }
+
+  .param-group { margin-bottom: 14px; }
+  .param-group h3 { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); margin-bottom: 8px; }
+  .field { margin-bottom: 10px; }
+  .field label { display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+  .field label .unit { color: var(--ink-faint); font-weight: 400; }
+  .field input[type=text], .field input[type=number], .field select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13.5px; font-family: inherit; background: white; }
+  .field input:focus, .field select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .field.check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; }
+  .regenerate { margin-top: 4px; width: 100%; }
+  .adv-toggle { font-size: 12px; color: var(--ink-faint); background: none; border: none; cursor: pointer; margin: 2px 0 8px; padding: 0; font-family: inherit; font-weight: 600; }
+  .adv-toggle:hover { color: var(--accent); }
+
+  .statusbar { grid-column: 1 / -1; background: white; border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  .statusbar .checks { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+  .statusbar .check { font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+  .pass { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+  .warn { background: #fffbeb; color: var(--amber); border: 1px solid #fde68a; }
+  .fail { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+  .na { background: var(--paper-2); color: var(--ink-faint); border: 1px solid var(--line); }
+  .primary-action { background: var(--accent); color: white; border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+  /* Progress overlay */
+  .progress-overlay { position: fixed; inset: 0; background: rgba(26,43,46,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .progress-overlay.show { display: flex; }
+  .progress-card { background: white; border-radius: 16px; padding: 28px 32px; width: min(420px, 90vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .progress-card h3 { font-size: 17px; margin-bottom: 4px; }
+  .progress-card .model-name { color: var(--ink-muted); font-size: 13px; margin-bottom: 16px; }
+  .stages { display: grid; gap: 8px; }
+  .stage { display: flex; align-items: center; gap: 10px; font-size: 13.5px; color: var(--ink-faint); }
+  .stage .dot { width: 18px; height: 18px; border-radius: 999px; border: 2px solid var(--line); flex-shrink: 0; display: grid; place-items: center; font-size: 10px; }
+  .stage.done { color: var(--ink); }
+  .stage.done .dot { background: var(--green); border-color: var(--green); color: white; }
+  .stage.now { color: var(--ink); font-weight: 600; }
+  .stage.now .dot { border-color: var(--accent); border-top-color: transparent; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg) } }
+
+  /* Export modal */
+  .modal { position: fixed; inset: 0; background: rgba(26,43,46,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal.show { display: flex; }
+  .modal-card { background: white; border-radius: 16px; padding: 26px 28px; width: min(520px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal-card h3 { font-size: 18px; }
+  .modal-card .sub { color: var(--ink-muted); font-size: 13.5px; margin: 4px 0 18px; }
+  .summary { background: var(--paper-2); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; font-size: 13px; margin-bottom: 18px; }
+  .summary .row { display: flex; justify-content: space-between; }
+  .summary .row b { font-weight: 600; }
+  .summary .row .muted { color: var(--ink-faint); }
+  .format-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .format { border: 2px solid var(--line); border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; background: white; }
+  .format.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .format .f-name { font-weight: 800; font-size: 15px; }
+  .format .f-desc { font-size: 11.5px; color: var(--ink-muted); margin-top: 3px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+  /* My Models */
+  .models-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .models-head h1 { font-size: 22px; }
+  .filters { display: flex; gap: 8px; }
+  .filter { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); cursor: pointer; }
+  .filter.on { background: var(--accent); color: white; border-color: var(--accent); }
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+  .mcard { background: white; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; cursor: pointer; box-shadow: var(--shadow); transition: transform .1s; }
+  .mcard:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .mcard .thumb { height: 150px; background: linear-gradient(180deg, #e9eff0, #dfe8e8); display: grid; place-items: center; position: relative; }
+  .mcard .thumb svg { width: 90px; height: 90px; }
+  .mcard .state { position: absolute; top: 8px; right: 8px; }
+  .mcard .body { padding: 12px 14px; }
+  .mcard h3 { font-size: 14.5px; }
+  .mcard .meta { font-size: 12px; color: var(--ink-muted); margin-top: 3px; }
+  .mcard .actions { display: flex; gap: 6px; margin-top: 10px; }
+  .mcard .actions button { flex: 1; font-size: 12px; padding: 6px 8px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.25); z-index: 60; display: none; }
+  .toast.show { display: block; animation: fade .2s; }
+
+  /* Mobile bottom bar preview */
+  .mobile-frame { display: none; }
+  @media (max-width: 960px) {
+    .studio { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .studio .left, .studio .side { display: none; }
+    nav.main a:not(.primary) { display: none; }
+    .mobile-bar { display: flex; }
+  }
+  .mobile-bar { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--line); z-index: 30; }
+  .mobile-bar a { flex: 1; text-align: center; padding: 9px 4px 8px; font-size: 10.5px; font-weight: 600; color: var(--ink-muted); text-decoration: none; }
+  .mobile-bar a .mi { display: block; font-size: 18px; margin-bottom: 2px; }
+  .mobile-bar a.active { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+
+<div class="wf-note"><b>Wireframe — Phase 3, screen 1</b> · Prove the full path: <b>"I want to make a nameplate"</b> → describe → customize → preview → printability check → export → saved in My Models. Click through; flow notes at the bottom.</div>
+
+<header>
+  <div class="brand">ModuMesh <span>Maker Studio</span></div>
+  <nav class="main">
+    <a href="#" class="primary" data-goto="create">Create</a>
+    <a href="#" data-goto="explore">Explore</a>
+    <a href="#" data-goto="models">My Models</a>
+  </nav>
+  <div class="user"><span>Dirk</span><div class="avatar">D</div></div>
+</header>
+
+<main>
+  <!-- ══════════ CREATE ══════════ -->
+  <section class="screen active" id="create">
+    <div class="hero">
+      <h1>What do you want to make?</h1>
+      <p>Describe it and we'll find the right maker tool.</p>
+      <div class="prompt-wrap">
+        <input class="prompt" id="intent-input" placeholder="e.g. a nameplate with my workshop name…" value="a nameplate with my workshop name">
+        <div class="chips">
+          <button class="chip" data-intent="Nameplate">🪧 Nameplate</button>
+          <button class="chip" data-intent="Storage box">📦 Storage box</button>
+          <button class="chip" data-intent="Wall bracket">🔩 Wall bracket</button>
+          <button class="chip" data-intent="Phone stand">📱 Phone stand</button>
+          <button class="chip" data-intent="Organizer">🗂 Organizer</button>
+          <button class="chip" data-intent="Sign">☀️ Sign</button>
+          <button class="chip" data-intent="Keychain">🔑 Keychain</button>
+        </div>
+      </div>
+    </div>
+    <div class="intent-pick" id="intent-pick" style="display:none">
+      <h2>Best match for your idea</h2>
+      <p class="sub">We picked the maker tool that fits "nameplate" — you can switch below.</p>
+      <div class="tool-options">
+        <div class="tool-opt sel" data-tool="nameplate">
+          <div class="t-icon">🪧</div>
+          <div><h3>Nameplate Maker</h3><p>Text, size, mounting holes, fonts — a clean engraved plate.</p></div>
+          <span class="match">Best match</span>
+        </div>
+        <div class="tool-opt" data-tool="qrsign">
+          <div class="t-icon">🔳</div>
+          <div><h3>QR Sign Maker</h3><p>A printable sign with a scannable QR code.</p></div>
+        </div>
+        <div class="tool-opt" data-tool="lightbox">
+          <div class="t-icon">💡</div>
+          <div><h3>Light Box Maker</h3><p>Backlit LED sign from your artwork.</p></div>
+        </div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-ghost" id="pick-other">Show all tools</button>
+        <button class="btn btn-primary btn-lg" id="start-tool">Continue with Nameplate Maker →</button>
+      </div>
+    </div>
+    <div class="modes" id="modes">
+      <div class="mode" data-goto="explore"><div class="icon">🧩</div><h3>Parametric Builder</h3><p>Choose a maker tool and tune its dimensions.</p></div>
+      <div class="mode"><div class="icon">🖼️</div><h3>Image → 3D</h3><p>Turn a photo into a 3D model.<span class="soon">Coming soon</span></p></div>
+      <div class="mode"><div class="icon">✍️</div><h3>Text → 3D</h3><p>Describe anything and AI builds it.<span class="soon">Coming soon</span></p></div>
+      <div class="mode"><div class="icon">📤</div><h3>Upload model</h3><p>Start from your own STL/GLB/3MF file.</p></div>
+      <div class="mode" data-goto="models"><div class="icon">♻️</div><h3>Remix existing</h3><p>Open one of your saved models and change it.</p></div>
+    </div>
+  </section>
+
+  <!-- ══════════ EXPLORE ══════════ -->
+  <section class="screen" id="explore">
+    <h1 style="font-size:24px">Explore maker tools</h1>
+    <p style="color:var(--ink-muted);margin:6px 0 18px">What do you want to make? Tools are grouped by outcome — not by plugin.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px" id="tool-grid"></div>
+  </section>
+
+  <!-- ══════════ STUDIO ══════════ -->
+  <section class="screen" id="studio">
+    <div class="studio-top">
+      <div>
+        <div class="crumb">Create → <b>Nameplate Maker</b> · v1.0</div>
+        <h1>Workshop nameplate</h1>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-ghost" id="studio-compare">⇄ Compare tools</button>
+        <button class="btn btn-ghost" id="studio-save">Save</button>
+      </div>
+    </div>
+    <div class="studio">
+      <!-- LEFT: parts -->
+      <div class="pane left">
+        <h2>Model</h2>
+        <div class="pane-body">
+          <ul>
+            <li class="sel"><span class="tree-icon">🪧</span> Nameplate</li>
+            <li><span class="tree-icon">🔘</span> Mounting holes ×2</li>
+          </ul>
+          <button class="btn btn-ghost add-part">+ Add part</button>
+          <h2 style="margin-top:14px">History</h2>
+          <button class="hist-item" style="background:var(--accent-soft)"><b>v3</b> · 3mm · engraved<span class="meta">just now · 2.1s gen</span></button>
+          <button class="hist-item"><b>v2</b> · 3mm<span class="meta">12m ago · 1.9s</span></button>
+          <button class="hist-item"><b>v1</b> · 2mm<span class="meta">14m ago · 1.8s</span></button>
+        </div>
+      </div>
+      <!-- CENTER: viewport -->
+      <div class="pane viewport" id="viewport">
+        <div class="view-toolbar">
+          <button class="vt on">Orbit</button><button class="vt">Pan</button><button class="vt">Zoom</button>
+          <button class="vt">Wireframe</button><button class="vt on">Build plate</button><button class="vt on">Grid</button>
+          <button class="vt">Fit</button><button class="vt">1:1</button>
+        </div>
+        <div class="model3d">
+          <svg viewBox="0 0 300 190">
+            <defs><linearGradient id="body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2aa39a"/><stop offset="1" stop-color="#1f8a7a"/></linearGradient></defs>
+            <ellipse cx="150" cy="108" rx="118" ry="34" fill="#b8cdca" opacity=".5"/>
+            <path d="M45 70 L255 70 L255 96 Q255 112 238 112 L62 112 Q45 112 45 96 Z" fill="url(#body)"/>
+            <rect x="55" y="76" width="190" height="28" rx="6" fill="#0f766e" opacity=".92"/>
+            <text x="150" y="96" text-anchor="middle" font-size="17" font-weight="800" fill="#eafffa" font-family="Georgia, serif" font-style="italic">WORKSHOP</text>
+            <circle cx="62" cy="60" r="4.5" fill="#0b5d57"/><circle cx="238" cy="60" r="4.5" fill="#0b5d57"/>
+            <rect x="60" y="112" width="8" height="3" rx="1" fill="#3d6b64"/>
+            <rect x="232" y="112" width="8" height="3" rx="1" fill="#3d6b64"/>
+          </svg>
+        </div>
+        <div class="plate"></div>
+        <div class="dims-overlay">100 × 40 × 3 <span class="mm">mm</span></div>
+        <div class="gizmo">X Y Z</div>
+      </div>
+      <!-- RIGHT: parameters -->
+      <div class="pane side">
+        <h2>Parameters</h2>
+        <div class="pane-body">
+          <div class="param-group">
+            <h3>Dimensions</h3>
+            <div class="field"><label>Width <span class="unit">mm</span></label><input type="number" value="100"></div>
+            <div class="field"><label>Height <span class="unit">mm</span></label><input type="number" value="40"></div>
+            <div class="field"><label>Thickness <span class="unit">mm</span></label><input type="number" value="3"></div>
+            <div class="field"><label>Corner radius <span class="unit">mm</span></label><input type="number" value="5"></div>
+          </div>
+          <div class="param-group">
+            <h3>Text</h3>
+            <div class="field"><label>Nameplate text</label><input type="text" value="WORKSHOP"></div>
+            <div class="field"><label>Font</label><select><option>Arial</option><option>Georgia (italic)</option><option>Courier</option></select></div>
+            <div class="field"><label>Font size <span class="unit">mm</span></label><input type="number" value="12"></div>
+            <div class="field check"><input type="checkbox" checked> Raised text (engraved otherwise)</div>
+          </div>
+          <div class="param-group">
+            <h3>Mounting</h3>
+            <div class="field"><label>Mounting holes</label><select><option>None</option><option selected>Two</option><option>Four</option></select></div>
+            <div class="field"><label>Hole diameter <span class="unit">mm</span></label><input type="number" value="4"></div>
+          </div>
+          <div class="param-group">
+            <h3>Print settings</h3>
+            <div class="field"><label>Material</label><select><option>PLA</option><option>PETG</option><option>ABS</option></select></div>
+            <div class="field"><label>Layer height <span class="unit">mm</span></label><input type="number" value="0.2"></div>
+          </div>
+          <button class="adv-toggle" id="adv-toggle">▸ Advanced (6 more)</button>
+          <button class="btn btn-primary regenerate" id="btn-regenerate">↻ Regenerate</button>
+        </div>
+      </div>
+      <!-- BOTTOM: status -->
+      <div class="statusbar">
+        <div class="checks">
+          <span class="check pass">✓ Manifold</span>
+          <span class="check pass">✓ Watertight</span>
+          <span class="check pass">✓ Fits build volume</span>
+          <span class="check pass">✓ Min wall 1.2 mm</span>
+          <span class="check na">— Print estimate (slicer)</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--ink-muted)">v3 · 2.1 s generation · 18.4 cm³</div>
+        <button class="primary-action" id="btn-export">Print / Export</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ MY MODELS ══════════ -->
+  <section class="screen" id="models">
+    <div class="models-head">
+      <h1>My Models</h1>
+      <div class="filters">
+        <button class="filter on">All</button><button class="filter">Printable</button><button class="filter">Needs work</button><button class="filter">AI</button>
+      </div>
+    </div>
+    <div class="cards" id="model-cards"></div>
+  </section>
+</main>
+
+<!-- Mobile bottom bar -->
+<div class="mobile-bar">
+  <a href="#" class="active" data-goto="create"><span class="mi">＋</span>Create</a>
+  <a href="#" data-goto="studio"><span class="mi">🧊</span>Studio</a>
+  <a href="#" data-goto="models"><span class="mi">🗂</span>Models</a>
+  <a href="#" data-goto="explore"><span class="mi">🔍</span>Explore</a>
+  <a href="#"><span class="mi">⚙️</span>More</a>
+</div>
+
+<!-- Progress overlay -->
+<div class="progress-overlay" id="progress">
+  <div class="progress-card">
+    <h3>Generating your nameplate</h3>
+    <div class="model-name">Nameplate Maker · WORKSHOP</div>
+    <div class="stages" id="stages">
+      <div class="stage now"><span class="dot"></span>Preparing</div>
+      <div class="stage"><span class="dot"></span>Generating geometry</div>
+      <div class="stage"><span class="dot"></span>Processing mesh</div>
+      <div class="stage"><span class="dot"></span>Checking model</div>
+      <div class="stage"><span class="dot"></span>Creating preview</div>
+      <div class="stage"><span class="dot"></span>Ready</div>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="modal" id="export-modal">
+  <div class="modal-card">
+    <h3>Print / Export</h3>
+    <p class="sub">Your model passed all checks — ready to export.</p>
+    <div class="summary">
+      <div class="row"><span class="muted">Name</span><b>workshop-nameplate</b></div>
+      <div class="row"><span class="muted">Dimensions</span><b>100 × 40 × 3 mm</b></div>
+      <div class="row"><span class="muted">Validation</span><b><span style="color:var(--green)">4/4 checks passed</span></b></div>
+      <div class="row"><span class="muted">Made with</span><b>Nameplate Maker v1.0</b></div>
+    </div>
+    <div class="format-grid">
+      <div class="format sel"><div class="f-name">3MF</div><div class="f-desc">Best for your printer</div></div>
+      <div class="format"><div class="f-name">STL</div><div class="f-desc">Universal</div></div>
+      <div class="format"><div class="f-name">GLB</div><div class="f-desc">3D preview</div></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm">Download 3MF</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const go = (id) => { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0,0); };
+document.querySelectorAll('[data-goto]').forEach(el => el.addEventListener('click', (e) => { e.preventDefault(); go(el.dataset.goto); }));
+
+// Create: intent → tool
+const TOOLS = [
+  { slug:'nameplate', icon:'🪧', name:'Nameplate Maker', desc:'Text, size, mounting holes, fonts.', cat:'Signs & Labels', diff:'Beginner' },
+  { slug:'qrsign', icon:'🔳', name:'QR Sign Maker', desc:'Printable sign with a scannable QR code.', cat:'Signs & Labels', diff:'Beginner' },
+  { slug:'lightbox', icon:'💡', name:'Light Box Maker', desc:'Backlit LED sign from artwork.', cat:'Decorative', diff:'Intermediate' },
+  { slug:'box', icon:'📦', name:'Box Maker', desc:'Storage boxes and organizers, parametric.', cat:'Storage & Organization', diff:'Beginner' },
+  { slug:'bracket', icon:'🔩', name:'Bracket Maker', desc:'Wall brackets and mounts.', cat:'Brackets & Mounts', diff:'Intermediate' },
+  { slug:'sign', icon:'☀️', name:'Sign Maker', desc:'Outdoor and indoor signs.', cat:'Signs & Labels', diff:'Beginner' },
+  { slug:'keychain', icon:'🔑', name:'Keychain Maker', desc:'Small keychains with text.', cat:'Accessories', diff:'Beginner' },
+  { slug:'repair', icon:'🛠️', name:'Print Check & Repair', desc:'Analyze a mesh for printability.', cat:'Repair & Check', diff:'—' },
+];
+const intentMap = { nameplate:'nameplate', 'storage box':'box', 'wall bracket':'bracket', 'phone stand':'box', organizer:'box', sign:'sign', keychain:'keychain' };
+
+function renderGrid() {
+  $('#tool-grid').innerHTML = TOOLS.map(t => `
+    <div class="tool-opt" style="flex-direction:column;align-items:flex-start" onclick="pickTool('${t.slug}')">
+      <div style="display:flex;gap:14px;align-items:center;width:100%">
+        <div class="t-icon">${t.icon}</div>
+        <div><h3>${t.name}</h3><p>${t.desc}</p></div>
+      </div>
+      <div style="font-size:11px;color:var(--ink-faint)">${t.cat} · ${t.diff}</div>
+    </div>`).join('');
+}
+function renderCards() {
+  $('#model-cards').innerHTML = `
+    <div class="mcard" onclick="openModel()">
+      <div class="thumb"><span class="state check pass">✓ Printable</span>
+        <svg viewBox="0 0 90 90"><ellipse cx="45" cy="52" rx="36" ry="11" fill="#b8cdca" opacity=".5"/><path d="M13 34 L77 34 L77 46 Q77 54 71 54 L19 54 Q13 54 13 46 Z" fill="#1f8a7a"/><rect x="17" y="37" width="56" height="9" rx="2" fill="#0f766e"/><text x="45" y="45" text-anchor="middle" font-size="6" font-weight="800" fill="#eafffa" font-family="Georgia" font-style="italic">WORKSHOP</text></svg>
+      </div>
+      <div class="body"><h3>Workshop nameplate</h3><div class="meta">Nameplate Maker · just now · 100×40×3 mm</div>
+        <div class="actions"><button class="btn btn-primary" style="font-size:12px;padding:6px 8px">Open</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">Export</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">⋯</button></div>
+      </div>
+    </div>
+    <div class="mcard">
+      <div class="thumb"><span class="state check warn">⚠ Review</span>
+        <svg viewBox="0 0 90 90"><ellipse cx="45" cy="52" rx="34" ry="10" fill="#b8cdca" opacity=".4"/><rect x="20" y="36" width="50" height="30" rx="4" fill="#3d8b6e"/><text x="45" y="57" text-anchor="middle" font-size="8" font-weight="700" fill="#eafffa">QR</text></svg>
+      </div>
+      <div class="body"><h3>Studio door QR</h3><div class="meta">QR Sign Maker · 2h ago · 80×50×2 mm</div>
+        <div class="actions"><button class="btn btn-primary" style="font-size:12px;padding:6px 8px">Open</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">Export</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">⋯</button></div>
+      </div>
+    </div>
+    <div class="mcard">
+      <div class="thumb"><span class="state check na">— Not checked</span>
+        <svg viewBox="0 0 90 90"><ellipse cx="45" cy="52" rx="32" ry="9" fill="#b8cdca" opacity=".4"/><path d="M25 40 L65 40 L58 66 L32 66 Z" fill="#8aa0a5"/></svg>
+      </div>
+      <div class="body"><h3>Parts tray v1</h3><div class="meta">Box Maker · yesterday · 180×120×40 mm</div>
+        <div class="actions"><button class="btn btn-primary" style="font-size:12px;padding:6px 8px">Open</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">Export</button><button class="btn btn-ghost" style="font-size:12px;padding:6px 8px">⋯</button></div>
+      </div>
+    </div>`;
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600); }
+
+// intent flow
+$('#intent-input').addEventListener('input', (e) => {
+  const v = e.target.value.trim().toLowerCase();
+  const hit = Object.keys(intentMap).find(k => v.includes(k));
+  if (hit) showIntentPick(intentMap[hit]); else $('#intent-pick').style.display='none';
+});
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { $('#intent-input').value = 'a ' + c.dataset.intent.toLowerCase(); showIntentPick(intentMap[c.dataset.intent.toLowerCase()] || 'nameplate'); }));
+function showIntentPick(slug){
+  const opt = document.querySelector(`.tool-opt[data-tool="${slug}"]`);
+  document.querySelectorAll('.tool-opt').forEach(o => { o.classList.toggle('sel', o===opt); o.querySelector('.match') && (o.querySelector('.match').style.display = o===opt ? '' : 'none'); });
+  $('#intent-pick').style.display='block';
+  $('#pick-other').onclick = () => go('explore');
+  $('#start-tool').textContent = `Continue with ${opt.querySelector('h3').textContent} →`;
+}
+$('#start-tool').addEventListener('click', () => {
+  // entering studio triggers the generation progress (first-time flow)
+  go('studio');
+  runProgress();
+});
+document.querySelectorAll('.tool-opt[data-tool]').forEach(o => o.addEventListener('click', () => showIntentPick(o.dataset.tool)));
+
+// Studio regenerate progress
+function runProgress(){
+  $('#progress').classList.add('show');
+  const stages = [...document.querySelectorAll('#stages .stage')];
+  stages.forEach((s,i) => {
+    setTimeout(() => {
+      s.classList.remove('now'); s.classList.add('done'); s.querySelector('.dot').textContent = '✓';
+      if (stages[i+1]) stages[i+1].classList.add('now');
+      if (i === stages.length-1) { setTimeout(() => { $('#progress').classList.remove('show'); toast('Nameplate generated — all checks passed'); }, 500); }
+    }, i * 900);
+  });
+}
+$('#btn-regenerate').addEventListener('click', runProgress);
+$('#adv-toggle').addEventListener('click', function(){ this.textContent = this.textContent.startsWith('▸') ? '▾ Advanced (6 more)' : '▸ Advanced (6 more)'; });
+
+// Export
+$('#btn-export').addEventListener('click', () => $('#export-modal').classList.add('show'));
+$('#modal-cancel').addEventListener('click', () => $('#export-modal').classList.remove('show'));
+document.querySelectorAll('.format').forEach(f => f.addEventListener('click', () => { document.querySelectorAll('.format').forEach(x=>x.classList.remove('sel')); f.classList.add('sel'); $('#modal-confirm').textContent = `Download ${f.querySelector('.f-name').textContent}`; }));
+$('#modal-confirm').addEventListener('click', () => { $('#export-modal').classList.remove('show'); toast(`Saved workshop-nameplate.3mf — added to My Models`); go('models'); renderCards(); });
+
+function pickTool(slug){ const t = TOOLS.find(x=>x.slug===slug); $('#intent-input').value = 'a ' + t.name.toLowerCase().replace(' maker',''); go('studio'); runProgress(); }
+function openModel(){ go('studio'); toast('Opened in Studio'); }
+renderGrid(); renderCards();
+</script>
+</body>
+</html>
