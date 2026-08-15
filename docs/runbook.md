@@ -276,6 +276,15 @@ module), Node.js 22, and passwordless sudo for Playwright browser deps
 (fallback: browsers pre-installed). Re-register after host rebuilds;
 `gh` must be authenticated with owner/admin scope on `dhjh24/modumesh-makerlab`.
 
+### Where backups must live
+
+**Never commit backup artifacts to git.** The `backups/` directory is
+git-ignored and untracked — dumps and MinIO objects are frequently large,
+contain secrets (DB credentials, tokens, user data), and bloating the
+repository history is unrecoverable. Store backups **outside the repo**
+(e.g. `/var/backups/modumesh/` on the host, or an off-site/object-storage
+target), and keep only scripts/config in the repo.
+
 ## Incident response
 
 ### Worker crash / memory exhaustion

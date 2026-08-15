@@ -179,7 +179,8 @@ def test_disable_plugin_blocks_jobs(client: httpx.Client):
     assert job.status_code == 400
 
     enabled = client.post(
-        f"{BASE}/api/v1/plugins/fixture-echo/versions/{version}/enable"
+        f"{BASE}/api/v1/plugins/fixture-echo/versions/{version}/enable",
+        headers=_admin_headers(),
     )
     enabled.raise_for_status()
     assert enabled.json()["enabled"] is True
