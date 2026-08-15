@@ -220,26 +220,34 @@ jobs:
 
   osv-scan:
     name: OSV Scanner (lockfiles + requirements)
-    # The reusable workflow uploads a SARIF artifact to Code Scanning, which
-    # requires security-events: write; the top-level workflow permissions only
-    # grant contents: read, so grant the needed scopes at job level.
+    runs-on:
+      - self-hosted
+      - linux
+      - x64
+      - ci
+      - modumesh-makerlab
+    timeout-minutes: 20
+    # Uploads a SARIF artifact to Code Scanning, which requires
+    # security-events: write; the top-level workflow permissions only grant
+    # contents: read, so grant the needed scopes at job level.
     permissions:
       contents: read
       actions: read
       security-events: write
-    # GM-12 D3.2: google/osv-scanner-action is a reusable workflow; refs must
-    # be an existing branch/tag/commit (plain "v2" does NOT exist — tags are
-    # v2.x.y semver only, latest v2.5.0), so pin to the semver tag. The repo
-    # guardrail forbids GitHub-hosted runners, so runs-on is overridden to the
-    # self-hosted label set. fail-on-vuln: true (default) fails the job on any
-    # vulnerability.
-    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.0
-    with:
-      runs-on: '["self-hosted", "linux", "x64", "ci", "modumesh-makerlab"]'
-      scan-args: |-
-        -r
-        ./
-      fail-on-vuln: true
+    steps:
+      - uses: actions/checkout@v4
+      # GM-12 D3.2: google/osv-scanner-action composite action, pinned to the
+      # semver tag (plain "v2" does NOT exist — tags are v2.x.y semver only,
+      # latest v2.5.0). Used as a STEP (not the reusable workflow): the
+      # reusable workflow's runs-on input does not expand a JSON array string
+      # into separate labels on this runner, so its nested job queues forever
+      # with a single literal label. fail-on-vuln: true fails on any finding.
+      - name: OSV scan (lockfiles + requirements)
+        uses: google/osv-scanner-action/osv-scanner-action@v2.5.0
+        with:
+          scan-args: |-
+            -r
+            ./
 
   supply-chain:
     name: Supply Chain (pip-audit, npm audit)
