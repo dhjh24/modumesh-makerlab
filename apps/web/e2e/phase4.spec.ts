@@ -38,28 +38,21 @@ test.describe('Phase 4 core flows', () => {
     await expect(page.getByRole('heading', { name })).toBeVisible();
   });
 
-  test('generator marketplace opens schema-driven editor from catalog', async ({ page }) => {
+  test('explore page opens maker tool and creates a project from it', async ({ page }) => {
     await seedToken(page, token);
     await page.goto('/explore');
-    await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
-    // Wait for catalog payload (not the loading placeholder).
-    await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { name: 'Explore maker tools' })).toBeVisible();
+    // Maker-tool cards surface user-facing names (never plugin IDs).
+    await expect(page.getByRole('link', { name: /Nameplate Maker/i })).toBeVisible({
+      timeout: 30000,
+    });
 
-    // Prefer fixture-mesh if listed; otherwise fixture-echo.
-    const mesh = page.locator('a[href="/explore/fixture-mesh"]');
-    const echo = page.locator('a[href="/explore/fixture-echo"]');
-    if ((await mesh.count()) > 0) {
-      await mesh.first().click();
-      await expect(page).toHaveURL(/\/explore\/fixture-mesh/);
-      await page.getByRole('button', { name: /Use Fixture Mesh/i }).click();
-    } else {
-      await expect(echo.first()).toBeVisible();
-      await echo.first().click();
-      await expect(page).toHaveURL(/\/explore\/fixture-echo/);
-      await page.getByRole('button', { name: /Use Fixture Echo/i }).click();
-    }
+    // Open the Nameplate Maker tool detail and create a project from it.
+    await page.getByRole('link', { name: /Nameplate Maker/i }).click();
+    await expect(page).toHaveURL(/\/explore\/nameplate/);
+    await page.getByRole('button', { name: /Create with Nameplate Maker/i }).click();
 
-    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+\?tool=/);
+    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+\?tool=nameplate/);
     // Schema-driven fields from the plugin registry (not a hard-coded form).
     await expect(page.locator('.mm-schema-form')).toBeVisible();
   });

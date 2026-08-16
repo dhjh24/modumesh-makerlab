@@ -2,275 +2,114 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useCallback, useEffect, useState } from 'react';
-import type { CatalogItem } from '@modumesh/shared-types';
-import { Button } from '@modumesh/ui';
+import { Button, LoadingState } from '@modumesh/ui';
 import { AppShell } from '../../components/AppShell';
 import { api, ApiError } from '../../lib/api';
+import { makerToolFor } from '../../lib/makerTools';
 
-const MATURITY_LABELS: Record<string, string> = {
-  experimental: 'Experimental',
-  stable: 'Stable',
-  deprecated: 'Deprecated',
-};
-
-const MATURITY_COLORS: Record<string, string> = {
-  experimental: '#eab308',
-  stable: '#22c55e',
-  deprecated: '#ef4444',
-};
-
-function DetailRow({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', gap: 12, padding: '6px 0', borderBottom: '1px solid #1e293b' }}>
-      <dt style={{ width: 140, flexShrink: 0, color: '#64748b', fontSize: '0.875rem' }}>{label}</dt>
-      <dd style={{ margin: 0, fontSize: '0.875rem' }}>{children}</dd>
-    </div>
-  );
-}
-
-export default function GeneratorDetailPage() {
+export default function ToolDetailPage() {
   const router = useRouter();
-  const pluginId = typeof router.query.tool === 'string' ? router.query.tool : null;
-  const [item, setItem] = useState<CatalogItem | null>(null);
+  const slug = typeof router.query.tool === 'string' ? router.query.tool : null;
+  const tool = makerToolFor(slug);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
-    if (!pluginId) return;
-    setError(null);
-    api
-      .getCatalogItem(pluginId)
-      .then(setItem)
-      .catch((err) => setError(err instanceof ApiError ? err.message : String(err)));
-  }, [pluginId]);
+    if (!slug || tool) return;
+    // Unknown slug: fetch to confirm it's not an installed-but-unmapped tool.
+    // (Every surfaced tool maps in makerTools.ts; this only catches stragglers.)
+    api.getCatalogItem(slug).catch(() => setError('This maker tool is not available.'));
+  }, [slug, tool]);
 
-  const handleUseGenerator = useCallback(async () => {
-    if (!item) return;
+  const handleCreate = useCallback(async () => {
+    if (!tool) return;
     setCreating(true);
     try {
       const project = await api.createProject({
-        name: `${item.name} project`,
-        description: `Generated from ${item.plugin_id}@${item.version}`,
+        name: `${tool.name} project`,
+        description: `Made with ${tool.name}`,
       });
-      await router.push(`/studio/${project.id}?tool=${encodeURIComponent(item.plugin_id)}`);
+      await router.push(`/studio/${project.id}?tool=${encodeURIComponent(tool.slug)}`);
     } catch (err) {
       const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
       if (apiErr.unauthorized) {
-        // Catalog stays public, but creating a project requires a session.
         await router.push(`/login?next=${encodeURIComponent(router.asPath)}`);
         return;
       }
       setError(apiErr.message);
       setCreating(false);
     }
-  }, [item, router]);
-
-  const outputFormats = item?.outputs
-    .map((o) => o.mediaType.replace(/^model\//, '').replace(/^application\//, ''))
-    .join(', ');
-
-  const caps = item?.capabilities || {};
-  const activeCaps = Object.entries(caps)
-    .filter(([, v]) => v)
-    .map(([k]) => k);
+  }, [tool, router]);
 
   return (
-    <AppShell title={item ? `${item.name} · Generator` : 'Generator'}>
+    <AppShell title={tool ? tool.name : 'Explore'}>
       <Head>
-        <title>{item ? `${item.name} · ModuMesh MakerLab` : 'Loading…'}</title>
+        <title>{tool ? `${tool.name} · ModuMesh MakerLab` : 'Explore'}</title>
       </Head>
 
-      {error ? (
-        <div className="mm-panel" style={{ marginTop: '1rem', color: '#ef4444' }}>
-          <p>{error}</p>
-          <Link href="/explore">← Back to maker tools</Link>
-        </div>
-      ) : !item ? (
-        <p>Loading generator details…</p>
-      ) : (
-        <>
-          <Link
-            href="/explore"
-            style={{ fontSize: '0.875rem', color: '#64748b', textDecoration: 'none' }}
-          >
-            ← Generator Marketplace
-          </Link>
+      <Link
+        href="/explore"
+        style={{ fontSize: '0.875rem', color: '#5b6e72', textDecoration: 'none' }}
+      >
+        ← All maker tools
+      </Link>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'flex-start',
-              flexWrap: 'wrap',
-              gap: 12,
-              marginTop: 12,
-            }}
-          >
+      {!tool ? (
+        <div style={{ marginTop: '1.5rem' }}>
+          {error ? (
+            <div className="mm-panel" style={{ color: '#b91c1c' }}>
+              <p>{error}</p>
+              <Link href="/explore">Browse other maker tools</Link>
+            </div>
+          ) : (
+            <LoadingState title="Loading tool…" />
+          )}
+        </div>
+      ) : (
+        <div style={{ marginTop: '1rem', maxWidth: 720 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span aria-hidden="true" style={{ fontSize: '2.4rem', lineHeight: 1 }}>
+              {tool.icon}
+            </span>
             <div>
               <h1 className="mm-h1" style={{ margin: 0 }}>
-                {item.name}
+                {tool.name}
               </h1>
-              <p style={{ color: '#64748b', margin: '4px 0 0 0' }}>
-                {item.plugin_id}@{item.version}
-                {item.author ? ` · ${item.author}` : ''}
+              <p style={{ color: '#5b6e72', margin: '2px 0 0 0', fontSize: '0.9rem' }}>
+                {tool.categoryLabel} · {tool.difficulty}
               </p>
             </div>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  padding: '2px 10px',
-                  borderRadius: 10,
-                  backgroundColor: MATURITY_COLORS[item.maturity] || '#64748b',
-                  color: '#fff',
-                }}
-              >
-                {MATURITY_LABELS[item.maturity] || item.maturity}
-              </span>
-            </div>
           </div>
 
-          {item.description ? (
-            <p style={{ marginTop: 12, color: '#94a3b8', maxWidth: 600 }}>{item.description}</p>
-          ) : null}
+          <p style={{ marginTop: 16, fontSize: '1.05rem', maxWidth: 560 }}>{tool.promise}</p>
 
-          <Button
-            onClick={handleUseGenerator}
-            disabled={creating}
-            style={{ marginTop: 16, marginBottom: 24 }}
-          >
-            {creating ? 'Creating project…' : `Use ${item.name}`}
-          </Button>
-
-          <div className="mm-grid-3" style={{ marginTop: 0 }}>
-            {/* Details */}
-            <section className="mm-panel" aria-labelledby="details-heading">
-              <h2 id="details-heading" style={{ fontSize: '1rem', marginTop: 0 }}>
-                Details
-              </h2>
-              <dl>
-                <DetailRow label="Engine">{item.engine}</DetailRow>
-                <DetailRow label="Output formats">{outputFormats || '—'}</DetailRow>
-                <DetailRow label="Timeout">{item.timeout_seconds}s</DetailRow>
-                <DetailRow label="Memory">{item.memory_mb} MB</DetailRow>
-                <DetailRow label="SDK version">{item.sdk_version}</DetailRow>
-              </dl>
-            </section>
-
-            {/* License */}
-            <section className="mm-panel" aria-labelledby="license-heading">
-              <h2 id="license-heading" style={{ fontSize: '1rem', marginTop: 0 }}>
-                License
-              </h2>
-              {item.license ? (
-                <dl>
-                  <DetailRow label="SPDX">{item.license}</DetailRow>
-                  {item.license_url ? (
-                    <DetailRow label="URL">
-                      <a
-                        href={item.license_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#60a5fa' }}
-                      >
-                        {item.license_url}
-                      </a>
-                    </DetailRow>
-                  ) : null}
-                  {item.source_url ? (
-                    <DetailRow label="Source">
-                      <a
-                        href={item.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{ color: '#60a5fa' }}
-                      >
-                        Repository
-                      </a>
-                    </DetailRow>
-                  ) : null}
-                </dl>
-              ) : (
-                <p style={{ color: '#ef4444', fontSize: '0.875rem' }}>
-                  No license declared — generator is quarantined.
-                </p>
-              )}
-            </section>
-
-            {/* Capabilities */}
-            <section className="mm-panel" aria-labelledby="capabilities-heading">
-              <h2 id="capabilities-heading" style={{ fontSize: '1rem', marginTop: 0 }}>
-                Capabilities
-              </h2>
-              {activeCaps.length > 0 ? (
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {activeCaps.map((cap) => (
-                    <li
-                      key={cap}
-                      style={{
-                        padding: '4px 0',
-                        fontSize: '0.875rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
-                      <span style={{ color: '#22c55e' }}>●</span> {cap}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p style={{ color: '#64748b', fontSize: '0.875rem' }}>
-                  No special capabilities declared.
-                </p>
-              )}
-              {item.categories.length > 0 ? (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>
-                    Categories
-                  </p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {item.categories.map((cat) => (
-                      <span
-                        key={cat}
-                        style={{
-                          fontSize: '0.7rem',
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          backgroundColor: '#1e293b',
-                          color: '#94a3b8',
-                        }}
-                      >
-                        {cat}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-              {item.tags.length > 0 ? (
-                <div style={{ marginTop: 12 }}>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', marginBottom: 4 }}>Tags</p>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {item.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        style={{
-                          fontSize: '0.7rem',
-                          padding: '2px 8px',
-                          borderRadius: 4,
-                          backgroundColor: '#334155',
-                          color: '#94a3b8',
-                        }}
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </section>
+          <div className="mm-panel" style={{ marginTop: 20 }}>
+            <h2 style={{ fontSize: '1rem', marginTop: 0 }}>What you can make</h2>
+            <ul className="mm-list" style={{ margin: 0 }}>
+              {tool.examples.map((ex) => (
+                <li key={ex}>{ex}</li>
+              ))}
+            </ul>
           </div>
-        </>
+
+          <div className="mm-panel" style={{ marginTop: 12 }}>
+            <h2 style={{ fontSize: '1rem', marginTop: 0 }}>How it works</h2>
+            <p style={{ color: '#5b6e72', fontSize: '0.9rem', margin: 0 }}>
+              {tool.inputModeLabel} You can fine-tune everything in the studio before generating.
+            </p>
+          </div>
+
+          {error ? <p style={{ color: '#b91c1c', marginTop: 12 }}>{error}</p> : null}
+
+          <div style={{ marginTop: 20 }}>
+            <Button onClick={() => void handleCreate()} disabled={creating} size="md">
+              {creating ? 'Setting up…' : `Create with ${tool.name}`}
+            </Button>
+            <p className="mm-meta" style={{ marginTop: 8 }}>
+              Creates a project and opens it in the studio, ready to tune.
+            </p>
+          </div>
+        </div>
       )}
     </AppShell>
   );

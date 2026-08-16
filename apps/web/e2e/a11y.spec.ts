@@ -6,6 +6,9 @@ test.describe('Phase 4 accessibility @a11y', () => {
   let token = '';
 
   test.beforeAll(async ({ request }) => {
+    await request.post(
+      `${process.env.PLAYWRIGHT_API_URL || 'http://localhost:8000'}/api/v1/plugins/resync`,
+    );
     ({ token } = await registerTestUser(request));
   });
 
@@ -20,21 +23,24 @@ test.describe('Phase 4 accessibility @a11y', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([]);
   });
 
-  test('generators page keyboard focus and labels', async ({ page }) => {
+  test('explore page keyboard focus and labels (canonical /explore)', async ({ page }) => {
     await seedToken(page, token);
+    // Canonical accessibility target: hit /explore directly, not via redirect.
     await page.goto('/explore');
-    await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
-    await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
+    await expect(page.getByRole('heading', { name: 'Explore maker tools' })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Nameplate Maker/i })).toBeVisible({
+      timeout: 30000,
+    });
 
     await page.keyboard.press('Tab');
     // Skip link or nav should be reachable
     const focused = page.locator(':focus');
     await expect(focused).toBeVisible();
 
-    const fixture = page.locator('a[href^="/explore/fixture-"]').first();
-    await expect(fixture).toBeVisible();
-    await fixture.click();
-    await page.getByRole('button', { name: /Use /i }).click();
+    const tool = page.locator('a[href="/explore/nameplate"]').first();
+    await expect(tool).toBeVisible();
+    await tool.click();
+    await page.getByRole('button', { name: /Create with Nameplate Maker/i }).click();
     const form = page.locator('.mm-schema-form');
     await expect(form).toBeVisible();
     // Every visible input/select in the form should have an accessible name
