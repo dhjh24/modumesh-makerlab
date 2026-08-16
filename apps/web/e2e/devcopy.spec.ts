@@ -10,10 +10,10 @@ import { authHeaders, registerTestUser, seedToken } from './helpers';
  * silently — they're tracked). Anything outside the allowances fails.
  *
  * Allowance bookkeeping:
- * - `/`          → W2.3 (Create landing) removes the remaining catalog copy
+ * - `/`          → ZERO (W2.3 rebuilt the Create landing; dev copy removed)
  * - `/studio/*`  → W2.5 (Studio re-skin) removes generator/fixture language
- * - `/explore`   → must be ZERO (this wave)
- * - `/models`    → must be ZERO
+ * - `/explore`   → must be ZERO (W2.2)
+ * - `/models`    → must be ZERO (W2.2)
  */
 const BANNED = [
   'plugin',
@@ -49,22 +49,6 @@ const BANNED = [
 
 /** Pages where some banned strings remain by design (wave-tracked). */
 const ALLOWED: Record<string, string[]> = {
-  '/': [
-    // W2.3 Create landing rebuilds this page; ALL current dev copy is tracked
-    // until then: catalog section, plugin-id rows (fixture-echo · v1.0.0),
-    // empty-state registry copy, "queue a job" lead.
-    'generator',
-    'Generator',
-    'plugin',
-    'Plugin',
-    'fixture',
-    'Fixture',
-    'resync',
-    'registry',
-    'v1.0.0',
-    'schema',
-    'queue',
-  ],
   '/studio/[id]': [
     // W2.5 Studio re-skin removes these; tracked until then.
     'Generator',
