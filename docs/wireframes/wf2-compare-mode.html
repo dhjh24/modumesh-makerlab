@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maker Studio — Wireframe 2: Compare mode</title>
+<style>
+  :root {
+    --ink: #1a2b2e; --ink-muted: #5b6e72; --ink-faint: #8aa0a5;
+    --paper: #f7f9f9; --paper-2: #eef2f2; --line: #d8e0e0;
+    --accent: #0f766e; --accent-strong: #0b5d57; --accent-soft: #e0f2f0;
+    --teal: #1f8a7a; --amber: #d97706; --red: #b91c1c; --green: #15803d;
+    --shadow: 0 1px 3px rgba(20,40,44,.08), 0 4px 16px rgba(20,40,44,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif; background: var(--paper); color: var(--ink); }
+  .wf-note { background: #fff7ed; border-bottom: 2px solid #fdba74; color: #7c2d12; font-size: 12.5px; padding: 6px 16px; text-align: center; }
+  header { background: white; border-bottom: 1px solid var(--line); padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 28px; position: sticky; top: 0; z-index: 20; }
+  .brand { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
+  .brand span { color: var(--accent); }
+  nav.main { display: flex; gap: 6px; flex: 1; }
+  nav.main a { text-decoration: none; color: var(--ink-muted); font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
+  nav.main a.active { background: var(--accent-soft); color: var(--accent-strong); }
+  nav.main a.primary { background: var(--accent); color: white; }
+  .user { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-muted); }
+  .avatar { width: 30px; height: 30px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  main { max-width: 1280px; margin: 0 auto; padding: 22px 20px 90px; }
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-ghost { background: white; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .btn-lg { padding: 13px 24px; font-size: 15px; border-radius: 12px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .top h1 { font-size: 20px; }
+  .crumb { font-size: 12.5px; color: var(--ink-faint); }
+  .crumb b { color: var(--ink-muted); }
+
+  /* Compare kind selector */
+  .kind-switch { display: flex; gap: 4px; background: var(--paper-2); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin: 0 0 18px; width: fit-content; }
+  .kind-switch button { border: none; background: transparent; padding: 9px 16px; border-radius: 9px; font-size: 13.5px; font-weight: 700; color: var(--ink-muted); cursor: pointer; font-family: inherit; }
+  .kind-switch button.on { background: white; color: var(--accent-strong); box-shadow: var(--shadow); }
+  .kind-hint { font-size: 13px; color: var(--ink-muted); margin: -8px 0 16px; }
+
+  /* Pickers */
+  .panel { background: white; border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+  .panel h2 { font-size: 14px; margin-bottom: 4px; }
+  .panel .sub { font-size: 12.5px; color: var(--ink-muted); margin-bottom: 12px; }
+  .pick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+  .pick { border: 2px solid var(--line); border-radius: 12px; padding: 13px 14px; cursor: pointer; background: white; display: flex; gap: 12px; align-items: center; }
+  .pick:hover { border-color: var(--accent); }
+  .pick.sel { border-color: var(--accent); background: var(--accent-soft); }
+  .pick .t-icon { width: 38px; height: 38px; border-radius: 9px; background: var(--accent-soft); color: var(--accent-strong); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+  .pick h3 { font-size: 14px; }
+  .pick p { font-size: 12px; color: var(--ink-muted); }
+  .pick .tag { display: inline-block; margin-top: 5px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .tag.compat { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+  .tag.partial { background: #fffbeb; color: var(--amber); border: 1px solid #fde68a; }
+  .tag.ver { background: var(--accent-soft); color: var(--accent-strong); border: 1px solid #99e0d8; }
+  .pick .del { margin-left: auto; text-align: right; font-size: 11px; color: var(--ink-faint); }
+  .pick .del b { color: var(--ink); font-size: 12px; display: block; }
+
+  /* Params: shared vs per-tool */
+  .params-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 800px) { .params-2col { grid-template-columns: 1fr; } }
+  .param-box { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .param-box.shared { background: #f6fbfa; border-color: #99e0d8; }
+  .param-box h3 { font-size: 12.5px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .param-box h3 .lbl { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+  .lbl.shared { background: #d1f3ec; color: var(--accent-strong); }
+  .lbl.only { background: var(--paper-2); color: var(--ink-muted); }
+  .field { margin-bottom: 9px; }
+  .field label { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+  .field label .unit { color: var(--ink-faint); font-weight: 400; }
+  .field input[type=text], .field input[type=number], .field select { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; font-size: 13px; font-family: inherit; background: white; }
+  .per-tool { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
+  .per-tool .who { font-size: 11px; color: var(--accent-strong); font-weight: 700; margin-bottom: 6px; }
+  .per-tool .who .note { color: var(--ink-faint); font-weight: 400; }
+  /* At 4 candidates the per-tool unique sections collapse to headers (locked) */
+  #per-tool-col.crowded .param-box:not(.shared) .field { display: none; }
+  #per-tool-col.crowded .param-box:not(.shared) h3 { margin-bottom: 0; cursor: pointer; }
+  #per-tool-col.crowded .param-box:not(.shared).open .field { display: block; }
+  #per-tool-col.crowded .param-box:not(.shared).open h3 { margin-bottom: 8px; }
+  .crowd-note { display: none; font-size: 11.5px; color: var(--ink-faint); margin: 0 0 8px; }
+  #per-tool-col.crowded .crowd-note { display: block; }
+
+  /* Run */
+  .run-row { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
+  .run-row .hint { font-size: 12.5px; color: var(--ink-muted); flex: 1; }
+  .compare-run { background: var(--accent); color: white; border: none; border-radius: 12px; padding: 12px 26px; font-size: 14.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .compare-run:disabled { opacity: .45; cursor: not-allowed; }
+
+  /* Results */
+  .results { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 6px; }
+  .card { background: white; border: 2px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+  .card .head { padding: 11px 14px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 10px; }
+  .card .head .t-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent-soft); display: grid; place-items: center; font-size: 15px; }
+  .card .head h3 { font-size: 13.5px; }
+  .card .head .status { margin-left: auto; font-size: 11px; font-weight: 700; }
+  .card .thumb { height: 150px; background: linear-gradient(180deg, #e9eff0, #dfe8e8); display: grid; place-items: center; position: relative; }
+  .card .thumb .dims { position: absolute; bottom: 8px; left: 10px; background: rgba(255,255,255,.92); border-radius: 7px; padding: 4px 8px; font-size: 11.5px; font-weight: 600; }
+  .card .thumb .dims .mm { color: var(--ink-faint); font-weight: 400; }
+  .card .checks { padding: 10px 14px 4px; display: grid; gap: 5px; }
+  .card .checks .chk { font-size: 12px; font-weight: 600; }
+  .pass { color: var(--green); } .warn { color: var(--amber); } .fail { color: var(--red); } .na { color: var(--ink-faint); }
+  .card .params-diff { padding: 8px 14px; font-size: 11.5px; color: var(--ink-muted); border-top: 1px dashed var(--line); }
+  .card .card-foot { margin-top: auto; padding: 10px 14px; display: flex; gap: 8px; }
+  .card .card-foot .btn { flex: 1; font-size: 12.5px; padding: 8px 10px; }
+  .card.winner { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft), var(--shadow); }
+  .winner-badge { position: absolute; top: 8px; right: 8px; background: var(--accent); color: white; font-size: 10.5px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+  .card .prog { padding: 14px; display: grid; gap: 8px; }
+  .card .prog .stage { font-size: 12.5px; color: var(--ink-muted); display: flex; justify-content: space-between; }
+  .card .prog .bar { height: 8px; border-radius: 999px; background: var(--paper-2); overflow: hidden; border: 1px solid var(--line); }
+  .card .prog .fill { height: 100%; background: var(--accent); border-radius: 999px; transition: width .3s; }
+
+  /* Modal: use winner */
+  .modal { position: fixed; inset: 0; background: rgba(26,43,46,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal.show { display: flex; }
+  .modal-card { background: white; border-radius: 16px; padding: 24px 26px; width: min(460px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal-card h3 { font-size: 17px; }
+  .modal-card .sub { color: var(--ink-muted); font-size: 13.5px; margin: 5px 0 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.25); z-index: 60; display: none; }
+  .toast.show { display: block; }
+  .mobile-bar { display: none; }
+  @media (max-width: 960px) { nav.main a:not(.primary) { display: none; } .mobile-bar { display: flex; } }
+  .mobile-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--line); z-index: 30; }
+  .mobile-bar a { flex: 1; text-align: center; padding: 9px 4px 8px; font-size: 10.5px; font-weight: 600; color: var(--ink-muted); text-decoration: none; }
+  .mobile-bar a .mi { display: block; font-size: 18px; margin-bottom: 2px; }
+</style>
+</head>
+<body>
+
+<div class="wf-note"><b>Wireframe 2 — Compare mode</b> · Proves: Studio → Compare → pick <b>Versions</b> or <b>Maker Tools</b> → shared params + per-tool params (no JSON) → generate → side-by-side previews with dims + printability → pick winner → becomes the Studio model, comparison stays in History.</div>
+
+<header>
+  <div class="brand">ModuMesh <span>Maker Studio</span></div>
+  <nav class="main">
+    <a href="#" class="primary">Create</a><a href="#">Explore</a><a href="#">My Models</a>
+  </nav>
+  <div class="user"><span>Dirk</span><div class="avatar">D</div></div>
+</header>
+
+<main>
+  <div class="top">
+    <div>
+      <div class="crumb"><a href="#" id="back-studio" style="color:var(--ink-faint);text-decoration:none">← Studio: Workshop nameplate</a></div>
+      <h1 style="margin-top:2px">Compare</h1>
+    </div>
+  </div>
+
+  <!-- Kind switch -->
+  <div class="kind-switch">
+    <button id="kind-versions">⚖️ Which settings look better?</button>
+    <button class="on" id="kind-tools">🧩 Which way should I make this?</button>
+  </div>
+  <p class="kind-hint" id="kind-hint">Compare <b>Nameplate Maker</b> against other maker tools that can make a similar thing.</p>
+
+  <!-- Versions picker -->
+  <div class="panel" id="panel-versions" style="display:none">
+    <h2>Pick versions to compare</h2>
+    <p class="sub">Same maker tool, different settings — up to 4.</p>
+    <div class="pick-grid">
+      <div class="pick" data-v="v3">
+        <div class="t-icon">🪧</div>
+        <div><h3>v3 · engraved</h3><p>Raised text off · 100×40×3 mm</p><span class="tag ver">Current</span></div>
+        <div class="del"><b>v3</b>just now</div>
+      </div>
+      <div class="pick sel" data-v="v2">
+        <div class="t-icon">🪧</div>
+        <div><h3>v2 · raised</h3><p>Raised text on · 120×50×3 mm</p></div>
+        <div class="del"><b>v2</b>12m ago</div>
+      </div>
+      <div class="pick" data-v="v1">
+        <div class="t-icon">🪧</div>
+        <div><h3>v1 · thin</h3><p>2 mm thick · no holes</p></div>
+        <div class="del"><b>v1</b>14m ago</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tools picker -->
+  <div class="panel" id="panel-tools">
+    <h2>Compatible maker tools</h2>
+    <p class="sub">Other tools that can use a similar design — up to 4. Only compatible ones are suggested.</p>
+    <div class="pick-grid">
+      <div class="pick sel" data-t="np">
+        <div class="t-icon">🪧</div>
+        <div><h3>Nameplate Maker</h3><p>Your current tool</p><span class="tag compat">Current</span></div>
+      </div>
+      <div class="pick sel" data-t="qr">
+        <div class="t-icon">🔳</div>
+        <div><h3>QR Sign Maker</h3><p>Text + QR on a plate</p><span class="tag compat">Fully compatible</span></div>
+      </div>
+      <div class="pick sel" data-t="sign">
+        <div class="t-icon">☀️</div>
+        <div><h3>Sign Maker</h3><p>Bigger plates, outdoor</p><span class="tag compat">Fully compatible</span></div>
+      </div>
+      <div class="pick" data-t="lb">
+        <div class="t-icon">💡</div>
+        <div><h3>Light Box Maker</h3><p>Backlit LED sign</p><span class="tag partial">Needs artwork</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shared + per-tool params -->
+  <div class="panel">
+    <h2>Design parameters</h2>
+    <p class="sub">Shared settings apply to every selected item. Anything a tool can't use is hidden — no JSON, no raw keys.</p>
+    <div class="params-2col">
+      <div class="param-box shared">
+        <h3>Shared — applies to all <span class="lbl shared">shared</span></h3>
+        <div class="field"><label>Width <span class="unit">mm</span></label><input type="number" value="100"></div>
+        <div class="field"><label>Height <span class="unit">mm</span></label><input type="number" value="40"></div>
+        <div class="field"><label>Thickness <span class="unit">mm</span></label><input type="number" value="3"></div>
+        <div class="field"><label>Material</label><select><option>PLA</option><option>PETG</option></select></div>
+        <div class="field"><label>Mounting holes</label><select><option>None</option><option selected>Two</option><option>Four</option></select></div>
+      </div>
+      <div id="per-tool-col">
+        <p class="crowd-note">4 candidates selected — tap a tool to show its unique settings.</p>
+        <div class="param-box">
+          <h3>Only in Nameplate Maker <span class="lbl only">per tool</span></h3>
+          <div class="field"><label>Text</label><input type="text" value="WORKSHOP"></div>
+          <div class="field"><label>Font</label><select><option>Arial</option><option>Georgia</option></select></div>
+          <div class="field check" style="display:flex;gap:7px;align-items:center;font-size:12.5px"><input type="checkbox"> Raised text</div>
+        </div>
+        <div class="param-box" style="margin-top:10px">
+          <h3>Only in QR Sign Maker <span class="lbl only">per tool</span></h3>
+          <div class="field"><label>QR link</label><input type="text" value="https://makerlab.local"></div>
+          <div class="field"><label>Corner style</label><select><option>Rounded</option><option>Square</option></select></div>
+        </div>
+        <div class="param-box" style="margin-top:10px">
+          <h3>Only in Sign Maker <span class="lbl only">per tool</span></h3>
+          <div class="field"><label>Sign text</label><input type="text" value="WORKSHOP"></div>
+          <div class="field"><label>Outdoor coating</label><select><option>None</option><option>UV seal</option></select></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="run-row">
+    <span class="hint" id="run-hint">3 selected · shared params copied to each tool</span>
+    <button class="compare-run" id="btn-run">Generate comparisons</button>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results" style="display:none"></div>
+</main>
+
+<div class="mobile-bar">
+  <a href="#"><span class="mi">＋</span>Create</a><a href="#" class="active"><span class="mi">🧊</span>Studio</a><a href="#"><span class="mi">🗂</span>Models</a><a href="#"><span class="mi">🔍</span>Explore</a><a href="#"><span class="mi">⚙️</span>More</a>
+</div>
+
+<!-- Use-winner modal -->
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <h3 id="modal-title">Use this version?</h3>
+    <p class="sub" id="modal-sub">The comparison stays in your Studio history either way.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-confirm">Use this version</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+let kind = 'tools';
+let currentItems = []; // the items being compared (for dynamic history naming)
+let cardStates = [];   // 'running' | 'ready' | 'failed' per card
+
+$('#back-studio').addEventListener('click', e => { e.preventDefault(); toast('Back in Studio — Workshop nameplate (unchanged)'); });
+
+$('#kind-versions').addEventListener('click', () => setKind('versions'));
+$('#kind-tools').addEventListener('click', () => setKind('tools'));
+function setKind(k){
+  kind = k;
+  $('#kind-versions').classList.toggle('on', k==='versions');
+  $('#kind-tools').classList.toggle('on', k==='tools');
+  $('#panel-versions').style.display = k==='versions' ? '' : 'none';
+  $('#panel-tools').style.display = k==='tools' ? '' : 'none';
+  $('#kind-hint').innerHTML = k==='versions'
+    ? 'Compare saved versions of <b>Nameplate Maker</b> against each other.'
+    : 'Compare <b>Nameplate Maker</b> against other maker tools that can make a similar thing.';
+  updateRunHint();
+}
+
+document.querySelectorAll('.pick').forEach(p => p.addEventListener('click', () => {
+  const max = 4;
+  const group = kind==='versions' ? '#panel-versions .pick' : '#panel-tools .pick';
+  const picks = document.querySelectorAll(group);
+  if (p.classList.contains('sel')) { p.classList.remove('sel'); }
+  else {
+    const sel = document.querySelectorAll(group + '.sel');
+    if (sel.length >= max) { toast(`Pick up to ${max}`); return; }
+    p.classList.add('sel');
+  }
+  updateRunHint();
+}));
+
+function updateRunHint(){
+  const n = document.querySelectorAll(`#panel-${kind==='versions'?'versions':'tools'} .pick.sel`).length;
+  $('#run-hint').textContent = n < 2 ? 'Select at least 2 items to compare.'
+    : `${n} selected · shared params copied to each ${kind==='versions'?'version':'tool'}`;
+  $('#btn-run').disabled = n < 2;
+  // At 4 candidates, collapse per-tool unique sections (locked choice).
+  $('#per-tool-col').classList.toggle('crowded', n >= 4);
+}
+// Tapping a collapsed per-tool header expands just that tool's fields.
+$('#per-tool-col').addEventListener('click', (e) => {
+  const box = e.target.closest('.param-box:not(.shared)');
+  if (box && $('#per-tool-col').classList.contains('crowded')) box.classList.toggle('open');
+});
+updateRunHint();
+
+const SVG = (fill, extra='') => `<svg viewBox="0 0 90 90" style="width:80px;height:80px">${extra}<ellipse cx="45" cy="55" rx="34" ry="10" fill="#b8cdca" opacity=".45"/><path d="M13 36 L77 36 L77 48 Q77 56 71 56 L19 56 Q13 56 13 48 Z" fill="${fill}"/><rect x="17" y="39" width="56" height="9" rx="2" fill="#0f766e"/><text x="45" y="47" text-anchor="middle" font-size="6" font-weight="800" fill="#eafffa" font-family="Georgia" font-style="italic">WORKSHOP</text></svg>`;
+
+function cardFor(item, i, kind){
+  const names = { np:'Nameplate Maker', qr:'QR Sign Maker', sign:'Sign Maker', lb:'Light Box Maker' };
+  const name = kind==='versions' ? item : names[item];
+  const dims = item==='v1' ? '80 × 40 × 2' : '100 × 40 × 3';
+  return `
+  <div class="card" data-k="${item}">
+    <div class="head">
+      <div class="t-icon">${item==='qr'?'🔳':item==='sign'?'☀️':item==='lb'?'💡':'🪧'}</div>
+      <h3>${name}</h3>
+      <span class="status" style="color:var(--ink-faint)">starting…</span>
+    </div>
+    <div class="prog">
+      <div class="stage"><span id="stage-txt-${i}">Preparing</span><span id="stage-pct-${i}">0%</span></div>
+      <div class="bar"><div class="fill" id="fill-${i}" style="width:0%"></div></div>
+    </div>
+    <div class="thumb" style="display:none">
+      ${kind==='versions' ? `<span class="winner-badge" style="display:none">Winner</span>` : ''}
+      ${SVG('#1f8a7a')}
+      <div class="dims">${dims} <span class="mm">mm</span></div>
+    </div>
+    <div class="checks" style="display:none">
+      <span class="chk pass">✓ Manifold</span>
+      <span class="chk pass">✓ Watertight</span>
+      <span class="chk pass">✓ Fits build volume</span>
+      <span class="chk fail" style="display:none">✗ Failed — see details</span>
+    </div>
+    <div class="params-diff" style="display:none">${kind==='versions'
+      ? (item==='v1' ? '2 mm thick · no holes · 80 mm wide' : item==='v2' ? 'raised text · 120×50 mm' : 'engraved · current')
+      : (item==='qr' ? 'QR link set · corner: rounded' : item==='sign' ? 'sign text · UV seal off' : 'text: WORKSHOP')}</div>
+    <div class="card-foot">
+      <button class="btn btn-primary" style="display:none" onclick="pickWinner('${item}','${kind}')">Use this version</button>
+    </div>
+  </div>`;
+}
+
+$('#btn-run').addEventListener('click', () => {
+  const items = [...document.querySelectorAll(`#panel-${kind==='versions'?'versions':'tools'} .pick.sel`)].map(p => p.dataset.v || p.dataset.t);
+  if (items.length < 2) { toast('Select at least 2 items to compare.'); return; }
+  currentItems = items;
+  cardStates = items.map(() => 'running');
+  $('#results').style.display = 'grid';
+  $('#results').innerHTML = items.map((it,i) => cardFor(it,i,kind)).join('');
+  toast(`Comparing ${items.length} ${kind==='versions'?'versions':'tools'}…`);
+  const STAGES = ['Preparing','Building geometry','Processing model','Checking printability','Creating preview','Ready'];
+  items.forEach((_, i) => {
+    setTimeout(() => {
+      let s = 0;
+      const iv = setInterval(() => {
+        s++;
+        const pct = Math.min(100, Math.round(s/9*100));
+        $('#fill-'+i).style.width = pct+'%';
+        $('#stage-pct-'+i).textContent = pct+'%';
+        $('#stage-txt-'+i).textContent = STAGES[Math.min(5, Math.floor(s/1.6))];
+        if (s >= 9) {
+          clearInterval(iv);
+          cardStates[i] = 'ready';
+          const card = document.querySelectorAll('#results .card')[i];
+          card.querySelector('.prog').style.display = 'none';
+          card.querySelector('.thumb').style.display = 'grid';
+          card.querySelector('.checks').style.display = 'grid';
+          card.querySelector('.params-diff').style.display = 'block';
+          card.querySelector('.status').textContent = '✓ Ready';
+          card.querySelector('.status').style.color = 'var(--green)';
+          // Winner selection unlocks only when EVERY candidate is done.
+          if (cardStates.every(st => st !== 'running')) unlockWinners();
+        }
+      }, 350);
+    }, i * 900);
+  });
+});
+
+function unlockWinners(){
+  document.querySelectorAll('#results .card').forEach((card, i) => {
+    if (cardStates[i] === 'ready') {
+      card.querySelector('.card-foot .btn').style.display = 'block';
+    }
+  });
+}
+
+function historyName(k, items){
+  const names = { np:'Nameplate Maker', qr:'QR Sign Maker', sign:'Sign Maker', lb:'Light Box Maker' };
+  const labels = items.map(it => k==='versions' ? it : (names[it] || it));
+  return `Compare · ${labels.join(' vs ')}`;
+}
+
+function pickWinner(key, k){
+  const card = document.querySelector(`#results .card[data-k="${key}"]`);
+  document.querySelectorAll('#results .card').forEach(c => c.classList.remove('winner'));
+  card.classList.add('winner');
+  const badge = card.querySelector('.winner-badge');
+  if (badge) badge.style.display = 'block';
+  const name = k==='versions' ? key : ({np:'Nameplate Maker',qr:'QR Sign Maker',sign:'Sign Maker',lb:'Light Box Maker'})[key];
+  const hist = historyName(k, currentItems);
+  $('#modal-title').textContent = `Use ${name}?`;
+  $('#modal-sub').textContent = `This becomes the current Studio model. The comparison stays in History as “${hist}” (${currentItems.length} ${k==='versions'?'versions':'tools'}).`;
+  $('#modal').classList.add('show');
+}
+$('#modal-cancel').addEventListener('click', () => $('#modal').classList.remove('show'));
+$('#modal-confirm').addEventListener('click', () => {
+  $('#modal').classList.remove('show');
+  const hist = historyName(kind, currentItems);
+  toast(`${kind==='versions'?'Version':'Tool'} result loaded into Studio — History keeps “${hist}”`);
+});
+
+function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }
+</script>
+</body>
+</html>
