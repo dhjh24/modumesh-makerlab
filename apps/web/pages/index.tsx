@@ -65,7 +65,7 @@ export default function HomePage() {
         name: name.trim(),
         description: description.trim() || undefined,
       });
-      await router.push(`/projects/${project.id}`);
+      await router.push(`/studio/${project.id}`);
     } catch (err) {
       setError(err instanceof ApiError ? err : new ApiError(String(err), 0, String(err)));
       setCreating(false);
@@ -133,7 +133,7 @@ export default function HomePage() {
             <ul className="mm-list">
               {projects?.map((p) => (
                 <li key={p.id}>
-                  <Link href={`/projects/${p.id}`}>
+                  <Link href={`/studio/${p.id}`}>
                     <strong>{p.name}</strong>
                     <div className="mm-meta">{formatRelativeTime(p.updated_at)}</div>
                   </Link>
@@ -193,7 +193,7 @@ export default function HomePage() {
               <ul className="mm-list">
                 {plugins?.slice(0, 6).map((g) => (
                   <li key={`${g.plugin_id}@${g.version}`}>
-                    <Link href={`/generators?plugin=${encodeURIComponent(g.plugin_id)}`}>
+                    <Link href={`/explore?tool=${encodeURIComponent(g.plugin_id)}`}>
                       <strong>{g.name}</strong>
                       <div className="mm-meta">
                         {g.plugin_id} · v{g.version}
@@ -203,7 +203,7 @@ export default function HomePage() {
                 ))}
               </ul>
               <div style={{ marginTop: '0.75rem' }}>
-                <Link href="/generators">Browse all generators</Link>
+                <Link href="/explore">Browse all maker tools</Link>
               </div>
             </>
           )}
@@ -229,7 +229,7 @@ export default function HomePage() {
           <ul className="mm-list">
             {jobs?.map((job) => (
               <li key={job.id}>
-                <Link href={`/projects/${job.project_id}?job=${job.id}`}>
+                <Link href={`/studio/${job.project_id}?job=${job.id}`}>
                   <div className="mm-row">
                     <strong>{job.job_type}</strong>
                     <JobStatusBadge status={job.status} />

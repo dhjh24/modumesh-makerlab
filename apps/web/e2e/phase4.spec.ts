@@ -34,32 +34,32 @@ test.describe('Phase 4 core flows', () => {
     const name = `E2E Project ${Date.now()}`;
     await page.getByLabel('Name').fill(name);
     await page.getByRole('button', { name: 'Create project' }).click();
-    await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+/);
+    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+/);
     await expect(page.getByRole('heading', { name })).toBeVisible();
   });
 
   test('generator marketplace opens schema-driven editor from catalog', async ({ page }) => {
     await seedToken(page, token);
-    await page.goto('/generators');
+    await page.goto('/explore');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
     // Wait for catalog payload (not the loading placeholder).
     await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
 
     // Prefer fixture-mesh if listed; otherwise fixture-echo.
-    const mesh = page.locator('a[href="/generators/fixture-mesh"]');
-    const echo = page.locator('a[href="/generators/fixture-echo"]');
+    const mesh = page.locator('a[href="/explore/fixture-mesh"]');
+    const echo = page.locator('a[href="/explore/fixture-echo"]');
     if ((await mesh.count()) > 0) {
       await mesh.first().click();
-      await expect(page).toHaveURL(/\/generators\/fixture-mesh/);
+      await expect(page).toHaveURL(/\/explore\/fixture-mesh/);
       await page.getByRole('button', { name: /Use Fixture Mesh/i }).click();
     } else {
       await expect(echo.first()).toBeVisible();
       await echo.first().click();
-      await expect(page).toHaveURL(/\/generators\/fixture-echo/);
+      await expect(page).toHaveURL(/\/explore\/fixture-echo/);
       await page.getByRole('button', { name: /Use Fixture Echo/i }).click();
     }
 
-    await expect(page).toHaveURL(/\/projects\/[0-9a-f-]+\?plugin=/);
+    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+\?tool=/);
     // Schema-driven fields from the plugin registry (not a hard-coded form).
     await expect(page.locator('.mm-schema-form')).toBeVisible();
   });
@@ -76,7 +76,7 @@ test.describe('Phase 4 core flows', () => {
     const project = await create.json();
 
     await seedToken(page, token);
-    await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
+    await page.goto(`/studio/${project.id}?tool=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
 
     // Fill schema form
@@ -113,7 +113,7 @@ test.describe('Phase 4 core flows', () => {
     });
     const project = await create.json();
     await seedToken(page, token);
-    await page.goto(`/projects/${project.id}`);
+    await page.goto(`/studio/${project.id}`);
 
     await page.getByRole('button', { name: 'Fixture STL', exact: true }).click();
     await expect(page.getByLabel(/model preview/i)).toBeVisible();

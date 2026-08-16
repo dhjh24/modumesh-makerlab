@@ -30,7 +30,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
 
 export default function GeneratorDetailPage() {
   const router = useRouter();
-  const pluginId = typeof router.query.plugin === 'string' ? router.query.plugin : null;
+  const pluginId = typeof router.query.tool === 'string' ? router.query.tool : null;
   const [item, setItem] = useState<CatalogItem | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -52,7 +52,7 @@ export default function GeneratorDetailPage() {
         name: `${item.name} project`,
         description: `Generated from ${item.plugin_id}@${item.version}`,
       });
-      await router.push(`/projects/${project.id}?plugin=${encodeURIComponent(item.plugin_id)}`);
+      await router.push(`/studio/${project.id}?tool=${encodeURIComponent(item.plugin_id)}`);
     } catch (err) {
       const apiErr = err instanceof ApiError ? err : new ApiError(String(err), 0, String(err));
       if (apiErr.unauthorized) {
@@ -83,14 +83,14 @@ export default function GeneratorDetailPage() {
       {error ? (
         <div className="mm-panel" style={{ marginTop: '1rem', color: '#ef4444' }}>
           <p>{error}</p>
-          <Link href="/generators">← Back to marketplace</Link>
+          <Link href="/explore">← Back to maker tools</Link>
         </div>
       ) : !item ? (
         <p>Loading generator details…</p>
       ) : (
         <>
           <Link
-            href="/generators"
+            href="/explore"
             style={{ fontSize: '0.875rem', color: '#64748b', textDecoration: 'none' }}
           >
             ← Generator Marketplace

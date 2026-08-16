@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Head from 'next/head';
-import { AppShell } from '../components/AppShell';
-import { api, ApiError } from '../lib/api';
+import { AppShell } from '../../components/AppShell';
+import { api, ApiError } from '../../lib/api';
 
 interface CheckResult {
   status: string;

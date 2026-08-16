@@ -46,7 +46,12 @@ type MobileTab = 'parameters' | 'preview' | 'project';
 export default function ProjectEditorPage() {
   const router = useRouter();
   const projectId = typeof router.query.id === 'string' ? router.query.id : null;
-  const queryPlugin = typeof router.query.plugin === 'string' ? router.query.plugin : null;
+  const queryPlugin =
+    typeof router.query.tool === 'string'
+      ? router.query.tool
+      : typeof router.query.plugin === 'string' // legacy ?plugin= links
+        ? router.query.plugin
+        : null;
   const queryJob = typeof router.query.job === 'string' ? router.query.job : null;
   const online = useOnline();
   const { status } = useRequireAuth();
@@ -280,7 +285,7 @@ export default function ProjectEditorPage() {
       setStatusMessage(`Job ${job.status}`);
       await router.replace(
         {
-          pathname: `/projects/${projectId}`,
+          pathname: `/studio/${projectId}`,
           query: { plugin: selectedPlugin.plugin_id, job: job.id },
         },
         undefined,
@@ -478,7 +483,7 @@ export default function ProjectEditorPage() {
               title="No generator selected"
               description="Install plugins or pick one from the catalog."
               actionLabel="Browse catalog"
-              onAction={() => void router.push('/generators')}
+              onAction={() => void router.push('/explore')}
             />
           )}
         </section>
@@ -621,7 +626,7 @@ export default function ProjectEditorPage() {
                 size="sm"
                 onClick={() =>
                   void router.push(
-                    `/projects/${projectId}/compare${
+                    `/studio/${projectId}/compare${
                       activeJobId ? `?job=${encodeURIComponent(activeJobId)}` : ''
                     }`,
                   )

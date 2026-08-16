@@ -22,7 +22,7 @@ test.describe('Phase 4 accessibility @a11y', () => {
 
   test('generators page keyboard focus and labels', async ({ page }) => {
     await seedToken(page, token);
-    await page.goto('/generators');
+    await page.goto('/explore');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
     await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
 
@@ -31,7 +31,7 @@ test.describe('Phase 4 accessibility @a11y', () => {
     const focused = page.locator(':focus');
     await expect(focused).toBeVisible();
 
-    const fixture = page.locator('a[href^="/generators/fixture-"]').first();
+    const fixture = page.locator('a[href^="/explore/fixture-"]').first();
     await expect(fixture).toBeVisible();
     await fixture.click();
     await page.getByRole('button', { name: /Use /i }).click();
@@ -66,7 +66,7 @@ test.describe('Phase 4 accessibility @a11y', () => {
     });
     const project = await create.json();
     await seedToken(page, token);
-    await page.goto(`/projects/${project.id}?plugin=fixture-echo`);
+    await page.goto(`/studio/${project.id}?tool=fixture-echo`);
     await expect(page.getByLabel('Generator')).toBeVisible();
     await expect(page.getByLabel('Job progress')).toBeVisible();
     await expect(page.locator('[aria-live="polite"]').first()).toBeVisible();

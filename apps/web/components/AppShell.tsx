@@ -6,9 +6,14 @@ import { api, ApiError } from '../lib/api';
 import { clearToken, getToken, setAuthUser, type AuthUser } from '../lib/auth';
 
 const NAV = [
-  { href: '/', label: 'Home' },
-  { href: '/generators', label: 'Marketplace' },
-  { href: '/health', label: 'Health' },
+  { href: '/', label: 'Create' },
+  { href: '/explore', label: 'Explore' },
+  { href: '/models', label: 'My Models' },
+];
+
+const USER_NAV = [
+  { href: '/settings', label: 'Settings' },
+  { href: '/admin/health', label: 'Developer' },
 ];
 
 export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
@@ -73,22 +78,70 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </nav>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           {user ? (
-            <>
-              <span
-                className="mm-meta"
-                style={{ whiteSpace: 'nowrap' }}
-                title={user.email || undefined}
-              >
-                {user.display_name || user.email}
-              </span>
-              <button
-                type="button"
+            <details className="mm-usermenu" style={{ position: 'relative' }}>
+              <summary
                 className="mm-btn mm-btn--ghost mm-btn--sm"
-                onClick={() => void handleLogout()}
+                style={{
+                  listStyle: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+                aria-label="Account menu"
               >
-                Logout
-              </button>
-            </>
+                <span
+                  className="mm-meta"
+                  style={{ whiteSpace: 'nowrap' }}
+                  title={user.email || undefined}
+                >
+                  {user.display_name || user.email}
+                </span>
+                ▾
+              </summary>
+              <div
+                style={{
+                  position: 'absolute',
+                  right: 0,
+                  top: 'calc(100% + 6px)',
+                  background: 'white',
+                  border: '1px solid var(--mm-line)',
+                  borderRadius: '10px',
+                  boxShadow: 'var(--mm-shadow, 0 4px 16px rgba(20,40,44,.12))',
+                  padding: '6px',
+                  minWidth: 180,
+                  zIndex: 40,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                }}
+              >
+                {USER_NAV.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 8,
+                      textDecoration: 'none',
+                      color: 'var(--mm-ink)',
+                      fontSize: '0.9rem',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+                <button
+                  type="button"
+                  className="mm-btn mm-btn--ghost mm-btn--sm"
+                  style={{ justifyContent: 'flex-start', marginTop: 2 }}
+                  onClick={() => void handleLogout()}
+                >
+                  Logout
+                </button>
+              </div>
+            </details>
           ) : (
             <Link
               href="/login"
@@ -107,9 +160,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
         </span>
         {children}
       </main>
-      <footer className="mm-footer">
-        Self-hosted generators · schema-driven · no CAD in the request path
-      </footer>
+      <footer className="mm-footer">Make it · print it · keep it — ModuMesh Maker Studio</footer>
     </div>
   );
 }
