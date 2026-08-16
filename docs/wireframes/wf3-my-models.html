@@ -165,11 +165,11 @@
 <!-- Delete confirm -->
 <div class="modal" id="delete-modal">
   <div class="modal-card">
-    <h3>Delete this model?</h3>
-    <p class="sub" id="delete-sub">This removes the model and its history. This can't be undone.</p>
+    <h3>Remove this model?</h3>
+    <p class="sub" id="delete-sub">This hides the model from My Models. It stays archived in your account and can be restored.</p>
     <div class="modal-actions">
       <button class="btn btn-ghost" id="del-cancel">Cancel</button>
-      <button class="btn btn-danger-ghost" id="del-confirm">Delete</button>
+      <button class="btn btn-danger-ghost" id="del-confirm">Remove</button>
     </div>
   </div>
 </div>
@@ -230,8 +230,7 @@ function renderCards(){
         <div class="actions">
           <button class="btn btn-primary" onclick="openModel('${m.name}')">Open</button>
           <button class="btn btn-ghost" onclick="exportModel('${m.name}')">Export</button>
-          <button class="btn btn-ghost" onclick="dupFor('${m.name}')">Duplicate</button>
-          <button class="btn btn-ghost" style="color:var(--red);border-color:#fecaca" onclick="delFor('${m.name}')">Delete</button>
+          <button class="btn btn-ghost" onclick="menuFor('${m.name}')">⋯</button>
         </div>
       </div>
     </div>`).join('');
@@ -254,14 +253,14 @@ function showEmpty(){ $('#loading').style.display='none'; $('#error').style.disp
 let target = null; // model targeted by a modal action
 function openModel(name){ toast(`Open in Studio → ${name} (WF1/2)`); }
 function exportModel(name){ toast(`Print / Export dialog → ${name} (WF1)`); }
-function delFor(name){ target = name; $('#delete-sub').textContent = `This removes "${name}" and its history. This can't be undone.`; $('#delete-modal').classList.add('show'); }
+function delFor(name){ target = name; $('#delete-sub').textContent = `"${name}" will be hidden from My Models. It stays archived in your account and can be restored.`; $('#delete-modal').classList.add('show'); }
 $('#del-cancel').addEventListener('click', () => $('#delete-modal').classList.remove('show'));
 $('#del-confirm').addEventListener('click', () => {
   $('#delete-modal').classList.remove('show');
   const i = MODELS.findIndex(m => m.name===target);
   if (i > -1) MODELS.splice(i,1);
   renderCards();
-  toast(`Deleted "${target}"`);
+  toast(`Removed "${target}" — archived (restorable)`);
 });
 function dupFor(name){ target = name; $('#dup-name').value = name + ' (copy)'; $('#dup-modal').classList.add('show'); }
 $('#dup-cancel').addEventListener('click', () => $('#dup-modal').classList.remove('show'));
@@ -272,7 +271,7 @@ $('#dup-confirm').addEventListener('click', () => {
   renderCards();
   toast(`Duplicated "${target}" — open it in Studio to tweak`);
 });
-function menuFor(name){ toast(`⋯ menu: Open · Duplicate · Export · Delete (shown on card)`); }
+function menuFor(name){ toast(`⋯ menu: Duplicate · Remove (Open/Export on card)`); }
 
 $('#btn-new').addEventListener('click', () => toast('→ Create (WF1) — intent flow'));
 
