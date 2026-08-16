@@ -7,37 +7,41 @@ import { expect, test } from '@playwright/test';
  */
 test.describe('Legacy route redirects', () => {
   test('/generators redirects permanently to /explore', async ({ page }) => {
-    const response = await page.goto('/generators');
-    // 301 permanent redirect to the canonical Maker Tools destination.
-    expect(response?.status()).toBe(301);
+    // maxRedirects 0 → the 301 itself is returned (page.goto would follow it).
+    const res = await page.request.get('/generators', { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toBe('/explore');
+    // And following it lands on the canonical page.
+    await page.goto('/generators');
     await expect(page).toHaveURL(/\/explore$/);
-    await expect(page.getByRole('heading')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Explore maker tools' })).toBeVisible();
   });
 
   test('/generators/[tool] redirects to /explore/[tool]', async ({ page }) => {
+    const res = await page.request.get('/generators/nameplate', { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toBe('/explore/nameplate');
     await page.goto('/generators/nameplate');
     await expect(page).toHaveURL(/\/explore\/nameplate$/);
   });
 
   test('/health redirects to /admin/health', async ({ page }) => {
-    const response = await page.goto('/health');
-    expect(response?.status()).toBe(301);
-    await expect(page).toHaveURL(/\/admin\/health$/);
+    const res = await page.request.get('/health', { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toBe('/admin/health');
   });
 
   test('/projects/[id] redirects to /studio/[id]', async ({ page }) => {
-    const response = await page.goto('/projects/00000000-0000-0000-0000-000000000000');
-    expect(response?.status()).toBe(301);
-    await expect(page).toHaveURL(/\/studio\/00000000-0000-0000-0000-000000000000/);
+    const id = '00000000-0000-0000-0000-000000000000';
+    const res = await page.request.get(`/projects/${id}`, { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toBe(`/studio/${id}`);
   });
 
   test('/projects/[id]/compare redirects to /studio/[id]/compare', async ({ page }) => {
-    const response = await page.goto(
-      '/projects/00000000-0000-0000-0000-000000000000/compare',
-    );
-    expect(response?.status()).toBe(301);
-    await expect(page).toHaveURL(
-      /\/studio\/00000000-0000-0000-0000-000000000000\/compare/,
-    );
+    const id = '00000000-0000-0000-0000-000000000000';
+    const res = await page.request.get(`/projects/${id}/compare`, { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(res.headers().location).toBe(`/studio/${id}/compare`);
   });
 });
