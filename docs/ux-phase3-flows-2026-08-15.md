@@ -79,6 +79,6 @@ Create ("a nameplate with my workshop name")
 ## Review questions
 1. Does the nameplate path feel like "one coherent creation app" — any step that still smells like a plugin/dashboard?
 2. Intent resolution: keyword-map MVP acceptable, or do you want a schema-search fallback now?
-3. Staged progress copy: "Preparing / Generating geometry / Processing mesh / Checking model / Creating preview / Ready" — keep or reword?
+3. Staged progress copy (approved): **Preparing → Building geometry → Processing model → Checking printability → Creating preview → Ready** (reworded from the dev-sounding "Generating geometry"/"Processing mesh" per 2026-08-15 review)
 4. Export: 3MF-first default correct, or should STL remain default until a real slicer ships 3MF?
 5. Compare as a Studio mode — sketch it next, or wireframe My Models/Settings first?
