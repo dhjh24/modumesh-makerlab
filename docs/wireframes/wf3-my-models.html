@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maker Studio — Wireframe 3: My Models</title>
+<style>
+  :root {
+    --ink: #1a2b2e; --ink-muted: #5b6e72; --ink-faint: #8aa0a5;
+    --paper: #f7f9f9; --paper-2: #eef2f2; --line: #d8e0e0;
+    --accent: #0f766e; --accent-strong: #0b5d57; --accent-soft: #e0f2f0;
+    --amber: #d97706; --red: #b91c1c; --green: #15803d;
+    --shadow: 0 1px 3px rgba(20,40,44,.08), 0 4px 16px rgba(20,40,44,.06);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Segoe UI", Inter, Roboto, sans-serif; background: var(--paper); color: var(--ink); }
+  .wf-note { background: #fff7ed; border-bottom: 2px solid #fdba74; color: #7c2d12; font-size: 12.5px; padding: 6px 16px; text-align: center; }
+  header { background: white; border-bottom: 1px solid var(--line); padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 28px; position: sticky; top: 0; z-index: 20; }
+  .brand { font-weight: 800; font-size: 17px; letter-spacing: -0.02em; }
+  .brand span { color: var(--accent); }
+  nav.main { display: flex; gap: 6px; flex: 1; }
+  nav.main a { text-decoration: none; color: var(--ink-muted); font-weight: 600; font-size: 14px; padding: 6px 12px; border-radius: 999px; }
+  nav.main a.active { background: var(--accent-soft); color: var(--accent-strong); }
+  nav.main a.primary { background: var(--accent); color: white; }
+  .user { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-muted); }
+  .avatar { width: 30px; height: 30px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong); display: grid; place-items: center; font-weight: 700; font-size: 13px; }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 20px 90px; }
+  .btn { border: none; border-radius: 10px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: var(--accent-strong); }
+  .btn-ghost { background: white; color: var(--ink); border: 1px solid var(--line); }
+  .btn-ghost:hover { border-color: var(--accent); }
+  .btn-danger-ghost { background: white; color: var(--red); border: 1px solid #fecaca; }
+  .btn-danger-ghost:hover { background: #fef2f2; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+  .head h1 { font-size: 23px; }
+  .head .sub { color: var(--ink-muted); font-size: 13.5px; margin-top: 3px; }
+  .head .actions { display: flex; gap: 8px; }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 18px; }
+  .filter { border: 1px solid var(--line); background: white; border-radius: 999px; padding: 7px 15px; font-size: 12.5px; font-weight: 600; color: var(--ink-muted); cursor: pointer; font-family: inherit; }
+  .filter.on { background: var(--accent); color: white; border-color: var(--accent); }
+  .filter .cnt { opacity: .7; font-weight: 400; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card { background: white; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); display: flex; flex-direction: column; transition: transform .1s, border-color .1s; }
+  .card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .card .thumb { height: 158px; background: linear-gradient(180deg, #e9eff0, #dfe8e8); display: grid; place-items: center; position: relative; cursor: pointer; }
+  .card .thumb .state { position: absolute; top: 8px; right: 8px; font-size: 10.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+  .state-pass { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+  .state-warn { background: #fffbeb; color: var(--amber); border: 1px solid #fde68a; }
+  .state-na { background: white; color: var(--ink-faint); border: 1px solid var(--line); }
+  .card .thumb .dims { position: absolute; bottom: 8px; left: 10px; background: rgba(255,255,255,.92); border-radius: 7px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+  .card .thumb .dims .mm { color: var(--ink-faint); font-weight: 400; }
+  .card .body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+  .card .body h3 { font-size: 14.5px; cursor: pointer; }
+  .card .body h3:hover { color: var(--accent-strong); }
+  .card .body .meta { font-size: 12px; color: var(--ink-muted); }
+  .card .body .actions { display: flex; gap: 6px; margin-top: 11px; }
+  .card .body .actions .btn { flex: 1; font-size: 12px; padding: 7px 8px; }
+  .menu-dots { position: absolute; bottom: 8px; right: 10px; background: rgba(255,255,255,.92); border: 1px solid var(--line); border-radius: 7px; width: 26px; height: 26px; display: grid; place-items: center; cursor: pointer; font-size: 14px; color: var(--ink-muted); }
+  .menu-dots:hover { color: var(--ink); }
+
+  /* Empty / loading / error states */
+  .state-panel { border: 2px dashed var(--line); border-radius: 16px; padding: 54px 24px; text-align: center; background: white; }
+  .state-panel .icon { font-size: 40px; }
+  .state-panel h2 { font-size: 18px; margin-top: 12px; }
+  .state-panel p { color: var(--ink-muted); font-size: 13.5px; margin: 6px auto 18px; max-width: 420px; }
+  .skeletons { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .skeleton { border-radius: 14px; background: white; border: 1px solid var(--line); overflow: hidden; }
+  .skeleton .sk-thumb { height: 158px; background: linear-gradient(100deg, #eef2f2 30%, #f7f9f9 50%, #eef2f2 70%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
+  .skeleton .sk-line { height: 12px; border-radius: 6px; background: var(--paper-2); margin: 12px 14px 8px; }
+  .skeleton .sk-line.short { width: 60%; }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* Modals */
+  .modal { position: fixed; inset: 0; background: rgba(26,43,46,.55); display: none; align-items: center; justify-content: center; z-index: 50; }
+  .modal.show { display: flex; }
+  .modal-card { background: white; border-radius: 16px; padding: 24px 26px; width: min(440px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.3); }
+  .modal-card h3 { font-size: 17px; }
+  .modal-card .sub { color: var(--ink-muted); font-size: 13.5px; margin: 5px 0 18px; }
+  .modal-card .field { margin-bottom: 12px; }
+  .modal-card .field label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 4px; }
+  .modal-card .field input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; font-size: 13.5px; font-family: inherit; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px; }
+  .modal-actions .left { margin-right: auto; }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 12px 20px; border-radius: 10px; font-size: 13.5px; font-weight: 600; box-shadow: 0 8px 30px rgba(0,0,0,.25); z-index: 60; display: none; }
+  .toast.show { display: block; }
+  .mobile-bar { display: none; }
+  @media (max-width: 960px) { nav.main a:not(.primary) { display: none; } .mobile-bar { display: flex; } }
+  .mobile-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--line); z-index: 30; }
+  .mobile-bar a { flex: 1; text-align: center; padding: 9px 4px 8px; font-size: 10.5px; font-weight: 600; color: var(--ink-muted); text-decoration: none; }
+  .mobile-bar a .mi { display: block; font-size: 18px; margin-bottom: 2px; }
+  .mobile-bar a.active { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+
+<div class="wf-note"><b>Wireframe 3 — My Models</b> · Visual model library: thumbnail cards with printable state, filters, open/duplicate/export/delete, and the four states (content / empty / loading / error). Card actions + delete confirm + duplicate naming are clickable.</div>
+
+<header>
+  <div class="brand">ModuMesh <span>Maker Studio</span></div>
+  <nav class="main">
+    <a href="#">Create</a><a href="#">Explore</a><a href="#" class="active">My Models</a>
+  </nav>
+  <div class="user"><span>Dirk</span><div class="avatar">D</div></div>
+</header>
+
+<main>
+  <div class="head">
+    <div>
+      <h1>My Models</h1>
+      <div class="sub">Everything you've made — open one to keep editing.</div>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost" id="btn-new">＋ New model</button>
+    </div>
+  </div>
+
+  <!-- Filters (counts are wireframe placeholders) -->
+  <div class="filters" id="filters">
+    <button class="filter on" data-f="all">All <span class="cnt">12</span></button>
+    <button class="filter" data-f="pass">Printable <span class="cnt">8</span></button>
+    <button class="filter" data-f="warn">Needs work <span class="cnt">3</span></button>
+    <button class="filter" data-f="na">Not checked <span class="cnt">1</span></button>
+  </div>
+
+  <!-- Content state -->
+  <div class="cards" id="cards"></div>
+
+  <!-- Empty state -->
+  <div class="state-panel" id="empty" style="display:none">
+    <div class="icon">🪧</div>
+    <h2>No models yet</h2>
+    <p>Start with a nameplate, a storage box, or one of the other maker tools — your finished models land here automatically.</p>
+    <button class="btn btn-primary" onclick="toast('→ Create (WF1) — intent flow')">Make your first model</button>
+  </div>
+
+  <!-- Loading state -->
+  <div class="skeletons" id="loading" style="display:none">
+    <div class="skeleton"><div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div></div>
+    <div class="skeleton"><div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div></div>
+    <div class="skeleton"><div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div></div>
+    <div class="skeleton"><div class="sk-thumb"></div><div class="sk-line"></div><div class="sk-line short"></div></div>
+  </div>
+
+  <!-- Error state -->
+  <div class="state-panel" id="error" style="display:none">
+    <div class="icon">⚠️</div>
+    <h2>Couldn't load your models</h2>
+    <p>The MakerLab service didn't respond. Your models are safe — try again in a moment.</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn btn-primary" onclick="showContent()">Retry</button>
+      <button class="btn btn-ghost" onclick="showEmpty()">Show empty state</button>
+    </div>
+  </div>
+</main>
+
+<div class="mobile-bar">
+  <a href="#"><span class="mi">＋</span>Create</a><a href="#"><span class="mi">🧊</span>Studio</a><a href="#" class="active"><span class="mi">🗂</span>Models</a><a href="#"><span class="mi">🔍</span>Explore</a><a href="#"><span class="mi">⚙️</span>More</a>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal" id="delete-modal">
+  <div class="modal-card">
+    <h3>Remove this model?</h3>
+    <p class="sub" id="delete-sub">This hides the model from My Models. It stays archived in your account and can be restored.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="del-cancel">Cancel</button>
+      <button class="btn btn-danger-ghost" id="del-confirm">Remove</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate naming -->
+<div class="modal" id="dup-modal">
+  <div class="modal-card">
+    <h3>Duplicate model</h3>
+    <p class="sub">Creates a new project with the same settings — you can change it in Studio.</p>
+    <div class="field"><label>Name</label><input id="dup-name" type="text"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="dup-cancel">Cancel</button>
+      <button class="btn btn-primary" id="dup-confirm">Duplicate</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const MODELS = [
+  { name:'Workshop nameplate', tool:'Nameplate Maker', state:'pass', dims:'100×40×3', when:'just now', svg:'np' },
+  { name:'Studio door QR', tool:'QR Sign Maker', state:'warn', dims:'80×50×2', when:'2h ago', svg:'qr' },
+  { name:'Parts tray v1', tool:'Box Maker', state:'na', dims:'180×120×40', when:'yesterday', svg:'box' },
+  { name:'LED sign — workshop', tool:'Light Box Maker', state:'pass', dims:'240×120×20', when:'3d ago', svg:'lb' },
+  { name:'Keychain — DG', tool:'Keychain Maker', state:'pass', dims:'45×30×4', when:'3d ago', svg:'kc' },
+  { name:'Wall bracket L', tool:'Bracket Maker', state:'warn', dims:'90×60×8', when:'1w ago', svg:'br' },
+  { name:'Garden sign', tool:'Sign Maker', state:'pass', dims:'300×150×6', when:'1w ago', svg:'sg' },
+  { name:'Organizer 3×2', tool:'Box Maker', state:'pass', dims:'140×90×50', when:'2w ago', svg:'box2' },
+];
+const SVG = {
+  np:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="56" rx="36" ry="11" fill="#b8cdca" opacity=".45"/><path d="M13 36 L77 36 L77 48 Q77 56 71 56 L19 56 Q13 56 13 48 Z" fill="#1f8a7a"/><rect x="17" y="39" width="56" height="9" rx="2" fill="#0f766e"/><text x="45" y="47" text-anchor="middle" font-size="6" font-weight="800" fill="#eafffa" font-family="Georgia" font-style="italic">WORKSHOP</text></svg>',
+  qr:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="56" rx="34" ry="10" fill="#b8cdca" opacity=".4"/><rect x="20" y="34" width="50" height="32" rx="4" fill="#3d8b6e"/><text x="45" y="55" text-anchor="middle" font-size="9" font-weight="700" fill="#eafffa">QR</text></svg>',
+  box:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="58" rx="36" ry="10" fill="#b8cdca" opacity=".4"/><path d="M18 38 L72 38 L68 60 L22 60 Z" fill="#4b9a8f"/><rect x="18" y="30" width="54" height="10" rx="2" fill="#2a9a90"/></svg>',
+  box2:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="58" rx="36" ry="10" fill="#b8cdca" opacity=".4"/><path d="M18 40 L72 40 L68 62 L22 62 Z" fill="#3d8b6e"/><line x1="45" y1="40" x2="45" y2="62" stroke="#2a6b5e" stroke-width="2"/></svg>',
+  lb:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="58" rx="34" ry="9" fill="#b8cdca" opacity=".4"/><rect x="22" y="34" width="46" height="32" rx="5" fill="#f2c94c"/><text x="45" y="54" text-anchor="middle" font-size="7" font-weight="800" fill="#7c5a00">WORKSHOP</text></svg>',
+  kc:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="58" rx="30" ry="9" fill="#b8cdca" opacity=".4"/><circle cx="45" cy="40" r="16" fill="#1f8a7a" fill-opacity="0"/><circle cx="45" cy="40" r="16" fill="none" stroke="#1f8a7a" stroke-width="5"/><circle cx="45" cy="40" r="5" fill="#1f8a7a"/></svg>',
+  br:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="58" rx="34" ry="9" fill="#b8cdca" opacity=".4"/><path d="M30 30 L60 30 L60 62 L30 62 Z" fill="#4b9a8f"/><circle cx="36" cy="42" r="3.5" fill="#eafffa"/><circle cx="54" cy="42" r="3.5" fill="#eafffa"/></svg>',
+  sg:'<svg viewBox="0 0 90 90" style="width:82px;height:82px"><ellipse cx="45" cy="60" rx="36" ry="9" fill="#b8cdca" opacity=".4"/><rect x="14" y="36" width="62" height="26" rx="4" fill="#1f8a7a"/><text x="45" y="54" text-anchor="middle" font-size="8" font-weight="800" fill="#eafffa">GARDEN</text></svg>',
+};
+const STATE = { pass:['✓ Printable','state-pass'], warn:['⚠ Review','state-warn'], na:['— Not checked','state-na'] };
+
+let currentFilter = 'all';
+function renderCards(){
+  const list = currentFilter==='all' ? MODELS : MODELS.filter(m => m.state===currentFilter);
+  $('#cards').innerHTML = list.map(m => `
+    <div class="card">
+      <div class="thumb" onclick="openModel('${m.name}')">
+        <span class="state ${STATE[m.state][1]}">${STATE[m.state][0]}</span>
+        ${SVG[m.svg]}
+        <div class="dims">${m.dims} <span class="mm">mm</span></div>
+        <div class="menu-dots" onclick="event.stopPropagation();menuFor('${m.name}')" title="More actions">⋯</div>
+      </div>
+      <div class="body">
+        <h3 onclick="openModel('${m.name}')">${m.name}</h3>
+        <div class="meta">${m.tool} · ${m.when}</div>
+        <div class="actions">
+          <button class="btn btn-primary" onclick="openModel('${m.name}')">Open</button>
+          <button class="btn btn-ghost" onclick="exportModel('${m.name}')">Export</button>
+          <button class="btn btn-ghost" onclick="menuFor('${m.name}')">⋯</button>
+        </div>
+      </div>
+    </div>`).join('');
+  const empty = list.length === 0;
+  $('#cards').style.display = empty ? 'none' : 'grid';
+  $('#empty').style.display = empty ? 'block' : 'none';
+}
+document.querySelectorAll('#filters .filter').forEach(f => f.addEventListener('click', () => {
+  document.querySelectorAll('#filters .filter').forEach(x => x.classList.remove('on'));
+  f.classList.add('on');
+  currentFilter = f.dataset.f;
+  renderCards();
+}));
+
+function showLoading(){ $('#cards').style.display='none'; $('#empty').style.display='none'; $('#loading').style.display='grid'; }
+function showError(){ $('#cards').style.display='none'; $('#empty').style.display='none'; $('#loading').style.display='none'; $('#error').style.display='block'; }
+function showContent(){ $('#loading').style.display='none'; $('#error').style.display='none'; renderCards(); }
+function showEmpty(){ $('#loading').style.display='none'; $('#error').style.display='none'; $('#cards').style.display='none'; $('#empty').style.display='block'; }
+
+let target = null; // model targeted by a modal action
+function openModel(name){ toast(`Open in Studio → ${name} (WF1/2)`); }
+function exportModel(name){ toast(`Print / Export dialog → ${name} (WF1)`); }
+function delFor(name){ target = name; $('#delete-sub').textContent = `"${name}" will be hidden from My Models. It stays archived in your account and can be restored.`; $('#delete-modal').classList.add('show'); }
+$('#del-cancel').addEventListener('click', () => $('#delete-modal').classList.remove('show'));
+$('#del-confirm').addEventListener('click', () => {
+  $('#delete-modal').classList.remove('show');
+  const i = MODELS.findIndex(m => m.name===target);
+  if (i > -1) MODELS.splice(i,1);
+  renderCards();
+  toast(`Removed "${target}" — archived (restorable)`);
+});
+function dupFor(name){ target = name; $('#dup-name').value = name + ' (copy)'; $('#dup-modal').classList.add('show'); }
+$('#dup-cancel').addEventListener('click', () => $('#dup-modal').classList.remove('show'));
+$('#dup-confirm').addEventListener('click', () => {
+  $('#dup-modal').classList.remove('show');
+  const src = MODELS.find(m => m.name===target);
+  if (src) MODELS.unshift({ ...src, name: $('#dup-name').value || (src.name+' (copy)'), when:'just now' });
+  renderCards();
+  toast(`Duplicated "${target}" — open it in Studio to tweak`);
+});
+function menuFor(name){ toast(`⋯ menu: Duplicate · Remove (Open/Export on card)`); }
+
+$('#btn-new').addEventListener('click', () => toast('→ Create (WF1) — intent flow'));
+
+// Demo: load sequence + states
+renderCards();
+window.__demo = {
+  loading: showLoading, error: showError, content: showContent, empty: showEmpty,
+};
+</script>
+</body>
+</html>
