@@ -58,6 +58,7 @@ const ALLOWED: Record<string, string[]> = {
     'plugin',
     'Plugin',
     'fixture',
+    'Fixture',
     'resync',
     'registry',
     'v1.0.0',
