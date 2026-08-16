@@ -20,8 +20,9 @@ test.describe('Phase 4 accessibility @a11y', () => {
     expect(serious, JSON.stringify(serious, null, 2)).toEqual([]);
   });
 
-  test('generators page keyboard focus and labels', async ({ page }) => {
+  test('explore page keyboard focus and labels (canonical /explore)', async ({ page }) => {
     await seedToken(page, token);
+    // Canonical accessibility target: hit /explore directly, not via redirect.
     await page.goto('/explore');
     await expect(page.getByRole('heading', { name: 'Generator Marketplace' })).toBeVisible();
     await expect(page.getByText(/\d+ generators?/)).toBeVisible({ timeout: 30000 });
