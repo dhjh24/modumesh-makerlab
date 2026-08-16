@@ -30,12 +30,12 @@ My Models (/models)
 
 ## Card anatomy (locked)
 
-| Element | Source |
-|---|---|
-| Thumbnail | First viewable output (GLB/STL) rendered by the existing viewer; wireframe uses placeholder SVGs |
-| Name | Project name (editable in Studio) |
-| Maker tool | Tool presentation-layer name + version (human) — plugin IDs stay hidden |
-| Last modified | `updated_at` relative ("2h ago") |
+| Element         | Source                                                                                                                                                           |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Thumbnail       | First viewable output (GLB/STL) rendered by the existing viewer; wireframe uses placeholder SVGs                                                                 |
+| Name            | Project name (editable in Studio)                                                                                                                                |
+| Maker tool      | Tool presentation-layer name + version (human) — plugin IDs stay hidden                                                                                          |
+| Last modified   | `updated_at` relative ("2h ago")                                                                                                                                 |
 | Printable state | Derived from the job's real checks: all pass → PASS; warnings → WARNING; no inspection ran → NOT CHECKED. **Never infer printable when inspection did not run.** |
 
 ## Card actions (locked)
@@ -56,15 +56,15 @@ My Models (/models)
 
 ## States
 
-| State | Behavior |
-|---|---|
-| Content | Card grid + filters (counts per filter) |
-| Empty | "No models yet — start with a nameplate" + CTA → Create (no dev copy) |
-| Loading | Skeleton cards (shimmer) — not a text "Loading…" |
-| Error | "Couldn't load your models — your models are safe" + Retry (existing ErrorPanel semantics; correlation id in technical detail) |
-| Remove | Confirm modal naming the model; **recoverable wording** ("hidden… can be restored") |
-| Duplicate | Name prompt pre-filled "<name> (copy)"; creates a new project + reruns latest input_payload |
-| Filtered to zero | Empty-state panel ("No models match") with filter-clear action |
+| State            | Behavior                                                                                                                       |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Content          | Card grid + filters (counts per filter)                                                                                        |
+| Empty            | "No models yet — start with a nameplate" + CTA → Create (no dev copy)                                                          |
+| Loading          | Skeleton cards (shimmer) — not a text "Loading…"                                                                               |
+| Error            | "Couldn't load your models — your models are safe" + Retry (existing ErrorPanel semantics; correlation id in technical detail) |
+| Remove           | Confirm modal naming the model; **recoverable wording** ("hidden… can be restored")                                            |
+| Duplicate        | Name prompt pre-filled "<name> (copy)"; creates a new project + reruns latest input_payload                                    |
+| Filtered to zero | Empty-state panel ("No models match") with filter-clear action                                                                 |
 
 ## Backend dependencies (recorded, not built here)
 
@@ -80,6 +80,7 @@ My Models (/models)
 ## Approval record (2026-08-15)
 
 Approved from the product/UX side with these locked decisions:
+
 - Card actions: **Open + Export visible; Duplicate + Remove under ⋯**
 - Remove: **archive + hide, not permanent deletion**; recoverable copy ("hidden from My
   Models, stays archived, can be restored") — UI and backend agree

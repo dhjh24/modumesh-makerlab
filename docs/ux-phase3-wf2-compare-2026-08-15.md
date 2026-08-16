@@ -33,10 +33,10 @@ Studio → Compare
 Your correction is baked in: Compare is ONE command; the user then picks what they're
 comparing, phrased as intent, never as "compare versions/tools" API terms.
 
-| Kind | User-facing question | What's compared | UX |
-|---|---|---|---|
-| **Versions** | "Which settings look better?" | Saved attempts of the SAME maker tool (v1…vn from job history) | Version picker cards, each with its param summary |
-| **Tools** | "Which way should I make this?" | Current tool vs compatible Maker Tools (2–4) | Tool picker cards with compatibility tags |
+| Kind         | User-facing question            | What's compared                                                | UX                                                |
+| ------------ | ------------------------------- | -------------------------------------------------------------- | ------------------------------------------------- |
+| **Versions** | "Which settings look better?"   | Saved attempts of the SAME maker tool (v1…vn from job history) | Version picker cards, each with its param summary |
+| **Tools**    | "Which way should I make this?" | Current tool vs compatible Maker Tools (2–4)                   | Tool picker cards with compatibility tags         |
 
 - The kind switch is a segmented control: **"⚖️ Which settings look better?"** / **"🧩 Which way should I make this?"** — "Versions" is never the main UI label
 - **Default: Tools** ("Which way should I make this?") — a new user is more likely to ask this before accumulating several versions
@@ -86,14 +86,14 @@ comparing, phrased as intent, never as "compare versions/tools" API terms.
 
 ## States
 
-| State | Behavior |
-|---|---|
-| <2 selected | Run disabled, hint "Select at least 2 items to compare" |
-| Versions kind, <2 versions exist | Versions picker shows empty state → "Generate a new version first" + back to Studio |
-| Tool has no compatible tools | Tools picker empty state → "No other maker tools fit this design yet" + Explore CTA |
-| A candidate fails | Card shows FAIL state + error message (sanitized) + "Try again" per-card; stops blocking others once final |
-| Candidate still running | Other cards run independently; winner buttons stay hidden until every candidate is done (ready or failed-final) |
-| API/worker down | Existing OfflineState / ErrorPanel + correlation id in technical detail |
+| State                            | Behavior                                                                                                        |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| <2 selected                      | Run disabled, hint "Select at least 2 items to compare"                                                         |
+| Versions kind, <2 versions exist | Versions picker shows empty state → "Generate a new version first" + back to Studio                             |
+| Tool has no compatible tools     | Tools picker empty state → "No other maker tools fit this design yet" + Explore CTA                             |
+| A candidate fails                | Card shows FAIL state + error message (sanitized) + "Try again" per-card; stops blocking others once final      |
+| Candidate still running          | Other cards run independently; winner buttons stay hidden until every candidate is done (ready or failed-final) |
+| API/worker down                  | Existing OfflineState / ErrorPanel + correlation id in technical detail                                         |
 
 ## Per-tool parameter display (locked)
 
@@ -104,6 +104,7 @@ comparing, phrased as intent, never as "compare versions/tools" API terms.
 ## Approval record (2026-08-15)
 
 WF2 conceptually approved with four implementation-neutral wireframe corrections:
+
 1. Min 2 / max 4 selections in both modes ("Select at least 2 items to compare")
 2. Default kind = Tools (matches design doc)
 3. Printability checks hidden until that candidate finishes
