@@ -78,6 +78,13 @@
   .per-tool { border-top: 1px dashed var(--line); margin-top: 10px; padding-top: 10px; }
   .per-tool .who { font-size: 11px; color: var(--accent-strong); font-weight: 700; margin-bottom: 6px; }
   .per-tool .who .note { color: var(--ink-faint); font-weight: 400; }
+  /* At 4 candidates the per-tool unique sections collapse to headers (locked) */
+  #per-tool-col.crowded .param-box:not(.shared) .field { display: none; }
+  #per-tool-col.crowded .param-box:not(.shared) h3 { margin-bottom: 0; cursor: pointer; }
+  #per-tool-col.crowded .param-box:not(.shared).open .field { display: block; }
+  #per-tool-col.crowded .param-box:not(.shared).open h3 { margin-bottom: 8px; }
+  .crowd-note { display: none; font-size: 11.5px; color: var(--ink-faint); margin: 0 0 8px; }
+  #per-tool-col.crowded .crowd-note { display: block; }
 
   /* Run */
   .run-row { display: flex; align-items: center; gap: 12px; margin: 6px 0 4px; }
@@ -146,13 +153,13 @@
 
   <!-- Kind switch -->
   <div class="kind-switch">
-    <button class="on" id="kind-versions">⚖️ Which settings look better?</button>
-    <button id="kind-tools">🧩 Which way should I make this?</button>
+    <button id="kind-versions">⚖️ Which settings look better?</button>
+    <button class="on" id="kind-tools">🧩 Which way should I make this?</button>
   </div>
-  <p class="kind-hint" id="kind-hint">Compare saved versions of <b>Nameplate Maker</b> against each other.</p>
+  <p class="kind-hint" id="kind-hint">Compare <b>Nameplate Maker</b> against other maker tools that can make a similar thing.</p>
 
   <!-- Versions picker -->
-  <div class="panel" id="panel-versions">
+  <div class="panel" id="panel-versions" style="display:none">
     <h2>Pick versions to compare</h2>
     <p class="sub">Same maker tool, different settings — up to 4.</p>
     <div class="pick-grid">
@@ -175,7 +182,7 @@
   </div>
 
   <!-- Tools picker -->
-  <div class="panel" id="panel-tools" style="display:none">
+  <div class="panel" id="panel-tools">
     <h2>Compatible maker tools</h2>
     <p class="sub">Other tools that can use a similar design — up to 4. Only compatible ones are suggested.</p>
     <div class="pick-grid">
@@ -211,7 +218,8 @@
         <div class="field"><label>Material</label><select><option>PLA</option><option>PETG</option></select></div>
         <div class="field"><label>Mounting holes</label><select><option>None</option><option selected>Two</option><option>Four</option></select></div>
       </div>
-      <div>
+      <div id="per-tool-col">
+        <p class="crowd-note">4 candidates selected — tap a tool to show its unique settings.</p>
         <div class="param-box">
           <h3>Only in Nameplate Maker <span class="lbl only">per tool</span></h3>
           <div class="field"><label>Text</label><input type="text" value="WORKSHOP"></div>
@@ -261,8 +269,9 @@
 
 <script>
 const $ = s => document.querySelector(s);
-let kind = 'versions';
-let winner = null;
+let kind = 'tools';
+let currentItems = []; // the items being compared (for dynamic history naming)
+let cardStates = [];   // 'running' | 'ready' | 'failed' per card
 
 $('#back-studio').addEventListener('click', e => { e.preventDefault(); toast('Back in Studio — Workshop nameplate (unchanged)'); });
 
@@ -281,7 +290,7 @@ function setKind(k){
 }
 
 document.querySelectorAll('.pick').forEach(p => p.addEventListener('click', () => {
-  const max = kind==='versions' ? 3 : 4;
+  const max = 4;
   const group = kind==='versions' ? '#panel-versions .pick' : '#panel-tools .pick';
   const picks = document.querySelectorAll(group);
   if (p.classList.contains('sel')) { p.classList.remove('sel'); }
@@ -295,17 +304,22 @@ document.querySelectorAll('.pick').forEach(p => p.addEventListener('click', () =
 
 function updateRunHint(){
   const n = document.querySelectorAll(`#panel-${kind==='versions'?'versions':'tools'} .pick.sel`).length;
-  $('#run-hint').textContent = n===0 ? 'Select at least one item to compare.'
+  $('#run-hint').textContent = n < 2 ? 'Select at least 2 items to compare.'
     : `${n} selected · shared params copied to each ${kind==='versions'?'version':'tool'}`;
-  $('#btn-run').disabled = n===0;
+  $('#btn-run').disabled = n < 2;
+  // At 4 candidates, collapse per-tool unique sections (locked choice).
+  $('#per-tool-col').classList.toggle('crowded', n >= 4);
 }
+// Tapping a collapsed per-tool header expands just that tool's fields.
+$('#per-tool-col').addEventListener('click', (e) => {
+  const box = e.target.closest('.param-box:not(.shared)');
+  if (box && $('#per-tool-col').classList.contains('crowded')) box.classList.toggle('open');
+});
 updateRunHint();
 
 const SVG = (fill, extra='') => `<svg viewBox="0 0 90 90" style="width:80px;height:80px">${extra}<ellipse cx="45" cy="55" rx="34" ry="10" fill="#b8cdca" opacity=".45"/><path d="M13 36 L77 36 L77 48 Q77 56 71 56 L19 56 Q13 56 13 48 Z" fill="${fill}"/><rect x="17" y="39" width="56" height="9" rx="2" fill="#0f766e"/><text x="45" y="47" text-anchor="middle" font-size="6" font-weight="800" fill="#eafffa" font-family="Georgia" font-style="italic">WORKSHOP</text></svg>`;
-const CHECKS = `<div class="checks"><span class="chk pass">✓ Manifold</span><span class="chk pass">✓ Watertight</span><span class="chk pass">✓ Fits build volume</span></div>`;
 
 function cardFor(item, i, kind){
-  const running = i === 0 ? 'now' : 'later';
   const names = { np:'Nameplate Maker', qr:'QR Sign Maker', sign:'Sign Maker', lb:'Light Box Maker' };
   const name = kind==='versions' ? item : names[item];
   const dims = item==='v1' ? '80 × 40 × 2' : '100 × 40 × 3';
@@ -325,8 +339,13 @@ function cardFor(item, i, kind){
       ${SVG('#1f8a7a')}
       <div class="dims">${dims} <span class="mm">mm</span></div>
     </div>
-    ${CHECKS}
-    <div class="params-diff">${kind==='versions'
+    <div class="checks" style="display:none">
+      <span class="chk pass">✓ Manifold</span>
+      <span class="chk pass">✓ Watertight</span>
+      <span class="chk pass">✓ Fits build volume</span>
+      <span class="chk fail" style="display:none">✗ Failed — see details</span>
+    </div>
+    <div class="params-diff" style="display:none">${kind==='versions'
       ? (item==='v1' ? '2 mm thick · no holes · 80 mm wide' : item==='v2' ? 'raised text · 120×50 mm' : 'engraved · current')
       : (item==='qr' ? 'QR link set · corner: rounded' : item==='sign' ? 'sign text · UV seal off' : 'text: WORKSHOP')}</div>
     <div class="card-foot">
@@ -337,14 +356,15 @@ function cardFor(item, i, kind){
 
 $('#btn-run').addEventListener('click', () => {
   const items = [...document.querySelectorAll(`#panel-${kind==='versions'?'versions':'tools'} .pick.sel`)].map(p => p.dataset.v || p.dataset.t);
-  if (items.length === 0) return;
+  if (items.length < 2) { toast('Select at least 2 items to compare.'); return; }
+  currentItems = items;
+  cardStates = items.map(() => 'running');
   $('#results').style.display = 'grid';
   $('#results').innerHTML = items.map((it,i) => cardFor(it,i,kind)).join('');
   toast(`Comparing ${items.length} ${kind==='versions'?'versions':'tools'}…`);
   const STAGES = ['Preparing','Building geometry','Processing model','Checking printability','Creating preview','Ready'];
   items.forEach((_, i) => {
     setTimeout(() => {
-      const card = $('#results .card').children[i] || document.querySelectorAll('#results .card')[i];
       let s = 0;
       const iv = setInterval(() => {
         s++;
@@ -354,36 +374,53 @@ $('#btn-run').addEventListener('click', () => {
         $('#stage-txt-'+i).textContent = STAGES[Math.min(5, Math.floor(s/1.6))];
         if (s >= 9) {
           clearInterval(iv);
+          cardStates[i] = 'ready';
           const card = document.querySelectorAll('#results .card')[i];
           card.querySelector('.prog').style.display = 'none';
           card.querySelector('.thumb').style.display = 'grid';
-          card.querySelector('.card-foot .btn').style.display = 'block';
+          card.querySelector('.checks').style.display = 'grid';
+          card.querySelector('.params-diff').style.display = 'block';
           card.querySelector('.status').textContent = '✓ Ready';
           card.querySelector('.status').style.color = 'var(--green)';
+          // Winner selection unlocks only when EVERY candidate is done.
+          if (cardStates.every(st => st !== 'running')) unlockWinners();
         }
       }, 350);
     }, i * 900);
   });
 });
 
+function unlockWinners(){
+  document.querySelectorAll('#results .card').forEach((card, i) => {
+    if (cardStates[i] === 'ready') {
+      card.querySelector('.card-foot .btn').style.display = 'block';
+    }
+  });
+}
+
+function historyName(k, items){
+  const names = { np:'Nameplate Maker', qr:'QR Sign Maker', sign:'Sign Maker', lb:'Light Box Maker' };
+  const labels = items.map(it => k==='versions' ? it : (names[it] || it));
+  return `Compare · ${labels.join(' vs ')}`;
+}
+
 function pickWinner(key, k){
-  winner = key;
-  document.querySelectorAll('#results .card').forEach(c => c.classList.remove('winner'));
   const card = document.querySelector(`#results .card[data-k="${key}"]`);
+  document.querySelectorAll('#results .card').forEach(c => c.classList.remove('winner'));
   card.classList.add('winner');
   const badge = card.querySelector('.winner-badge');
   if (badge) badge.style.display = 'block';
   const name = k==='versions' ? key : ({np:'Nameplate Maker',qr:'QR Sign Maker',sign:'Sign Maker',lb:'Light Box Maker'})[key];
-  $('#modal-title').textContent = k==='versions' ? `Use ${name}?` : `Use ${name}?`;
-  $('#modal-sub').textContent = k==='versions'
-    ? 'This becomes the current Studio model. The comparison stays in History as “Compare · 3 versions”.'
-    : 'This tool\'s result becomes the current Studio model. The comparison stays in History as “Compare · 3 tools”.';
+  const hist = historyName(k, currentItems);
+  $('#modal-title').textContent = `Use ${name}?`;
+  $('#modal-sub').textContent = `This becomes the current Studio model. The comparison stays in History as “${hist}” (${currentItems.length} ${k==='versions'?'versions':'tools'}).`;
   $('#modal').classList.add('show');
 }
 $('#modal-cancel').addEventListener('click', () => $('#modal').classList.remove('show'));
 $('#modal-confirm').addEventListener('click', () => {
   $('#modal').classList.remove('show');
-  toast(kind==='versions' ? `${winner} is now your Studio model — comparison saved to History` : 'Winner loaded into Studio — comparison saved to History');
+  const hist = historyName(kind, currentItems);
+  toast(`${kind==='versions'?'Version':'Tool'} result loaded into Studio — History keeps “${hist}”`);
 });
 
 function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2800); }

@@ -1,6 +1,6 @@
-# Maker Studio UX Overhaul — Phase 3, Wireframe 2: Compare mode
+# Maker Studio UX Overhaul — Phase 3, Wireframe 2: Compare mode (approved)
 
-Date: 2026-08-15 · Branch: agent/ux-wf2 · Status: FOR REVIEW
+Date: 2026-08-15 · Branch: agent/ux-wf2 · Status: **APPROVED with corrections (2026-08-15)**
 Base: Phase 2 IA (approved) + WF1 (approved, merged #54/26f6d124)
 
 ## Deliverable
@@ -38,8 +38,12 @@ comparing, phrased as intent, never as "compare versions/tools" API terms.
 | **Versions** | "Which settings look better?" | Saved attempts of the SAME maker tool (v1…vn from job history) | Version picker cards, each with its param summary |
 | **Tools** | "Which way should I make this?" | Current tool vs compatible Maker Tools (2–4) | Tool picker cards with compatibility tags |
 
-- The kind switch is a segmented control: **"⚖️ Which settings look better?"** / **"🧩 Which way should I make this?"**
-- Default: Tools (the more common "should I use something else?" case), one tap to Versions
+- The kind switch is a segmented control: **"⚖️ Which settings look better?"** / **"🧩 Which way should I make this?"** — "Versions" is never the main UI label
+- **Default: Tools** ("Which way should I make this?") — a new user is more likely to ask this before accumulating several versions
+
+## Selection contract (corrected)
+
+- **Both modes: minimum 2, maximum 4** selections. The Run button stays disabled until ≥2; hint reads **"Select at least 2 items to compare."**
 
 ## Compatibility model (tools kind)
 
@@ -49,9 +53,7 @@ comparing, phrased as intent, never as "compare versions/tools" API terms.
   selectable but its per-tool input is explicit).
 - Tags: **Fully compatible** (green) / **Needs [X]** (amber) — the user always sees WHY a
   tool is or isn't a drop-in.
-- MVP rule: compatibility = overlapping schema key families (width/height/thickness +
-  input mode). No ML, no manual matrix in v1 — a small hand-authored map in the tool
-  presentation layer, extended as tools land.
+- **No ML in MVP; compatibility uses a small hand-authored map plus schema-family matching.**
 
 ## Parameter handling (the anti-JSON contract)
 
@@ -70,34 +72,48 @@ comparing, phrased as intent, never as "compare versions/tools" API terms.
 - Cards run **independently** — each shows its own staged progress (Preparing → Building
   geometry → Processing model → Checking printability → Creating preview → Ready, per
   approved copy).
+- **Printability checks appear only once that candidate has finished** — no ✓ marks during
+  Preparing/Building (honesty rule from WF1; checks render hidden until completion).
 - On ready, each card shows: 3D preview (existing viewer), **dimensions**, **printability
-  checks** (real, from mesh-inspector/design.json — same honesty rule as WF1), and its
-  param summary.
+  checks** (real, from mesh-inspector/design.json), and its param summary.
+- **Winner selection waits for every candidate** — no choosing before the comparison is
+  complete. A candidate whose failure is **final** stops blocking the others (failed cards
+  show the failure + "Try again" instead of ✓ checks).
 - **Select winner** → "Use this version" → confirm modal → winner becomes the Studio
-  model; the comparison is recorded in Studio History as one entry
-  ("Compare · 3 versions" / "Compare · 3 tools") so the user can return and see what was
-  compared.
+  model; the comparison is recorded in Studio History as a **descriptive entry** —
+  e.g. **"Compare · Nameplate vs QR Sign vs Sign"** — with the count as secondary
+  metadata ("3 tools"). History count is always the actual selection count.
 
 ## States
 
 | State | Behavior |
 |---|---|
-| 0 selected | Run disabled, hint "Select at least one item" |
+| <2 selected | Run disabled, hint "Select at least 2 items to compare" |
 | Versions kind, <2 versions exist | Versions picker shows empty state → "Generate a new version first" + back to Studio |
 | Tool has no compatible tools | Tools picker empty state → "No other maker tools fit this design yet" + Explore CTA |
-| A candidate fails | Card shows FAIL checks + error message (sanitized) + "Try again" per-card |
-| Candidate still running | Other cards remain interactive; winner selection waits for all (or allow partial: pick from ready cards) |
+| A candidate fails | Card shows FAIL state + error message (sanitized) + "Try again" per-card; stops blocking others once final |
+| Candidate still running | Other cards run independently; winner buttons stay hidden until every candidate is done (ready or failed-final) |
 | API/worker down | Existing OfflineState / ErrorPanel + correlation id in technical detail |
 
-## Review questions
+## Per-tool parameter display (locked)
 
-1. Two-kind switch (settings vs tools) — is the phrasing right, or should "Versions" be
-   labeled "My saved versions" for clarity?
-2. Compatibility tags: "Fully compatible" / "Needs artwork" — OK, or prefer different labels?
-3. Per-tool params in separate boxes — right granularity, or should each tool's unique
-   params collapse into an accordion to save space with 4 tools?
-4. Winner selection: allow picking a winner while other candidates still run, or wait for all?
-5. History entry naming: "Compare · 3 tools" — good enough, or name it by tools
-   ("Compare · Nameplate vs QR Sign vs Sign")?
+- **2–3 candidates: per-tool unique sections stay expanded.**
+- **4 candidates: the unique sections collapse** (accordion) to keep the comparison readable.
+- Shared panel is always expanded.
 
-After WF2 approval: **WF3 = My Models**, then the implementation waves (W2.1 → W2.6) begin.
+## Approval record (2026-08-15)
+
+WF2 conceptually approved with four implementation-neutral wireframe corrections:
+1. Min 2 / max 4 selections in both modes ("Select at least 2 items to compare")
+2. Default kind = Tools (matches design doc)
+3. Printability checks hidden until that candidate finishes
+4. History count dynamic (descriptive name + actual count)
+
+Locked design choices: "Which settings look better?" / "Which way should I make this?"
+phrasing (no "Versions" main label) · Fully compatible / Needs artwork tags · per-tool
+boxes expanded at 2–3, collapsed at 4 · winner selection waits for all candidates
+(failed-final stops blocking) · descriptive History names ("Compare · Nameplate vs QR
+Sign vs Sign") with count as secondary · wording: "No ML in MVP; compatibility uses a
+small hand-authored map plus schema-family matching."
+
+After WF2 lands: **WF3 = My Models**, then implementation waves (W2.1 → W2.6).
