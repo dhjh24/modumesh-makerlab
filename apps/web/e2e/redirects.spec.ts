@@ -7,9 +7,11 @@ import { expect, test } from '@playwright/test';
  */
 test.describe('Legacy route redirects', () => {
   test('/generators redirects permanently to /explore', async ({ page }) => {
-    // maxRedirects 0 → the 301 itself is returned (page.goto would follow it).
+    // maxRedirects 0 → the redirect itself is returned (page.goto would
+    // follow it). Next.js emits 308 for permanent:true — the standards-
+    // compliant permanent code that preserves the request method.
     const res = await page.request.get('/generators', { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
+    expect(res.status()).toBe(308);
     expect(res.headers().location).toBe('/explore');
     // And following it lands on the canonical page.
     await page.goto('/generators');
@@ -19,7 +21,7 @@ test.describe('Legacy route redirects', () => {
 
   test('/generators/[tool] redirects to /explore/[tool]', async ({ page }) => {
     const res = await page.request.get('/generators/nameplate', { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
+    expect(res.status()).toBe(308);
     expect(res.headers().location).toBe('/explore/nameplate');
     await page.goto('/generators/nameplate');
     await expect(page).toHaveURL(/\/explore\/nameplate$/);
@@ -27,21 +29,21 @@ test.describe('Legacy route redirects', () => {
 
   test('/health redirects to /admin/health', async ({ page }) => {
     const res = await page.request.get('/health', { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
+    expect(res.status()).toBe(308);
     expect(res.headers().location).toBe('/admin/health');
   });
 
   test('/projects/[id] redirects to /studio/[id]', async ({ page }) => {
     const id = '00000000-0000-0000-0000-000000000000';
     const res = await page.request.get(`/projects/${id}`, { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
+    expect(res.status()).toBe(308);
     expect(res.headers().location).toBe(`/studio/${id}`);
   });
 
   test('/projects/[id]/compare redirects to /studio/[id]/compare', async ({ page }) => {
     const id = '00000000-0000-0000-0000-000000000000';
     const res = await page.request.get(`/projects/${id}/compare`, { maxRedirects: 0 });
-    expect(res.status()).toBe(301);
+    expect(res.status()).toBe(308);
     expect(res.headers().location).toBe(`/studio/${id}/compare`);
   });
 });
