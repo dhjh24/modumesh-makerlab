@@ -153,7 +153,7 @@ export default function MarketplacePage() {
             {items.map((item) => (
               <Link
                 key={`${item.plugin_id}@${item.version}`}
-                href={`/generators/${item.plugin_id}`}
+                href={`/explore/${item.plugin_id}`}
                 aria-label={item.name}
                 style={{ textDecoration: 'none' }}
               >

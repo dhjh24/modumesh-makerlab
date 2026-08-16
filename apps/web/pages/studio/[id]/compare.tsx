@@ -394,7 +394,7 @@ export default function CompareGeneratorsPage() {
       </Head>
 
       <p className="mm-meta" style={{ margin: 0 }}>
-        <Link href={`/projects/${projectId}`}>← Back to project</Link>
+        <Link href={`/studio/${projectId}`}>← Back to studio</Link>
       </p>
       <h1 className="mm-h1" style={{ fontSize: '1.45rem' }}>
         Compare generators
@@ -452,7 +452,7 @@ export default function CompareGeneratorsPage() {
             title="No enabled generators"
             description="Install plugins from the catalog first."
             actionLabel="Browse catalog"
-            onAction={() => void router.push('/generators')}
+            onAction={() => void router.push('/explore')}
           />
         ) : (
           <>
