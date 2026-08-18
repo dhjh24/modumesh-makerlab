@@ -15,7 +15,7 @@ test.describe('Phase 4 accessibility @a11y', () => {
   test('home has no serious axe violations', async ({ page }) => {
     await seedToken(page, token);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What do you want to make?' })).toBeVisible();
     const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
     const serious = results.violations.filter((v) =>
       ['serious', 'critical'].includes(v.impact || ''),

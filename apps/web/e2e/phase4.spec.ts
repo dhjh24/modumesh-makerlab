@@ -25,17 +25,21 @@ test.describe('Phase 4 core flows', () => {
     ({ token } = await registerTestUser(request));
   });
 
-  test('home dashboard shows catalog and can create a project', async ({ page }) => {
+  test('create landing resolves an intent and opens the studio with the tool', async ({ page }) => {
     await seedToken(page, token);
     await page.goto('/');
-    await expect(page.getByRole('heading', { name: 'ModuMesh MakerLab' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Generator catalog' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What do you want to make?' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Parametric builder' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Text to 3D' })).toBeVisible();
 
-    const name = `E2E Project ${Date.now()}`;
-    await page.getByLabel('Name').fill(name);
-    await page.getByRole('button', { name: 'Create project' }).click();
-    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+/);
-    await expect(page.getByRole('heading', { name })).toBeVisible();
+    await page
+      .getByRole('textbox', { name: 'What do you want to make?' })
+      .fill('a storage box with compartments');
+    await page.getByRole('button', { name: 'Make it' }).click();
+    await expect(page).toHaveURL(/\/studio\/[0-9a-f-]+\?tool=openscad-template/);
+    await expect(
+      page.getByRole('heading', { name: /Box & Organizer Maker project/ }),
+    ).toBeVisible();
   });
 
   test('explore page opens maker tool and creates a project from it', async ({ page }) => {
